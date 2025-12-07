@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useOrganization } from '@/contexts/organization-context'
-import { getPipedriveIntegration, disconnectIntegration } from '@/app/actions/integrations'
+import { getPipedriveIntegration, disconnectIntegration, importPipedriveSellers } from '@/app/actions/integrations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Check, ExternalLink, Unplug } from 'lucide-react'
+import { Check, ExternalLink, Unplug, Users, Loader2 } from 'lucide-react'
 import type { IntegrationWithType } from '@/types'
 
 export default function ConfiguracoesPage() {
@@ -20,6 +20,7 @@ export default function ConfiguracoesPage() {
   const [integration, setIntegration] = useState<IntegrationWithType | null>(null)
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [importingSellers, setImportingSellers] = useState(false)
 
   // Mostrar toast baseado em query params (retorno do OAuth)
   useEffect(() => {
@@ -72,6 +73,23 @@ export default function ConfiguracoesPage() {
       }
     } finally {
       setDisconnecting(false)
+    }
+  }
+
+  async function handleImportSellers() {
+    if (!organization) return
+
+    setImportingSellers(true)
+    try {
+      const result = await importPipedriveSellers(organization.id)
+      if (result.success) {
+        const { imported, updated, skipped } = result.data
+        toast.success(`Importação concluída: ${imported} novos, ${updated} atualizados, ${skipped} ignorados`)
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setImportingSellers(false)
     }
   }
 
@@ -180,6 +198,47 @@ export default function ConfiguracoesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Seção Sincronização - só aparece se CRM conectado */}
+      {integration && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Sincronização</CardTitle>
+            <CardDescription>
+              Importe dados do CRM para o sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <span className="font-medium">Importar Vendedores</span>
+                  <p className="text-sm text-muted-foreground">
+                    Importa usuários do Pipedrive como vendedores
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleImportSellers}
+                disabled={importingSellers}
+              >
+                {importingSellers ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Importando...
+                  </>
+                ) : (
+                  'Importar'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Seção Organização */}
       <Card>

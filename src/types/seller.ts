@@ -18,3 +18,14 @@ export type CreateSellerInput = {
 
 export type UpdateSellerInput = Partial<Omit<Seller, 'id' | 'organization_id' | 'created_at' | 'updated_at'>>
 
+// Vendedor com regra de comissão
+export type SellerWithRule = Seller & {
+  commission_rule: {
+    id: string
+    name: string
+    type: 'fixed' | 'tiered'
+    percentage: number | null
+    is_default: boolean
+  } | null
+}
+

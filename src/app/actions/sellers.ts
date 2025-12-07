@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { sellerRepository } from '@/lib/repositories/seller-repository'
 import { revalidatePath } from 'next/cache'
-import type { Seller } from '@/types'
+import type { Seller, SellerWithRule } from '@/types'
 
 // Schemas de validação
 const createSellerSchema = z.object({
@@ -32,6 +32,10 @@ export async function getSellers(organizationId: string): Promise<Seller[]> {
 
 export async function getActiveSellers(organizationId: string): Promise<Seller[]> {
   return sellerRepository.findActiveByOrganization(organizationId)
+}
+
+export async function getSellersWithRules(organizationId: string): Promise<SellerWithRule[]> {
+  return sellerRepository.findWithRules(organizationId)
 }
 
 export async function getSellerById(id: string): Promise<Seller | null> {

@@ -13,13 +13,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createSeller, updateSeller } from '@/app/actions/sellers'
 import { toast } from 'sonner'
-import type { Seller } from '@/types'
+import type { Seller, SellerWithRule } from '@/types'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   organizationId: string
-  seller?: Seller | null
+  seller?: Seller | SellerWithRule | null
 }
 
 export function SellerDialog({ open, onOpenChange, organizationId, seller }: Props) {

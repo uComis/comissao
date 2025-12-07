@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Home, Users, BookOpen, ShoppingCart, BarChart3 } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -30,7 +30,7 @@ const menuItems = [
   {
     title: 'Regras',
     url: '/regras',
-    icon: BookOpen,
+    icon: Scale,
   },
   {
     title: 'Vendas',

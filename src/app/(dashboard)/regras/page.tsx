@@ -2,40 +2,46 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useOrganization } from '@/contexts/organization-context'
-import { getSellersWithRules } from '@/app/actions/sellers'
-import { SellerTable, SellerDialog } from '@/components/sellers'
+import { getCommissionRulesWithSellers } from '@/app/actions/commission-rules'
+import { getActiveSellers } from '@/app/actions/sellers'
+import { RuleTable, RuleDialog } from '@/components/rules'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Users } from 'lucide-react'
-import type { SellerWithRule } from '@/types'
+import { Plus, Scale, Star, Layers } from 'lucide-react'
+import type { CommissionRuleWithSellers, Seller } from '@/types'
 
-export default function VendedoresPage() {
+export default function RegrasPage() {
   const { organization, loading: orgLoading } = useOrganization()
-  const [sellers, setSellers] = useState<SellerWithRule[]>([])
+  const [rules, setRules] = useState<CommissionRuleWithSellers[]>([])
+  const [sellers, setSellers] = useState<Seller[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
 
-  const loadSellers = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!organization) return
     setLoading(true)
     try {
-      const data = await getSellersWithRules(organization.id)
-      setSellers(data)
+      const [rulesData, sellersData] = await Promise.all([
+        getCommissionRulesWithSellers(organization.id),
+        getActiveSellers(organization.id),
+      ])
+      setRules(rulesData)
+      setSellers(sellersData)
     } finally {
       setLoading(false)
     }
   }, [organization])
 
   useEffect(() => {
-    loadSellers()
-  }, [loadSellers])
+    loadData()
+  }, [loadData])
 
   const handleDialogChange = (open: boolean) => {
     setDialogOpen(open)
     if (!open) {
-      loadSellers()
+      loadData()
     }
   }
 
@@ -56,45 +62,59 @@ export default function VendedoresPage() {
     )
   }
 
-  const activeCount = sellers.filter((s) => s.is_active).length
-  const inactiveCount = sellers.filter((s) => !s.is_active).length
+  const activeCount = rules.filter((r) => r.is_active).length
+  const inactiveCount = rules.filter((r) => !r.is_active).length
+  const defaultRule = rules.find((r) => r.is_default && r.is_active)
+  const tieredCount = rules.filter((r) => r.is_active && r.type === 'tiered').length
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vendedores</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Regras de Comissão</h1>
           <p className="text-muted-foreground">
-            Gerencie os vendedores da sua organização
+            Configure as regras de cálculo de comissões
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo Vendedor
+          Nova Regra
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Ativas</CardTitle>
+            <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{sellers.length}</div>
+            <div className="text-2xl font-bold">{activeCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium">Regra Padrão</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <div className="text-lg font-bold truncate">
+              {defaultRule ? defaultRule.name : '-'}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inativos</CardTitle>
+            <CardTitle className="text-sm font-medium">Escalonadas</CardTitle>
+            <Layers className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{tieredCount}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inativas</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-muted-foreground">{inactiveCount}</div>
@@ -106,11 +126,11 @@ export default function VendedoresPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Lista de Vendedores</CardTitle>
+              <CardTitle>Lista de Regras</CardTitle>
               <CardDescription>
                 {showInactive
-                  ? 'Mostrando todos os vendedores'
-                  : 'Mostrando apenas vendedores ativos'}
+                  ? 'Mostrando todas as regras'
+                  : 'Mostrando apenas regras ativas'}
               </CardDescription>
             </div>
             {inactiveCount > 0 && (
@@ -119,7 +139,7 @@ export default function VendedoresPage() {
                 size="sm"
                 onClick={() => setShowInactive(!showInactive)}
               >
-                {showInactive ? 'Ocultar inativos' : 'Mostrar inativos'}
+                {showInactive ? 'Ocultar inativas' : 'Mostrar inativas'}
               </Button>
             )}
           </div>
@@ -132,17 +152,18 @@ export default function VendedoresPage() {
               <Skeleton className="h-10 w-full" />
             </div>
           ) : (
-            <SellerTable
-              sellers={sellers}
+            <RuleTable
+              rules={rules}
               organizationId={organization.id}
+              sellers={sellers.map((s) => ({ id: s.id, name: s.name }))}
               showInactive={showInactive}
-              onRefresh={loadSellers}
+              onRefresh={loadData}
             />
           )}
         </CardContent>
       </Card>
 
-      <SellerDialog
+      <RuleDialog
         open={dialogOpen}
         onOpenChange={handleDialogChange}
         organizationId={organization.id}

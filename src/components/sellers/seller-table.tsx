@@ -20,17 +20,18 @@ import {
 import { MoreHorizontal, Pencil, Trash2, RotateCcw } from 'lucide-react'
 import { deleteSeller, reactivateSeller } from '@/app/actions/sellers'
 import { toast } from 'sonner'
-import type { Seller } from '@/types'
+import type { SellerWithRule } from '@/types'
 import { SellerDialog } from './seller-dialog'
 
 type Props = {
-  sellers: Seller[]
+  sellers: SellerWithRule[]
   organizationId: string
   showInactive?: boolean
+  onRefresh?: () => void
 }
 
-export function SellerTable({ sellers, organizationId, showInactive = false }: Props) {
-  const [editingSeller, setEditingSeller] = useState<Seller | null>(null)
+export function SellerTable({ sellers, organizationId, showInactive = false, onRefresh }: Props) {
+  const [editingSeller, setEditingSeller] = useState<SellerWithRule | null>(null)
 
   const filteredSellers = showInactive
     ? sellers
@@ -40,6 +41,7 @@ export function SellerTable({ sellers, organizationId, showInactive = false }: P
     const result = await deleteSeller(id)
     if (result.success) {
       toast.success('Vendedor desativado')
+      onRefresh?.()
     } else {
       toast.error(result.error)
     }
@@ -49,6 +51,7 @@ export function SellerTable({ sellers, organizationId, showInactive = false }: P
     const result = await reactivateSeller(id)
     if (result.success) {
       toast.success('Vendedor reativado')
+      onRefresh?.()
     } else {
       toast.error(result.error)
     }
@@ -69,7 +72,7 @@ export function SellerTable({ sellers, organizationId, showInactive = false }: P
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Pipedrive ID</TableHead>
+            <TableHead>Comissão</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -80,10 +83,20 @@ export function SellerTable({ sellers, organizationId, showInactive = false }: P
               <TableCell className="font-medium">{seller.name}</TableCell>
               <TableCell>{seller.email || '-'}</TableCell>
               <TableCell>
-                {seller.pipedrive_id ? (
-                  <Badge variant="secondary">{seller.pipedrive_id}</Badge>
+                {seller.commission_rule ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm">{seller.commission_rule.name}</span>
+                    {seller.commission_rule.is_default && (
+                      <span className="text-xs text-muted-foreground">(padrão)</span>
+                    )}
+                    {seller.commission_rule.type === 'fixed' && seller.commission_rule.percentage && (
+                      <Badge variant="outline" className="ml-1">
+                        {seller.commission_rule.percentage}%
+                      </Badge>
+                    )}
+                  </div>
                 ) : (
-                  <span className="text-muted-foreground">Não vinculado</span>
+                  <span className="text-muted-foreground">Sem regra</span>
                 )}
               </TableCell>
               <TableCell>
@@ -127,7 +140,12 @@ export function SellerTable({ sellers, organizationId, showInactive = false }: P
 
       <SellerDialog
         open={!!editingSeller}
-        onOpenChange={(open) => !open && setEditingSeller(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingSeller(null)
+            onRefresh?.()
+          }
+        }}
         organizationId={organizationId}
         seller={editingSeller}
       />
