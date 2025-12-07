@@ -7,7 +7,9 @@ import type {
 } from './types'
 
 export function createPipedriveClient(apiDomain: string, accessToken: string) {
-  const baseUrl = `https://${apiDomain}/api/v1`
+  // api_domain pode vir como URL completa (https://xxx.pipedrive.com) ou só domínio
+  const cleanDomain = apiDomain.replace(/^https?:\/\//, '')
+  const baseUrl = `https://${cleanDomain}/api/v1`
 
   async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${baseUrl}${endpoint}`, {

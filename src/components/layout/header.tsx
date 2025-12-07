@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from './theme-toggle'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
+import Link from 'next/link'
 
 export function Header() {
   const { user, signOut } = useAuth()
@@ -51,9 +52,11 @@ export function Header() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            <span>Perfil</span>
+          <DropdownMenuItem asChild>
+            <Link href="/configuracoes">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Configurações</span>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => signOut()}>

@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Home, Users, BookOpen, ShoppingCart, BarChart3, Settings } from 'lucide-react'
+import { Home, Users, BookOpen, ShoppingCart, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -41,11 +41,6 @@ const menuItems = [
     title: 'Relatórios',
     url: '/relatorios',
     icon: BarChart3,
-  },
-  {
-    title: 'Configurações',
-    url: '/configuracoes',
-    icon: Settings,
   },
 ]
 
