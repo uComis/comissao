@@ -7,6 +7,7 @@ import type {
   Commission,
   CommissionWithDetails,
   SellerCommissionSummary,
+  SaleWithCommission,
 } from '@/types'
 
 // Types de retorno
@@ -57,6 +58,7 @@ export async function getCommissionById(id: string): Promise<Commission | null> 
 
 /**
  * Calcula comissões para todas as vendas de um período
+ * @deprecated Use closePeriod para fechar período
  */
 export async function calculateCommissionsForPeriod(
   organizationId: string,
@@ -71,6 +73,39 @@ export async function calculateCommissionsForPeriod(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao calcular comissões'
+    return { success: false, error: message }
+  }
+}
+
+/**
+ * Retorna vendas do período com comissões (híbrido)
+ * - Vendas fechadas: valor persistido
+ * - Vendas abertas: cálculo on-the-fly
+ */
+export async function getSalesWithCommissions(
+  organizationId: string,
+  period: string
+): Promise<SaleWithCommission[]> {
+  return commissionService.getSalesWithCommissions(organizationId, period)
+}
+
+/**
+ * Fecha período - persiste comissões de todas as vendas abertas
+ * Ação irreversível: valores são travados
+ */
+export async function closePeriod(
+  organizationId: string,
+  period: string
+): Promise<ActionResult<CalculatePeriodResult>> {
+  try {
+    const result = await commissionService.closePeriod(organizationId, period)
+
+    revalidatePath('/vendas')
+    revalidatePath('/dashboard')
+
+    return { success: true, data: result }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao fechar período'
     return { success: false, error: message }
   }
 }
@@ -147,6 +182,30 @@ export async function deleteCommission(id: string): Promise<ActionResult<void>> 
     return { success: true, data: undefined }
   } catch (err) {
     return { success: false, error: 'Erro ao excluir comissão' }
+  }
+}
+
+/**
+ * Estorna comissões (deleta por sale_ids)
+ * Permite recálculo on-the-fly das vendas afetadas
+ */
+export async function reverseCommissions(
+  saleIds: string[]
+): Promise<ActionResult<{ reversed: number }>> {
+  try {
+    let reversed = 0
+    for (const saleId of saleIds) {
+      await commissionRepository.deleteBySaleId(saleId)
+      reversed++
+    }
+
+    revalidatePath('/vendas')
+    revalidatePath('/dashboard')
+
+    return { success: true, data: { reversed } }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao estornar comissões'
+    return { success: false, error: message }
   }
 }
 

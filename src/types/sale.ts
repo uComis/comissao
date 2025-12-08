@@ -33,3 +33,14 @@ export type SaleWithSeller = Sale & {
   }
 }
 
+// Sale com comissão (calculada on-the-fly ou fechada)
+export type SaleWithCommission = SaleWithSeller & {
+  commission: {
+    amount: number
+    percentage_applied: number
+    rule_id: string | null
+    rule_name: string | null
+    is_closed: boolean // true = persistida, false = calculada on-the-fly
+  } | null
+}
+

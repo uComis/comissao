@@ -2,12 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useOrganization } from '@/contexts/organization-context'
-import { getSalesWithSellers, forceSyncSales } from '@/app/actions/sales'
-import { calculateCommissionsForPeriod, getTotalCommissionsByPeriod, getCommissionsByPeriod } from '@/app/actions/commissions'
+import { forceSyncSales } from '@/app/actions/sales'
+import { getSalesWithCommissions, closePeriod, reverseCommissions } from '@/app/actions/commissions'
 import { SalesTable } from '@/components/sales'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Select,
   SelectContent,
@@ -15,9 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RefreshCw, ShoppingCart, DollarSign, Calculator } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { RefreshCw, ShoppingCart, DollarSign, Lock, Calculator, RotateCcw, X, MoreVertical } from 'lucide-react'
 import { toast } from 'sonner'
-import type { SaleWithSeller, Commission } from '@/types'
+import type { SaleWithCommission } from '@/types'
 
 // Gera lista de períodos (últimos 12 meses)
 function generatePeriods(): { value: string; label: string }[] {
@@ -49,13 +65,18 @@ function getCurrentPeriod(): string {
 
 export default function VendasPage() {
   const { organization, loading: orgLoading } = useOrganization()
-  const [sales, setSales] = useState<SaleWithSeller[]>([])
+  const [sales, setSales] = useState<SaleWithCommission[]>([])
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
-  const [calculating, setCalculating] = useState(false)
+  const [closing, setClosing] = useState(false)
+  const [showCloseDialog, setShowCloseDialog] = useState(false)
   const [period, setPeriod] = useState(getCurrentPeriod())
-  const [totalCommission, setTotalCommission] = useState(0)
-  const [commissions, setCommissions] = useState<Commission[]>([])
+  
+  // Estado para modo de seleção (estorno)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [reversing, setReversing] = useState(false)
+  const [showReverseDialog, setShowReverseDialog] = useState(false)
 
   const periods = generatePeriods()
 
@@ -63,30 +84,12 @@ export default function VendasPage() {
     if (!organization) return
     setLoading(true)
     try {
-      const data = await getSalesWithSellers(organization.id)
-      console.log('[vendas] fetched sales', { total: data.length, period })
-      // Filtra pelo período selecionado
-      const filtered = data.filter((sale) => {
-        const salePeriod = sale.sale_date.substring(0, 7)
-        return salePeriod === period
-      })
-      console.log('[vendas] filtered sales', {
-        afterFilter: filtered.length,
-        sample: filtered.slice(0, 3).map((s) => ({
-          id: s.id,
-          date: s.sale_date,
-          seller: s.seller?.name,
-        })),
-      })
-      setSales(filtered)
-
-      // Carrega comissões do período
-      const [total, periodCommissions] = await Promise.all([
-        getTotalCommissionsByPeriod(organization.id, period),
-        getCommissionsByPeriod(organization.id, period),
-      ])
-      setTotalCommission(total)
-      setCommissions(periodCommissions)
+      // Usa função híbrida - já retorna vendas com comissões calculadas
+      const data = await getSalesWithCommissions(organization.id, period)
+      setSales(data)
+      // Limpa seleção ao recarregar
+      setSelectedIds(new Set())
+      setSelectionMode(false)
     } finally {
       setLoading(false)
     }
@@ -119,28 +122,49 @@ export default function VendasPage() {
     }
   }
 
-  async function handleCalculate() {
+  async function handleClosePeriod() {
     if (!organization) return
-    setCalculating(true)
+    setClosing(true)
     try {
-      const result = await calculateCommissionsForPeriod(organization.id, period)
+      const result = await closePeriod(organization.id, period)
       if (result.success) {
-        const { calculated, totalAmount } = result.data
+        const { calculated } = result.data
         if (calculated > 0) {
-          toast.success(`${calculated} comissões calculadas: ${formatCurrency(totalAmount)}`)
+          toast.success(`Período fechado: ${calculated} comissões registradas`)
         } else {
-          toast.info('Nenhuma comissão para calcular')
+          toast.info('Período fechado (sem novas comissões)')
         }
-        setTotalCommission(totalAmount)
-        // Recarrega comissões para atualizar a tabela
-        const periodCommissions = await getCommissionsByPeriod(organization.id, period)
-        setCommissions(periodCommissions)
+        // Recarrega para atualizar status is_closed
+        await loadSales()
       } else {
         toast.error(result.error)
       }
     } finally {
-      setCalculating(false)
+      setClosing(false)
+      setShowCloseDialog(false)
     }
+  }
+
+  async function handleReverse() {
+    if (selectedIds.size === 0) return
+    setReversing(true)
+    try {
+      const result = await reverseCommissions(Array.from(selectedIds))
+      if (result.success) {
+        toast.success(`${result.data.reversed} comissão(ões) estornada(s)`)
+        await loadSales()
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setReversing(false)
+      setShowReverseDialog(false)
+    }
+  }
+
+  function handleCancelSelection() {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
   }
 
   if (orgLoading) {
@@ -162,6 +186,9 @@ export default function VendasPage() {
 
   const totalGross = sales.reduce((sum, s) => sum + Number(s.gross_value), 0)
   const totalNet = sales.reduce((sum, s) => sum + Number(s.net_value), 0)
+  const totalCommission = sales.reduce((sum, s) => sum + (s.commission?.amount ?? 0), 0)
+  const openSalesCount = sales.filter((s) => s.commission && !s.commission.is_closed).length
+  const closedSalesCount = sales.filter((s) => s.commission?.is_closed).length
 
   return (
     <div className="space-y-6">
@@ -185,14 +212,32 @@ export default function VendasPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleSync} disabled={syncing}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Sincronizando...' : 'Sincronizar'}
+          <Button
+            onClick={() => setShowCloseDialog(true)}
+            disabled={closing || openSalesCount === 0 || selectionMode}
+          >
+            <Lock className={`mr-2 h-4 w-4 ${closing ? 'animate-pulse' : ''}`} />
+            {closing ? 'Fechando...' : 'Fechar Período'}
           </Button>
-          <Button onClick={handleCalculate} disabled={calculating || sales.length === 0}>
-            <Calculator className={`mr-2 h-4 w-4 ${calculating ? 'animate-pulse' : ''}`} />
-            {calculating ? 'Calculando...' : 'Calcular Comissões'}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" disabled={selectionMode}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleSync} disabled={syncing}>
+                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Sincronizando...' : 'Sincronizar vendas'}
+              </DropdownMenuItem>
+              {closedSalesCount > 0 && (
+                <DropdownMenuItem onClick={() => setSelectionMode(true)}>
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Estornar comissões
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -241,10 +286,39 @@ export default function VendasPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Vendas</CardTitle>
-          <CardDescription>
-            Vendas do período selecionado
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lista de Vendas</CardTitle>
+              <CardDescription>
+                {selectionMode
+                  ? 'Selecione as comissões para estornar'
+                  : 'Vendas do período selecionado'}
+              </CardDescription>
+            </div>
+            {selectionMode && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedIds.size} selecionada(s)
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelSelection}
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => setShowReverseDialog(true)}
+                  disabled={selectedIds.size === 0 || reversing}
+                >
+                  <RotateCcw className={`mr-1 h-4 w-4 ${reversing ? 'animate-spin' : ''}`} />
+                  {reversing ? 'Estornando...' : 'Confirmar Estorno'}
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -254,10 +328,53 @@ export default function VendasPage() {
               <Skeleton className="h-10 w-full" />
             </div>
           ) : (
-            <SalesTable sales={sales} commissions={commissions} />
+            <SalesTable
+              sales={sales}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+            />
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fechar Período</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá travar as comissões de {openSalesCount} venda(s) aberta(s).
+              Após o fechamento, os valores não poderão ser alterados automaticamente
+              por mudanças em regras ou taxas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClosePeriod} disabled={closing}>
+              {closing ? 'Fechando...' : 'Confirmar Fechamento'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showReverseDialog} onOpenChange={setShowReverseDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estornar Comissões</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá estornar {selectedIds.size} comissão(ões) fechada(s).
+              As vendas voltarão a calcular comissão automaticamente com base
+              nas regras e taxas atuais.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReverse} disabled={reversing}>
+              {reversing ? 'Estornando...' : 'Confirmar Estorno'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
