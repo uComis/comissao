@@ -13,6 +13,7 @@ export type Integration = {
   access_token: string
   refresh_token: string
   expires_at: string
+  last_synced_at: string | null
   created_at: string
   updated_at: string
 }
@@ -33,4 +34,11 @@ export type CreateIntegrationInput = {
 export type UpdateIntegrationInput = Partial<
   Omit<Integration, 'id' | 'organization_id' | 'integration_type_id' | 'created_at' | 'updated_at'>
 >
+
+// Tipos para sync
+export type SyncResult = {
+  synced: number
+  skipped: number
+  errors: number
+}
 
