@@ -9,6 +9,7 @@ type Organization = {
   name: string
   email: string | null
   owner_id: string
+  tax_deduction_rate: number | null
   created_at: string
   updated_at: string
 }

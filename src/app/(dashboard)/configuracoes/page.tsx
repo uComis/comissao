@@ -6,23 +6,35 @@ import { useAuth } from '@/contexts/auth-context'
 import { useOrganization } from '@/contexts/organization-context'
 import { getPipedriveIntegration, disconnectIntegration, importPipedriveSellers } from '@/app/actions/integrations'
 import { forceSyncSales } from '@/app/actions/sales'
+import { updateOrganization } from '@/app/actions/organizations'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Check, ExternalLink, Unplug, Users, Loader2, ShoppingCart } from 'lucide-react'
+import { Check, ExternalLink, Unplug, Users, Loader2, ShoppingCart, Pencil } from 'lucide-react'
 import type { IntegrationWithType } from '@/types'
 
 export default function ConfiguracoesPage() {
   const searchParams = useSearchParams()
   const { user } = useAuth()
-  const { organization, loading: orgLoading } = useOrganization()
+  const { organization, loading: orgLoading, refresh: refreshOrg } = useOrganization()
   const [integration, setIntegration] = useState<IntegrationWithType | null>(null)
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
   const [importingSellers, setImportingSellers] = useState(false)
   const [importingSales, setImportingSales] = useState(false)
+  
+  // Estado para edição do nome da organização
+  const [editingName, setEditingName] = useState(false)
+  const [orgName, setOrgName] = useState('')
+  const [savingName, setSavingName] = useState(false)
+  
+  // Estado para edição da taxa de dedução
+  const [editingTax, setEditingTax] = useState(false)
+  const [taxRate, setTaxRate] = useState('')
+  const [savingTax, setSavingTax] = useState(false)
 
   // Mostrar toast baseado em query params (retorno do OAuth)
   useEffect(() => {
@@ -109,6 +121,76 @@ export default function ConfiguracoesPage() {
       }
     } finally {
       setImportingSales(false)
+    }
+  }
+
+  function handleEditName() {
+    setOrgName(organization?.name || '')
+    setEditingName(true)
+  }
+
+  function handleCancelName() {
+    setEditingName(false)
+    setOrgName('')
+  }
+
+  async function handleSaveName() {
+    if (!organization) return
+
+    const name = orgName.trim()
+    if (!name) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+
+    setSavingName(true)
+    try {
+      const result = await updateOrganization(organization.id, { name })
+      if (result.success) {
+        toast.success('Nome atualizado')
+        setEditingName(false)
+        refreshOrg()
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setSavingName(false)
+    }
+  }
+
+  function handleEditTax() {
+    setTaxRate(organization?.tax_deduction_rate?.toString() || '0')
+    setEditingTax(true)
+  }
+
+  function handleCancelTax() {
+    setEditingTax(false)
+    setTaxRate('')
+  }
+
+  async function handleSaveTax() {
+    if (!organization) return
+
+    const rate = parseFloat(taxRate)
+    if (isNaN(rate) || rate < 0 || rate > 100) {
+      toast.error('Taxa deve ser um número entre 0 e 100')
+      return
+    }
+
+    setSavingTax(true)
+    try {
+      const result = await updateOrganization(organization.id, {
+        tax_deduction_rate: rate,
+      })
+      if (result.success) {
+        toast.success('Taxa de dedução atualizada')
+        setEditingTax(false)
+        refreshOrg()
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setSavingTax(false)
     }
   }
 
@@ -297,14 +379,71 @@ export default function ConfiguracoesPage() {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">Nome</label>
-            <p className="text-sm text-muted-foreground mt-1">
-              {organization.name}
-            </p>
+            {editingName ? (
+              <div className="flex items-center gap-2 mt-1">
+                <Input
+                  type="text"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  className="w-64"
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleSaveName} disabled={savingName}>
+                  {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleCancelName} disabled={savingName}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-muted-foreground">
+                  {organization.name}
+                </p>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleEditName}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium">Taxa de dedução (impostos)</label>
-            <p className="text-sm text-muted-foreground mt-1">
-              Configuração disponível em breve
+            {editingTax ? (
+              <div className="flex items-center gap-2 mt-1">
+                <div className="relative w-24">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={taxRate}
+                    onChange={(e) => setTaxRate(e.target.value)}
+                    className="pr-6"
+                    autoFocus
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                </div>
+                <Button size="sm" onClick={handleSaveTax} disabled={savingTax}>
+                  {savingTax ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleCancelTax} disabled={savingTax}>
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-muted-foreground">
+                  {organization.tax_deduction_rate != null 
+                    ? `${organization.tax_deduction_rate}%` 
+                    : 'Não configurada'}
+                </p>
+                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleEditTax}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              Percentual deduzido do valor bruto para calcular o valor líquido (base da comissão)
             </p>
           </div>
         </CardContent>
