@@ -1,10 +1,16 @@
 import {
   createPipedriveClient,
   refreshAccessToken,
-  type PipedriveDeal,
 } from '@/lib/clients/pipedrive'
 import { integrationRepository } from '@/lib/repositories/integration-repository'
+import { sellerRepository } from '@/lib/repositories/seller-repository'
+import { saleRepository } from '@/lib/repositories/sale-repository'
 import { createClient } from '@/lib/supabase-server'
+import { commissionEngine } from '@/lib/commission-engine'
+import type { SyncResult, CreateSaleInput } from '@/types'
+
+// Intervalo mínimo entre syncs (em minutos)
+const SYNC_INTERVAL_MINUTES = 2
 
 // Verifica se token está expirado (com margem de 5 minutos)
 function isTokenExpired(expiresAt: string): boolean {
@@ -12,6 +18,18 @@ function isTokenExpired(expiresAt: string): boolean {
   const now = new Date()
   const marginMs = 5 * 60 * 1000 // 5 minutos
   return expiresDate.getTime() - marginMs <= now.getTime()
+}
+
+// Verifica se já passou o intervalo mínimo desde último sync
+function shouldSync(lastSyncedAt: string | null, intervalMinutes: number = SYNC_INTERVAL_MINUTES): boolean {
+  if (!lastSyncedAt) return true
+
+  const lastSync = new Date(lastSyncedAt)
+  const now = new Date()
+  const elapsed = now.getTime() - lastSync.getTime()
+  const minInterval = intervalMinutes * 60 * 1000
+
+  return elapsed >= minInterval
 }
 
 export const pipedriveSyncService = {
@@ -50,60 +68,165 @@ export const pipedriveSyncService = {
   },
 
   /**
-   * Sincroniza deals ganhos do Pipedrive para tabela sales
+   * Verifica se é necessário sincronizar (throttle)
    */
-  async syncWonDeals(organizationId: string) {
+  async needsSync(organizationId: string): Promise<boolean> {
+    const integration = await integrationRepository.findByOrganizationAndType(
+      organizationId,
+      'pipedrive'
+    )
+
+    if (!integration) return false
+
+    return shouldSync(integration.last_synced_at)
+  },
+
+  /**
+   * Atualiza timestamp do último sync
+   */
+  async updateLastSyncedAt(organizationId: string): Promise<void> {
+    const integration = await integrationRepository.findByOrganizationAndType(
+      organizationId,
+      'pipedrive'
+    )
+
+    if (!integration) return
+
+    await integrationRepository.update(integration.id, {
+      last_synced_at: new Date().toISOString(),
+    })
+  },
+
+  /**
+   * Sincroniza deals ganhos do Pipedrive para tabela sales
+   * - Faz match de user_id (Pipedrive) com pipedrive_id (seller)
+   * - Aplica tax_deduction_rate para calcular net_value
+   * - Só importa deals de vendedores ativos cadastrados
+   */
+  async syncWonDeals(organizationId: string, force: boolean = false): Promise<SyncResult> {
+    // Verifica throttle (a menos que force=true)
+    if (!force) {
+      const needs = await this.needsSync(organizationId)
+      if (!needs) {
+        return { synced: 0, skipped: 0, errors: 0 }
+      }
+    }
+
     const client = await this.getClient(organizationId)
     const supabase = await createClient()
+
+    // Buscar tax_deduction_rate da organização
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('tax_deduction_rate')
+      .eq('id', organizationId)
+      .single()
+
+    if (orgError) throw new Error(`Failed to get organization: ${orgError.message}`)
+
+    const taxDeductionRate = Number(org.tax_deduction_rate) || 0
+
+    // Buscar vendedores ativos com pipedrive_id
+    const sellers = await sellerRepository.findActiveByOrganization(organizationId)
+    const sellersByPipedriveId = new Map<number, string>()
+
+    for (const seller of sellers) {
+      if (seller.pipedrive_id) {
+        sellersByPipedriveId.set(seller.pipedrive_id, seller.id)
+      }
+    }
+
+    // Se não há vendedores com pipedrive_id, não há o que sincronizar
+    if (sellersByPipedriveId.size === 0) {
+      await this.updateLastSyncedAt(organizationId)
+      return { synced: 0, skipped: 0, errors: 0 }
+    }
 
     // Buscar todos os deals ganhos
     const deals = await client.getAllWonDeals()
 
     if (deals.length === 0) {
-      return { synced: 0, skipped: 0 }
+      await this.updateLastSyncedAt(organizationId)
+      return { synced: 0, skipped: 0, errors: 0 }
     }
 
     // Buscar external_ids já existentes
-    const { data: existingSales } = await supabase
-      .from('sales')
-      .select('external_id')
-      .eq('organization_id', organizationId)
-      .in(
-        'external_id',
-        deals.map((d) => String(d.id))
-      )
+    const externalIds = deals.map((d) => String(d.id))
+    const existingIds = await saleRepository.getExistingExternalIds(organizationId, externalIds)
 
-    const existingIds = new Set(existingSales?.map((s) => s.external_id) || [])
+    // Filtrar e transformar deals
+    const salesToInsert: CreateSaleInput[] = []
+    let skipped = 0
+    let errors = 0
 
-    // Filtrar apenas deals novos
-    const newDeals = deals.filter((d) => !existingIds.has(String(d.id)))
+    for (const deal of deals) {
+      const externalId = String(deal.id)
 
-    if (newDeals.length === 0) {
-      return { synced: 0, skipped: deals.length }
+      // Skip se já existe
+      if (existingIds.has(externalId)) {
+        skipped++
+        continue
+      }
+
+      // Skip se não tem vendedor correspondente
+      const sellerId = sellersByPipedriveId.get(deal.user_id)
+      if (!sellerId) {
+        skipped++
+        continue
+      }
+
+      // Calcular net_value aplicando taxa mágica
+      const grossValue = deal.value
+      const netValue = commissionEngine.applyTaxDeduction(grossValue, taxDeductionRate)
+
+      // Extrair data da venda
+      const saleDate = deal.won_time
+        ? deal.won_time.split(' ')[0]
+        : deal.close_time?.split(' ')[0] || new Date().toISOString().split('T')[0]
+
+      salesToInsert.push({
+        organization_id: organizationId,
+        seller_id: sellerId,
+        external_id: externalId,
+        client_name: deal.title,
+        gross_value: grossValue,
+        net_value: netValue,
+        sale_date: saleDate,
+      })
     }
-
-    // Transformar deals em sales
-    const salesToInsert = newDeals.map((deal) => ({
-      organization_id: organizationId,
-      external_id: String(deal.id),
-      client_name: deal.title,
-      gross_value: deal.value,
-      net_value: deal.value, // Será recalculado com tax_deduction_rate depois
-      sale_date: deal.won_time ? deal.won_time.split(' ')[0] : deal.close_time?.split(' ')[0] || new Date().toISOString().split('T')[0],
-      // seller_id será vinculado manualmente ou via mapeamento
-    }))
 
     // Inserir em batch
-    const { error } = await supabase.from('sales').insert(salesToInsert)
-
-    if (error) {
-      throw new Error(`Failed to sync deals: ${error.message}`)
+    if (salesToInsert.length > 0) {
+      try {
+        await saleRepository.createMany(salesToInsert)
+      } catch (err) {
+        console.error('Error inserting sales:', err)
+        errors = salesToInsert.length
+      }
     }
+
+    // Atualizar timestamp do último sync
+    await this.updateLastSyncedAt(organizationId)
 
     return {
-      synced: newDeals.length,
-      skipped: existingIds.size,
+      synced: errors > 0 ? 0 : salesToInsert.length,
+      skipped,
+      errors,
     }
+  },
+
+  /**
+   * Sincroniza se necessário (com throttle) - para usar em páginas
+   */
+  async syncIfNeeded(organizationId: string): Promise<SyncResult> {
+    return this.syncWonDeals(organizationId, false)
+  },
+
+  /**
+   * Força sincronização (ignora throttle) - para uso manual
+   */
+  async forceSync(organizationId: string): Promise<SyncResult> {
+    return this.syncWonDeals(organizationId, true)
   },
 
   /**
@@ -123,4 +246,3 @@ export const pipedriveSyncService = {
     return deals
   },
 }
-
