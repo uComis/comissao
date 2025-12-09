@@ -71,7 +71,24 @@ Dashboard pessoal: "Extrato de Comissões" (O vendedor vê suas próprias vendas
 
 Objetivo: Eliminar as perguntas "quanto vou receber?" no WhatsApp do gestor.
 
-Fase 3: Engajamento (Gamificação)
+Fase 3: Gestão de Margem e Lucratividade (Granularidade por SKU)
+Foco: Transformar a comissão em ferramenta estratégica para proteger margem.
+
+O Problema: Vendedores tendem a vender o que é mais fácil (produtos baratos ou com muito desconto) apenas para bater meta de volume, destruindo a margem da empresa. Planilhas e CRMs nativos falham em calcular regras mistas dentro do mesmo pedido.
+
+Funcionalidade:
+
+Sincronização de Catálogo: Importa automaticamente Produtos/Serviços do CRM ou ERP (SKU, Nome, Categoria, Preço Base).
+
+Motor de Regras "Line-Item": O sistema "explode" o pedido em itens individuais antes de calcular. Ex: Em um contrato de R$ 10.000, aplica 10% sobre "Consultoria" (R$ 5k) e 2% sobre "Hardware" (R$ 5k).
+
+Hierarquia de Incentivos: Regra de Produto (Específica) > Regra de Categoria > Regra Geral do Vendedor. Permite criar campanhas relâmpago sem quebrar regras existentes.
+
+Trava de Desconto (Margem Dinâmica): A comissão varia conforme o desconto dado. Ex: "Comissão é 5%. Se desconto > 10%, comissão cai para 2%." O vendedor sente no bolso quando dá desconto desnecessário.
+
+Impacto: O gestor deixa de pagar por "volume burro" e passa a pagar por "lucro líquido". O CFO entende em 30 segundos. Justifica ticket premium.
+
+Fase 4: Engajamento (Gamificação)
 Foco: Aumentar a performance de vendas.
 
 Funcionalidade:
@@ -82,7 +99,7 @@ Simuladores ("Se eu vender mais X, ganho quanto?").
 
 Notificações de conquista em tempo real.
 
-Fase 4: Automações com IA (Workflows Conversacionais)
+Fase 5: Automações com IA (Workflows Conversacionais)
 Foco: Automações customizadas configuradas via linguagem natural.
 
 Funcionalidade:
@@ -97,7 +114,7 @@ Preview antes de ativar ("Entendi assim: [regra]. Confirma?").
 
 Objetivo: Diferencial competitivo — automação acessível sem UI complexa.
 
-Fase 5: O "Vilão Tributário" & Integrações (Futuro)
+Fase 6: O "Vilão Tributário" & Integrações (Futuro)
 Foco: Precisão Fiscal e Compliance (Split Payment).
 
 Funcionalidade:
