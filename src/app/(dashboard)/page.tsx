@@ -25,6 +25,8 @@ import {
   CommissionPieChart,
   SellerPerformanceChart,
 } from '@/components/dashboard'
+import { Button } from '@/components/ui/button'
+import { Printer } from 'lucide-react'
 import type { DashboardSummary, DashboardHistory } from '@/types'
 
 function formatCurrency(value: number): string {
@@ -131,18 +133,27 @@ export default function DashboardPage() {
             Resumo de {formatPeriodLabel(period)}
           </p>
         </div>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Selecione o período" />
-          </SelectTrigger>
-          <SelectContent>
-            {periods.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              {periods.map((p) => (
+                <SelectItem key={p.value} value={p.value}>
+                  {p.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/impressao/dashboard?mes=${period}`, '_blank')}
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir
+          </Button>
+        </div>
       </div>
 
       {/* Gráfico de evolução multi-série */}
