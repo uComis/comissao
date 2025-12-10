@@ -72,3 +72,15 @@ export type SellerCommissionSummary = {
   total_commission: number
 }
 
+// Histórico para gráficos (múltiplos períodos)
+export type DashboardHistory = {
+  periods: CommissionSummary[]
+  sellers: SellerHistoryEntry[]
+}
+
+export type SellerHistoryEntry = {
+  seller_id: string
+  seller_name: string
+  data: { period: string; commission: number }[]
+}
+

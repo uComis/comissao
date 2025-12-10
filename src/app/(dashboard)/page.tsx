@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useOrganization } from '@/contexts/organization-context'
-import { getDashboardSummary } from '@/app/actions/commissions'
+import { getDashboardSummary, getDashboardHistory } from '@/app/actions/commissions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -20,8 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ShoppingCart, DollarSign, Calculator } from 'lucide-react'
-import type { DashboardSummary } from '@/types'
+import {
+  EvolutionChart,
+  CommissionPieChart,
+  SellerPerformanceChart,
+} from '@/components/dashboard'
+import type { DashboardSummary, DashboardHistory } from '@/types'
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -59,7 +63,9 @@ function formatPeriodLabel(period: string): string {
 export default function DashboardPage() {
   const { organization, loading: orgLoading } = useOrganization()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
+  const [history, setHistory] = useState<DashboardHistory | null>(null)
   const [loading, setLoading] = useState(true)
+  const [historyLoading, setHistoryLoading] = useState(true)
   const [period, setPeriod] = useState(getCurrentPeriod())
 
   const periods = generatePeriods()
@@ -75,9 +81,24 @@ export default function DashboardPage() {
     }
   }, [organization, period])
 
+  const loadHistory = useCallback(async () => {
+    if (!organization) return
+    setHistoryLoading(true)
+    try {
+      const data = await getDashboardHistory(organization.id, 6)
+      setHistory(data)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [organization])
+
   useEffect(() => {
     loadSummary()
   }, [loadSummary])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
 
   if (orgLoading) {
     return (
@@ -124,82 +145,17 @@ export default function DashboardPage() {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">{summary?.total_sales ?? 0}</div>
-                <p className="text-xs text-muted-foreground">no período</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* Gráfico de evolução multi-série */}
+      <EvolutionChart data={history?.periods ?? []} loading={historyLoading} />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bruto</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(summary?.total_gross_value ?? 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">valor original</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Líquido</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold">
-                  {formatCurrency(summary?.total_net_value ?? 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">após deduções</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Comissões</CardTitle>
-            <Calculator className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-24" />
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(summary?.total_commission ?? 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {summary?.sellers_count ?? 0} vendedor(es)
-                </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+      {/* Gráficos lado a lado: Pizza + Performance por vendedor */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <CommissionPieChart data={summary?.sellers ?? []} loading={loading} />
+        <SellerPerformanceChart
+          data={history?.sellers ?? []}
+          periods={history?.periods.map((p) => p.period) ?? []}
+          loading={historyLoading}
+        />
       </div>
 
       <Card>

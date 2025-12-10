@@ -9,6 +9,9 @@ import type {
   SellerCommissionSummary,
   SaleWithCommission,
   DashboardSummary,
+  DashboardHistory,
+  CommissionSummary,
+  SellerHistoryEntry,
 } from '@/types'
 
 // Types de retorno
@@ -276,5 +279,74 @@ export async function getDashboardSummary(
     sellers_count: sellers.length,
     sellers,
   }
+}
+
+/**
+ * Retorna histórico de dados para gráficos (últimos N meses)
+ * Usado nos gráficos do Dashboard
+ */
+export async function getDashboardHistory(
+  organizationId: string,
+  months: number = 6
+): Promise<DashboardHistory> {
+  const now = new Date()
+  const periods: CommissionSummary[] = []
+  const sellerDataMap = new Map<string, { name: string; data: Map<string, number> }>()
+
+  // Gera períodos dos últimos N meses (do mais antigo ao mais recente)
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+    const sales = await commissionService.getSalesWithCommissions(organizationId, period)
+
+    // Totais do período
+    const summary: CommissionSummary = {
+      period,
+      total_sales: sales.length,
+      total_gross_value: sales.reduce((sum, s) => sum + Number(s.gross_value), 0),
+      total_net_value: sales.reduce((sum, s) => sum + Number(s.net_value), 0),
+      total_commission: sales.reduce((sum, s) => sum + (s.commission?.amount ?? 0), 0),
+      sellers_count: new Set(sales.map((s) => s.seller_id)).size,
+    }
+    periods.push(summary)
+
+    // Agrupa comissão por vendedor
+    for (const sale of sales) {
+      const sellerId = sale.seller_id
+      const sellerName = sale.seller?.name ?? 'Desconhecido'
+      const commission = sale.commission?.amount ?? 0
+
+      if (!sellerDataMap.has(sellerId)) {
+        sellerDataMap.set(sellerId, { name: sellerName, data: new Map() })
+      }
+
+      const sellerData = sellerDataMap.get(sellerId)!
+      const current = sellerData.data.get(period) ?? 0
+      sellerData.data.set(period, current + commission)
+    }
+  }
+
+  // Converte mapa para array de vendedores
+  const allPeriods = periods.map((p) => p.period)
+  const sellers: SellerHistoryEntry[] = Array.from(sellerDataMap.entries()).map(
+    ([sellerId, { name, data }]) => ({
+      seller_id: sellerId,
+      seller_name: name,
+      data: allPeriods.map((period) => ({
+        period,
+        commission: data.get(period) ?? 0,
+      })),
+    })
+  )
+
+  // Ordena vendedores por comissão total (maior primeiro)
+  sellers.sort((a, b) => {
+    const totalA = a.data.reduce((sum, d) => sum + d.commission, 0)
+    const totalB = b.data.reduce((sum, d) => sum + d.commission, 0)
+    return totalB - totalA
+  })
+
+  return { periods, sellers }
 }
 

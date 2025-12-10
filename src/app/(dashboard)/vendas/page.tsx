@@ -31,9 +31,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { RefreshCw, Lock, RotateCcw, X, MoreVertical } from 'lucide-react'
+import { RefreshCw, Lock, RotateCcw, X, MoreVertical, ShoppingCart, DollarSign, Calculator } from 'lucide-react'
 import { toast } from 'sonner'
 import type { SaleWithCommission } from '@/types'
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
 
 // Gera lista de períodos (últimos 12 meses)
 function generatePeriods(): { value: string; label: string }[] {
@@ -180,6 +187,17 @@ export default function VendasPage() {
   const openSalesCount = sales.filter((s) => s.commission && !s.commission.is_closed).length
   const closedSalesCount = sales.filter((s) => s.commission?.is_closed).length
 
+  // Calcular totais do período
+  const totals = sales.reduce(
+    (acc, sale) => ({
+      count: acc.count + 1,
+      gross: acc.gross + sale.gross_value,
+      net: acc.net + sale.net_value,
+      commission: acc.commission + (sale.commission?.amount ?? 0),
+    }),
+    { count: 0, gross: 0, net: 0, commission: 0 }
+  )
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -229,6 +247,80 @@ export default function VendasPage() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Vendas</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{totals.count}</div>
+                <p className="text-xs text-muted-foreground">no período</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Bruto</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatCurrency(totals.gross)}</div>
+                <p className="text-xs text-muted-foreground">valor original</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Líquido</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{formatCurrency(totals.net)}</div>
+                <p className="text-xs text-muted-foreground">após deduções</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Comissões</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-green-600">
+                  {formatCurrency(totals.commission)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {openSalesCount} aberta(s), {closedSalesCount} fechada(s)
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
