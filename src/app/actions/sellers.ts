@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { sellerRepository } from '@/lib/repositories/seller-repository'
+import { commissionRuleRepository } from '@/lib/repositories/commission-rule-repository'
 import { revalidatePath } from 'next/cache'
 import type { Seller, SellerWithRule } from '@/types'
 
@@ -107,6 +108,29 @@ export async function reactivateSeller(id: string): Promise<ActionResult<Seller>
     return { success: true, data: seller }
   } catch (err) {
     return { success: false, error: 'Erro ao reativar vendedor' }
+  }
+}
+
+export async function setSellerRule(
+  sellerId: string,
+  ruleId: string | null,
+  organizationId: string
+): Promise<ActionResult<void>> {
+  try {
+    if (ruleId) {
+      await commissionRuleRepository.assignRuleToSeller({
+        seller_id: sellerId,
+        rule_id: ruleId,
+        organization_id: organizationId,
+      })
+    } else {
+      await commissionRuleRepository.removeRuleFromSeller(sellerId)
+    }
+    revalidatePath('/vendedores')
+    revalidatePath('/regras')
+    return { success: true, data: undefined }
+  } catch (err) {
+    return { success: false, error: 'Erro ao definir regra do vendedor' }
   }
 }
 

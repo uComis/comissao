@@ -54,6 +54,10 @@ Integração unilateral com CRM (Leitura de Vendas).
 
 Motor de Regras Configurável (Ex: % fixa, % por meta).
 
+Taxa de Dedução Simplificada (Taxa Mágica): Campo para configurar % de imposto estimado a ser descontado antes do cálculo da comissão.
+
+Lógica de Estorno (Clawback): Cancelamento automático da comissão se a venda voltar para status "Perdido" no CRM.
+
 Painel Administrativo único (Acesso apenas para o Gestor).
 
 Relatórios de fechamento em PDF/CSV (Para o Gestor enviar ao RH e aos vendedores).
@@ -86,9 +90,28 @@ Hierarquia de Incentivos: Regra de Produto (Específica) > Regra de Categoria > 
 
 Trava de Desconto (Margem Dinâmica): A comissão varia conforme o desconto dado. Ex: "Comissão é 5%. Se desconto > 10%, comissão cai para 2%." O vendedor sente no bolso quando dá desconto desnecessário.
 
+Campanhas Sazonais (Incentive Campaigns): Regras com período de validade (`start_date` e `end_date`). Ex: "De 25/11 a 30/11 (Black Friday), comissão = 10% em vez de 5%". O sistema aplica automaticamente baseado na data da venda. Permite empilhar com regras de produto: "Black Friday + Produto X = 15%". Elimina a conferência manual linha por linha no Excel.
+
 Impacto: O gestor deixa de pagar por "volume burro" e passa a pagar por "lucro líquido". O CFO entende em 30 segundos. Justifica ticket premium.
 
-Fase 4: Engajamento (Gamificação)
+Fase 4: Comissão Recorrente com Vesting (Parcelamento Condicional)
+Foco: Atender modelos de negócio SaaS, Seguros, Consórcios e Telecom.
+
+O Problema: Em vendas recorrentes (assinaturas anuais, apólices), pagar 100% da comissão no ato da venda é arriscado. Se o cliente cancelar no mês 2, a empresa já pagou comissão sobre receita que não existirá. Planilhas não conseguem agendar e condicionar pagamentos futuros.
+
+Funcionalidade:
+
+Comissão Parcelada: Vendedor fecha contrato anual de R$ 12.000, mas recebe a comissão em parcelas. Ex: "50% das 3 primeiras mensalidades" = R$ 200/mês por 3 meses.
+
+Agendamento Automático: Sistema cria registros de comissão com status `futuro` no momento da venda. Todo mês processa automaticamente.
+
+Condicional ao Pagamento (Clawback): Comissão só é liberada se o cliente pagou. Se cliente cancelar ou ficar inadimplente, parcelas futuras são canceladas automaticamente.
+
+Ledger/Conta Corrente: Histórico completo de créditos e débitos por vendedor. Transparência total.
+
+Impacto: Funcionalidade de "lock-in" — empresa que usa comissão parcelada em 12x (comum em seguros) não pode cancelar o software sem perder controle de pagamentos futuros. Atrai clientes de ticket alto (Seguradoras, SaaS B2B).
+
+Fase 5: Engajamento (Gamificação)
 Foco: Aumentar a performance de vendas.
 
 Funcionalidade:
@@ -99,7 +122,20 @@ Simuladores ("Se eu vender mais X, ganho quanto?").
 
 Notificações de conquista em tempo real.
 
-Fase 5: Automações com IA (Workflows Conversacionais)
+Fase 6: O "Vilão Tributário" & Integrações
+Foco: Precisão Fiscal e Compliance (Split Payment).
+
+Funcionalidade:
+
+Integração com ERPs e Notas Fiscais (Leitura de valor líquido real).
+
+Dedução automática de impostos (IBS/CBS) na fonte.
+
+Cálculos trabalhistas complexos (DSR, CLT vs PJ).
+
+Justificativa: Urgência externa — reforma tributária e Split Payment exigem precisão fiscal antes de diferenciais de UX.
+
+Fase 7: Automações com IA (Workflows Conversacionais)
 Foco: Automações customizadas configuradas via linguagem natural.
 
 Funcionalidade:
@@ -112,15 +148,28 @@ Actions configuráveis (email, notificação push, webhook).
 
 Preview antes de ativar ("Entendi assim: [regra]. Confirma?").
 
-Objetivo: Diferencial competitivo — automação acessível sem UI complexa.
+Objetivo: Diferencial competitivo — automação acessível sem UI complexa. Última fase porque é "nice to have", não essencial para operação.
 
-Fase 6: O "Vilão Tributário" & Integrações (Futuro)
-Foco: Precisão Fiscal e Compliance (Split Payment).
+---
 
-Funcionalidade:
+7. Resumo do Roadmap
 
-Integração com ERPs e Notas Fiscais (Leitura de valor líquido real).
+| Fase | Funcionalidade             | Justificativa            | Status       |
+| ---- | -------------------------- | ------------------------ | ------------ |
+| 1    | MVP                        | Resolve dor do gestor    | Em andamento |
+| 2    | Transparência              | Acesso vendedor          | Pendente     |
+| 3    | Produto/Margem + Campanhas | Regras complexas         | Pendente     |
+| 4    | Comissão Recorrente        | Motor de regras avançado | Pendente     |
+| 5    | Gamificação                | Engajamento              | Pendente     |
+| 6    | Tributário                 | Compliance (penúltimo)   | Pendente     |
+| 7    | IA                         | Diferencial (último)     | Pendente     |
 
-Dedução automática de impostos (IBS/CBS) na fonte.
+**Por que Tributário antes de IA:**
 
-Cálculos trabalhistas complexos (DSR, CLT vs PJ).
+- Tributário tem urgência externa (reforma tributária, Split Payment)
+- IA é diferencial competitivo, mas não essencial para operação
+
+**Por que Recorrência antes de Gamificação:**
+
+- Recorrência é regra de cálculo (core do produto)
+- Gamificação é UX/engajamento (camada acima)
