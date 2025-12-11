@@ -101,7 +101,12 @@ O Problema: Em vendas recorrentes (assinaturas anuais, apólices), pagar 100% da
 
 Funcionalidade:
 
-Comissão Parcelada: Vendedor fecha contrato anual de R$ 12.000, mas recebe a comissão em parcelas. Ex: "50% das 3 primeiras mensalidades" = R$ 200/mês por 3 meses.
+Comissão Parcelada: Vendedor fecha contrato anual de R$ 12.000, mas recebe a comissão diluída. Ex: "50% das 3 primeiras mensalidades".
+
+Gatilho de Pagamento (Trava de Caixa): Configuração flexível de liberação:
+
+- Modo Venda (Competência): Paga 100% no fechamento do negócio (Risco da Empresa).
+- Modo Faturamento (Caixa): A comissão só é liberada após a confirmação do pagamento da fatura pelo cliente. Se o cliente atrasar, a comissão trava. Se não pagar, a comissão não existe.
 
 Agendamento Automático: Sistema cria registros de comissão com status `futuro` no momento da venda. Todo mês processa automaticamente.
 
@@ -109,7 +114,7 @@ Condicional ao Pagamento (Clawback): Comissão só é liberada se o cliente pago
 
 Ledger/Conta Corrente: Histórico completo de créditos e débitos por vendedor. Transparência total.
 
-Impacto: Funcionalidade de "lock-in" — empresa que usa comissão parcelada em 12x (comum em seguros) não pode cancelar o software sem perder controle de pagamentos futuros. Atrai clientes de ticket alto (Seguradoras, SaaS B2B).
+Impacto: Funcionalidade de "lock-in" — empresa que usa comissão parcelada em 12x (comum em seguros) não pode cancelar o software sem perder controle de pagamentos futuros. Atrai clientes de ticket alto (Seguradoras, SaaS B2B). Usar linguagem de Competência vs Caixa eleva o produto de "calculadora de vendedor" para "ferramenta de gestão financeira".
 
 Fase 5: Engajamento (Gamificação)
 Foco: Aumentar a performance de vendas.
