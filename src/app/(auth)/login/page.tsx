@@ -9,32 +9,45 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Loader2, Mail } from 'lucide-react'
+import { Loader2, Mail, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
-  const { signInWithGoogle, signInWithEmail, isConfigured } = useAuth()
+  const { signInWithGoogle, signUpWithPassword, signInWithPassword, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    if (!email || !password) return
 
     setLoading(true)
-    const { error } = await signInWithEmail(email)
-    setLoading(false)
 
-    if (error) {
-      toast.error(error)
+    if (activeTab === 'register') {
+      const { error } = await signUpWithPassword(email, password)
+      setLoading(false)
+
+      if (error) {
+        toast.error(error)
+      } else {
+        setEmailSent(true)
+        toast.success('Conta criada! Verifique seu email para confirmar.')
+      }
     } else {
-      setEmailSent(true)
-      toast.success('Link de acesso enviado para seu email!')
+      const { error } = await signInWithPassword(email, password)
+      setLoading(false)
+
+      if (error) {
+        toast.error(error)
+      }
     }
   }
 
@@ -47,7 +60,7 @@ export default function LoginPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Starter Stack</CardTitle>
+            <CardTitle className="text-2xl">Comissao.io</CardTitle>
             <CardDescription>Configure o Supabase para acessar o sistema</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -59,18 +72,6 @@ export default function LoginPage() {
               {`NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
             </pre>
-            <p className="text-xs text-muted-foreground text-center">
-              Acesse{' '}
-              <a
-                href="https://supabase.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-foreground"
-              >
-                supabase.com
-              </a>{' '}
-              → Settings → API para obter as credenciais
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -87,18 +88,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
             </div>
             <CardTitle className="text-2xl">Verifique seu email</CardTitle>
             <CardDescription>
-              Enviamos um link de acesso para <strong>{email}</strong>
+              Enviamos um link de confirmação para <strong>{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center text-sm text-muted-foreground">
-            <p>Clique no link no email para acessar sua conta.</p>
+            <p>Clique no link no email para ativar sua conta.</p>
             <p className="mt-2">Não recebeu? Verifique a pasta de spam.</p>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full" variant="outline" onClick={() => setEmailSent(false)}>
-              Tentar outro email
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     )
@@ -108,8 +104,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Entrar</CardTitle>
-          <CardDescription>Escolha como deseja acessar</CardDescription>
+          <CardTitle className="text-2xl">Comissao.io</CardTitle>
+          <CardDescription>Auditoria de comissões para vendedores</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button className="w-full" variant="outline" onClick={handleGoogleLogin}>
@@ -143,23 +139,103 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
             </div>
           </div>
 
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <Button className="w-full" type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Enviar link de acesso
-            </Button>
-          </form>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Entrar</TabsTrigger>
+              <TabsTrigger value="register">Criar conta</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login" className="mt-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-login">Email</Label>
+                  <Input
+                    id="email-login"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password-login">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="password-login"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <Button className="w-full" type="submit" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Entrar
+                </Button>
+              </form>
+            </TabsContent>
+            <TabsContent value="register" className="mt-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-register">Email</Label>
+                  <Input
+                    id="email-register"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password-register">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="password-register"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Mínimo 6 caracteres"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={6}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <Button className="w-full" type="submit" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Criar conta
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

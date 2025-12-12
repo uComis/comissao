@@ -11,6 +11,8 @@ type AuthContextType = {
   isConfigured: boolean
   signInWithGoogle: () => Promise<void>
   signInWithEmail: (email: string) => Promise<{ error: string | null }>
+  signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -77,6 +79,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const signUpWithPassword = async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase não configurado' }
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { error: null }
+  }
+
+  const signInWithPassword = async (email: string, password: string) => {
+    if (!supabase) return { error: 'Supabase não configurado' }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      return { error: error.message }
+    }
+
+    return { error: null }
+  }
+
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
@@ -91,6 +124,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isConfigured,
         signInWithGoogle,
         signInWithEmail,
+        signUpWithPassword,
+        signInWithPassword,
         signOut,
       }}
     >
