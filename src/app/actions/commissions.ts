@@ -311,6 +311,59 @@ export async function getDashboardSummary(
 }
 
 /**
+ * Retorna dados para o relatório com filtros
+ * Calcula: bruto, dedução, comissão, resultado
+ */
+export async function getReportData(
+  organizationId: string,
+  period: string,
+  sellerId?: string | null,
+  commissionStatus?: 'open' | 'closed' | 'all'
+): Promise<{
+  gross: number
+  deduction: number
+  commission: number
+  result: number
+  salesCount: number
+  deductionPercent: number
+  commissionPercent: number
+  resultPercent: number
+}> {
+  const sales = await commissionService.getSalesWithCommissions(organizationId, period)
+
+  // Filtra por vendedor se especificado
+  let filtered = sales
+  if (sellerId) {
+    filtered = filtered.filter((s) => s.seller_id === sellerId)
+  }
+
+  // Filtra por status da comissão
+  if (commissionStatus === 'open') {
+    filtered = filtered.filter((s) => !s.commission?.id)
+  } else if (commissionStatus === 'closed') {
+    filtered = filtered.filter((s) => !!s.commission?.id)
+  }
+
+  const gross = filtered.reduce((sum, s) => sum + Number(s.gross_value), 0)
+  const net = filtered.reduce((sum, s) => sum + Number(s.net_value), 0)
+  const commission = filtered.reduce((sum, s) => sum + (s.commission?.amount ?? 0), 0)
+
+  const deduction = gross - net
+  const result = net - commission
+
+  return {
+    gross,
+    deduction,
+    commission,
+    result,
+    salesCount: filtered.length,
+    deductionPercent: gross > 0 ? (deduction / gross) * 100 : 0,
+    commissionPercent: gross > 0 ? (commission / gross) * 100 : 0,
+    resultPercent: gross > 0 ? (result / gross) * 100 : 0,
+  }
+}
+
+/**
  * Retorna histórico de dados para gráficos (últimos N meses)
  * Usado nos gráficos do Dashboard
  */
