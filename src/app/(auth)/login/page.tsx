@@ -60,7 +60,7 @@ export default function LoginPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Comissao.io</CardTitle>
+            <CardTitle className="text-2xl">Audtrax</CardTitle>
             <CardDescription>Configure o Supabase para acessar o sistema</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -104,7 +104,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Comissao.io</CardTitle>
+          <CardTitle className="text-2xl">Audtrax</CardTitle>
           <CardDescription>Auditoria de comissões para vendedores</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

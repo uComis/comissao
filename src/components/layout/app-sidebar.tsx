@@ -81,7 +81,7 @@ export function AppSidebar() {
             <span className="text-sm font-bold">C</span>
           </div>
           <div className="flex flex-col">
-            <span className="font-semibold">Comissao.io</span>
+            <span className="font-semibold">Audtrax</span>
             {!loading && userMode && (
               <span className="text-xs text-muted-foreground">{modeLabel}</span>
             )}
@@ -108,7 +108,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="px-4 py-2 text-xs text-muted-foreground">© 2025 Comissao.io</div>
+        <div className="px-4 py-2 text-xs text-muted-foreground">© 2025 Audtrax</div>
       </SidebarFooter>
     </Sidebar>
   )
