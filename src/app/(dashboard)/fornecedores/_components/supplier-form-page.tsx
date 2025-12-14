@@ -7,23 +7,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RuleForm, type RuleFormRef } from '@/components/rules'
+import { ProductTable, ProductDialog } from '@/components/products'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, Package } from 'lucide-react'
 import Link from 'next/link'
-import type { PersonalSupplier, CommissionRule } from '@/types'
+import type { PersonalSupplier, CommissionRule, Product } from '@/types'
 
 type Props = {
   supplier?: PersonalSupplier & { commission_rule?: CommissionRule | null }
+  products?: Product[]
 }
 
-export function SupplierFormPage({ supplier }: Props) {
+export function SupplierFormPage({ supplier, products = [] }: Props) {
   const router = useRouter()
   const ruleFormRef = useRef<RuleFormRef>(null)
   
   const [name, setName] = useState(supplier?.name || '')
   const [cnpj, setCnpj] = useState(formatCnpj(supplier?.cnpj || ''))
   const [loading, setLoading] = useState(false)
+  const [productDialogOpen, setProductDialogOpen] = useState(false)
 
   const isEditing = !!supplier
 
@@ -120,56 +123,99 @@ export function SupplierFormPage({ supplier }: Props) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Dados do Fornecedor</CardTitle>
-            <CardDescription>
-              Informações da empresa/fábrica que você representa
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Empresa/Fábrica *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Tintas Coral"
-                required
-              />
-            </div>
+        {/* Grid 2 colunas no desktop */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dados do Fornecedor</CardTitle>
+              <CardDescription>
+                Informações da empresa/fábrica que você representa
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome da Empresa/Fábrica *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Tintas Coral"
+                  required
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
-              <Input
-                id="cnpj"
-                value={cnpj}
-                onChange={(e) => handleCnpjChange(e.target.value)}
-                placeholder="00.000.000/0000-00"
-              />
-              <p className="text-muted-foreground text-xs">
-                Opcional. Permite vincular automaticamente quando a empresa entrar no sistema.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-2">
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <Input
+                  id="cnpj"
+                  value={cnpj}
+                  onChange={(e) => handleCnpjChange(e.target.value)}
+                  placeholder="00.000.000/0000-00"
+                />
+                <p className="text-muted-foreground text-xs">
+                  Opcional. Permite vincular automaticamente quando a empresa entrar no sistema.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Regra de Comissão</CardTitle>
-            <CardDescription>
-              Configure como sua comissão é calculada para este fornecedor
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RuleForm
-              ref={ruleFormRef}
-              rule={supplier?.commission_rule}
-              showName={false}
-              showDefault={false}
-            />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Regra de Comissão</CardTitle>
+              <CardDescription>
+                Configure como sua comissão é calculada para este fornecedor
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RuleForm
+                ref={ruleFormRef}
+                rule={supplier?.commission_rule}
+                showName={false}
+                showDefault={false}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Seção de produtos - apenas na edição */}
+        {isEditing && supplier && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Produtos</CardTitle>
+                  <CardDescription>
+                    Produtos que você vende desta empresa/fábrica
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setProductDialogOpen(true)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Adicionar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {products.length > 0 ? (
+                <ProductTable
+                  products={products}
+                  supplierId={supplier.id}
+                  showSku={false}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Package className="mb-4 h-10 w-10 text-muted-foreground/50" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum produto cadastrado. Clique em "Adicionar" para começar.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" asChild disabled={loading}>
@@ -181,7 +227,16 @@ export function SupplierFormPage({ supplier }: Props) {
           </Button>
         </div>
       </form>
+
+      {/* Dialog de novo produto */}
+      {isEditing && supplier && (
+        <ProductDialog
+          open={productDialogOpen}
+          onOpenChange={setProductDialogOpen}
+          supplierId={supplier.id}
+          showSku={false}
+        />
+      )}
     </div>
   )
 }
-

@@ -36,6 +36,7 @@ import { ProductDialog } from './product-dialog'
 
 type Props = {
   products: Product[]
+  supplierId: string
   showSku?: boolean
 }
 
@@ -47,7 +48,7 @@ function formatPrice(value: number | null): string {
   }).format(value)
 }
 
-export function ProductTable({ products, showSku = true }: Props) {
+export function ProductTable({ products, supplierId, showSku = true }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -163,6 +164,7 @@ export function ProductTable({ products, showSku = true }: Props) {
       <ProductDialog
         open={!!editingProduct}
         onOpenChange={(open) => !open && setEditingProduct(null)}
+        supplierId={supplierId}
         product={editingProduct}
         showSku={showSku}
       />

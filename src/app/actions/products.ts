@@ -7,6 +7,7 @@ import type { Product } from '@/types'
 
 // Schemas de validação
 const createProductSchema = z.object({
+  personal_supplier_id: z.string().uuid(),
   name: z.string().min(1, 'Nome é obrigatório'),
   sku: z.string().optional(),
   unit_price: z.number().min(0).nullable().optional(),
@@ -24,55 +25,18 @@ type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string }
 
-// Helper: detecta contexto do usuário
-async function getUserContext(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-
-  // Buscar preferências do usuário
-  const { data: prefs } = await supabase
-    .from('user_preferences')
-    .select('user_mode')
-    .eq('user_id', user.id)
-    .single()
-
-  if (prefs?.user_mode === 'organization') {
-    // Buscar organização do usuário
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('owner_id', user.id)
-      .single()
-
-    return org ? { type: 'organization' as const, id: org.id, userId: user.id } : null
-  }
-
-  // Modo personal (vendedor)
-  return { type: 'personal' as const, id: user.id, userId: user.id }
-}
-
 // =====================================================
 // QUERIES
 // =====================================================
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProductsBySupplier(supplierId: string): Promise<Product[]> {
   const supabase = await createClient()
 
-  const context = await getUserContext(supabase)
-  if (!context) return []
-
-  let query = supabase
+  const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('personal_supplier_id', supplierId)
     .order('name', { ascending: true })
-
-  if (context.type === 'organization') {
-    query = query.eq('organization_id', context.id)
-  } else {
-    query = query.eq('user_id', context.id)
-  }
-
-  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching products:', error)
@@ -82,25 +46,15 @@ export async function getProducts(): Promise<Product[]> {
   return data || []
 }
 
-export async function getActiveProducts(): Promise<Product[]> {
+export async function getActiveProductsBySupplier(supplierId: string): Promise<Product[]> {
   const supabase = await createClient()
 
-  const context = await getUserContext(supabase)
-  if (!context) return []
-
-  let query = supabase
+  const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('personal_supplier_id', supplierId)
     .eq('is_active', true)
     .order('name', { ascending: true })
-
-  if (context.type === 'organization') {
-    query = query.eq('organization_id', context.id)
-  } else {
-    query = query.eq('user_id', context.id)
-  }
-
-  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching active products:', error)
@@ -137,38 +91,26 @@ export async function createProduct(
 ): Promise<ActionResult<Product>> {
   const parsed = createProductSchema.safeParse(input)
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message }
+    return { success: false, error: parsed.error.issues[0].message }
   }
 
   try {
     const supabase = await createClient()
 
-    const context = await getUserContext(supabase)
-    if (!context) {
-      return { success: false, error: 'Usuário não autenticado' }
-    }
-
-    const insertData: Record<string, unknown> = {
-      name: parsed.data.name,
-      sku: parsed.data.sku || null,
-      unit_price: parsed.data.unit_price ?? null,
-    }
-
-    if (context.type === 'organization') {
-      insertData.organization_id = context.id
-    } else {
-      insertData.user_id = context.id
-    }
-
     const { data, error } = await supabase
       .from('products')
-      .insert(insertData)
+      .insert({
+        personal_supplier_id: parsed.data.personal_supplier_id,
+        name: parsed.data.name,
+        sku: parsed.data.sku || null,
+        unit_price: parsed.data.unit_price ?? null,
+      })
       .select()
       .single()
 
     if (error) throw error
 
-    revalidatePath('/produtos')
+    revalidatePath('/fornecedores')
     return { success: true, data }
   } catch (err) {
     console.error('Error creating product:', err)
@@ -182,7 +124,7 @@ export async function updateProduct(
 ): Promise<ActionResult<Product>> {
   const parsed = updateProductSchema.safeParse(input)
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0].message }
+    return { success: false, error: parsed.error.issues[0].message }
   }
 
   try {
@@ -206,7 +148,7 @@ export async function updateProduct(
 
     if (error) throw error
 
-    revalidatePath('/produtos')
+    revalidatePath('/fornecedores')
     return { success: true, data }
   } catch (err) {
     console.error('Error updating product:', err)
@@ -225,7 +167,7 @@ export async function deleteProduct(id: string): Promise<ActionResult<void>> {
 
     if (error) throw error
 
-    revalidatePath('/produtos')
+    revalidatePath('/fornecedores')
     return { success: true, data: undefined }
   } catch (err) {
     console.error('Error deleting product:', err)

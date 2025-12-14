@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, BarChart3, Building2, Calendar, Settings, User, Package } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, BarChart3, Building2, Calendar, Settings, User } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -33,7 +33,6 @@ const orgMenuItems = [
 const personalMenuItems = [
   { title: 'Início', url: '/home', icon: Home },
   { title: 'Minhas Pastas', url: '/fornecedores', icon: Building2 },
-  { title: 'Meus Produtos', url: '/produtos', icon: Package },
   { title: 'Minhas Vendas', url: '/minhasvendas', icon: ShoppingCart },
   { title: 'Recebíveis', url: '/recebiveis', icon: Calendar },
   { title: 'Minha Conta', url: '/minhaconta', icon: User },

@@ -2,6 +2,7 @@ export type Product = {
   id: string
   organization_id: string | null
   user_id: string | null
+  personal_supplier_id: string | null
   name: string
   sku: string | null
   unit_price: number | null

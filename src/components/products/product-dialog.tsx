@@ -17,11 +17,12 @@ import { ProductForm, type ProductFormRef } from './product-form'
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  supplierId: string
   product?: Product | null
   showSku?: boolean
 }
 
-export function ProductDialog({ open, onOpenChange, product, showSku = true }: Props) {
+export function ProductDialog({ open, onOpenChange, supplierId, product, showSku = true }: Props) {
   const formRef = useRef<ProductFormRef>(null)
   const [loading, setLoading] = useState(false)
 
@@ -55,6 +56,7 @@ export function ProductDialog({ open, onOpenChange, product, showSku = true }: P
         }
       } else {
         const result = await createProduct({
+          personal_supplier_id: supplierId,
           name: formData.name,
           sku: formData.sku ?? undefined,
           unit_price: formData.unit_price,
