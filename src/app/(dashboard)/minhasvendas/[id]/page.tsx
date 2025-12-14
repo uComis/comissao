@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
+import { ReceivablesCard } from '@/components/sales'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -84,7 +85,7 @@ export default async function VendaDetalhePage({ params }: Props) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Condição de Pagamento</p>
-                <p className="font-medium">{sale.payment_condition || '-'}</p>
+                <p className="font-medium">{sale.payment_condition || 'À vista'}</p>
               </div>
             </div>
             {sale.notes && (
@@ -123,6 +124,15 @@ export default async function VendaDetalhePage({ params }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recebimentos */}
+      <ReceivablesCard
+        saleDate={sale.sale_date || new Date().toISOString().split('T')[0]}
+        paymentCondition={sale.payment_condition}
+        totalValue={sale.gross_value || 0}
+        commissionValue={sale.commission_value || 0}
+        commissionRate={sale.commission_rate || 0}
+      />
 
       {/* Itens */}
       <Card>
