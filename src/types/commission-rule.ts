@@ -8,7 +8,8 @@ export type CommissionTier = {
 
 export type CommissionRule = {
   id: string
-  organization_id: string
+  organization_id: string | null // null se pertence a personal_supplier
+  personal_supplier_id: string | null // null se pertence a organization
   name: string
   type: CommissionRuleType
   percentage: number | null // usado quando type = 'fixed'
@@ -20,7 +21,8 @@ export type CommissionRule = {
 }
 
 export type CreateCommissionRuleInput = {
-  organization_id: string
+  organization_id?: string
+  personal_supplier_id?: string
   name: string
   type: CommissionRuleType
   percentage?: number
