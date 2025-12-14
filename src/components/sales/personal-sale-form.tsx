@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Plus } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Plus, Eye } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
+import { InstallmentsSheet } from './installments-sheet'
 import { ClientCombobox, ClientDialog } from '@/components/clients'
 import { createPersonalSale } from '@/app/actions/personal-sales'
 import { toast } from 'sonner'
@@ -56,7 +58,45 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
 
+  // Installments sheet state
+  const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
+
   const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
+
+  // Calcula valor total dos itens
+  const totalValue = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
+  }, [items])
+
+  // Obtém regra de comissão do fornecedor selecionado
+  const selectedSupplier = useMemo(() => {
+    return suppliers.find((s) => s.id === supplierId)
+  }, [suppliers, supplierId])
+
+  const commissionPercentage = useMemo(() => {
+    const rule = selectedSupplier?.commission_rule
+    if (!rule) return null
+    if (rule.type === 'fixed') return rule.percentage
+    // Para escalonada, pega a primeira faixa como referência
+    if (rule.type === 'tiered' && rule.tiers && rule.tiers.length > 0) {
+      return rule.tiers[0].percentage
+    }
+    return null
+  }, [selectedSupplier])
+
+  // Calcula datas da primeira e última parcela
+  const installmentDates = useMemo(() => {
+    if (paymentType !== 'parcelado') return null
+    const baseDate = new Date(saleDate + 'T12:00:00')
+    const firstDate = new Date(baseDate)
+    firstDate.setDate(firstDate.getDate() + interval)
+    const lastDate = new Date(baseDate)
+    lastDate.setDate(lastDate.getDate() + installments * interval)
+    return {
+      first: new Intl.DateTimeFormat('pt-BR').format(firstDate),
+      last: new Intl.DateTimeFormat('pt-BR').format(lastDate),
+    }
+  }, [paymentType, saleDate, installments, interval])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -195,8 +235,14 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
                 />
               </div>
 
+              <div className="relative py-4">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                  Condições de Pagamento
+                </span>
+              </div>
+
               <div className="space-y-3">
-                <Label>Pagamento</Label>
                 <RadioGroup
                   value={paymentType}
                   onValueChange={(v) => setPaymentType(v as 'vista' | 'parcelado')}
@@ -244,9 +290,46 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
                         />
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {paymentCondition}
-                    </p>
+
+                    {/* Preview compacto */}
+                    <div className="rounded-md border border-border bg-muted/50 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <p className="text-sm">
+                            {totalValue > 0 ? (
+                              <>
+                                {installments} parcelas de{' '}
+                                <span className="font-medium">
+                                  {new Intl.NumberFormat('pt-BR', {
+                                    style: 'currency',
+                                    currency: 'BRL',
+                                  }).format(totalValue / installments)}
+                                </span>
+                              </>
+                            ) : (
+                              <>{installments} parcelas</>
+                            )}
+                          </p>
+                          {installmentDates && (
+                            <p className="text-xs text-muted-foreground">
+                              1ª: {installmentDates.first} → última: {installmentDates.last}
+                            </p>
+                          )}
+                        </div>
+                        {totalValue > 0 && (
+                          <Button
+                            type="button"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-xs shrink-0"
+                            onClick={() => setInstallmentsSheetOpen(true)}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ver detalhes
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -306,6 +389,16 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}
         onSuccess={handleClientCreated}
+      />
+
+      <InstallmentsSheet
+        open={installmentsSheetOpen}
+        onOpenChange={setInstallmentsSheetOpen}
+        saleDate={saleDate}
+        installments={installments}
+        interval={interval}
+        totalValue={totalValue}
+        commissionPercentage={commissionPercentage}
       />
     </>
   )
