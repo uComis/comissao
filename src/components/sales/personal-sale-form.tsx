@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
+import { ClientCombobox } from '@/components/clients'
 import { createPersonalSale } from '@/app/actions/personal-sales'
 import { toast } from 'sonner'
 import type { PersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
@@ -36,6 +37,7 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
 
   // Form state
   const [supplierId, setSupplierId] = useState('')
+  const [clientId, setClientId] = useState<string | null>(null)
   const [clientName, setClientName] = useState('')
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0])
   const [paymentCondition, setPaymentCondition] = useState('')
@@ -52,8 +54,8 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
       return
     }
 
-    if (!clientName.trim()) {
-      toast.error('Informe o nome do cliente')
+    if (!clientId) {
+      toast.error('Selecione um cliente')
       return
     }
 
@@ -73,7 +75,8 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
     try {
       const result = await createPersonalSale({
         supplier_id: supplierId,
-        client_name: clientName.trim(),
+        client_id: clientId,
+        client_name: clientName,
         sale_date: saleDate,
         payment_condition: paymentCondition.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -104,6 +107,11 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
   function handleSupplierChange(value: string) {
     setSupplierId(value)
     setItems([])
+  }
+
+  function handleClientChange(id: string | null, name: string) {
+    setClientId(id)
+    setClientName(name)
   }
 
   return (
@@ -139,12 +147,12 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client">Cliente *</Label>
-              <Input
-                id="client"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Nome do cliente"
+              <Label>Cliente *</Label>
+              <ClientCombobox
+                value={clientId}
+                onChange={handleClientChange}
+                placeholder="Pesquisar ou criar cliente..."
+                className="w-full"
               />
             </div>
 
@@ -223,4 +231,3 @@ export function PersonalSaleForm({ suppliers, productsBySupplier }: Props) {
     </form>
   )
 }
-

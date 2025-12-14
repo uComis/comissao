@@ -16,7 +16,8 @@ const saleItemSchema = z.object({
 
 const createSaleSchema = z.object({
   supplier_id: z.string().uuid('Fornecedor é obrigatório'),
-  client_name: z.string().min(1, 'Cliente é obrigatório'),
+  client_id: z.string().uuid('Cliente é obrigatório'),
+  client_name: z.string().min(1, 'Nome do cliente é obrigatório'),
   sale_date: z.string().min(1, 'Data é obrigatória'),
   payment_condition: z.string().optional(),
   notes: z.string().optional(),
@@ -41,7 +42,8 @@ export async function getPersonalSales(): Promise<PersonalSale[]> {
     .from('personal_sales')
     .select(`
       *,
-      supplier:personal_suppliers(id, name)
+      supplier:personal_suppliers(id, name),
+      client:personal_clients(id, name)
     `)
     .eq('user_id', user.id)
     .order('sale_date', { ascending: false })
@@ -60,7 +62,8 @@ export async function getPersonalSalesBySupplier(supplierId: string): Promise<Pe
     .from('personal_sales')
     .select(`
       *,
-      supplier:personal_suppliers(id, name)
+      supplier:personal_suppliers(id, name),
+      client:personal_clients(id, name)
     `)
     .eq('user_id', user.id)
     .eq('supplier_id', supplierId)
@@ -81,7 +84,8 @@ export async function getPersonalSaleById(id: string): Promise<PersonalSaleWithI
     .from('personal_sales')
     .select(`
       *,
-      supplier:personal_suppliers(id, name)
+      supplier:personal_suppliers(id, name),
+      client:personal_clients(id, name)
     `)
     .eq('id', id)
     .eq('user_id', user.id)
@@ -127,7 +131,7 @@ export async function createPersonalSale(
       return { success: false, error: 'Usuário não autenticado' }
     }
 
-    const { supplier_id, client_name, sale_date, payment_condition, notes, items } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
@@ -175,6 +179,7 @@ export async function createPersonalSale(
       .insert({
         user_id: user.id,
         supplier_id,
+        client_id,
         client_name,
         sale_date,
         payment_condition: payment_condition || null,
@@ -187,7 +192,8 @@ export async function createPersonalSale(
       })
       .select(`
         *,
-        supplier:personal_suppliers(id, name)
+        supplier:personal_suppliers(id, name),
+        client:personal_clients(id, name)
       `)
       .single()
 

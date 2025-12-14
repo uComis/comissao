@@ -13,6 +13,7 @@ export type PersonalSale = {
   id: string
   user_id: string
   supplier_id: string | null
+  client_id: string | null
   client_name: string | null
   gross_value: number | null
   net_value: number | null
@@ -25,6 +26,10 @@ export type PersonalSale = {
   created_at: string
   updated_at: string
   supplier?: {
+    id: string
+    name: string
+  }
+  client?: {
     id: string
     name: string
   }
@@ -44,6 +49,7 @@ export type CreatePersonalSaleItemInput = {
 
 export type CreatePersonalSaleInput = {
   supplier_id: string
+  client_id: string
   client_name: string
   sale_date: string
   payment_condition?: string
