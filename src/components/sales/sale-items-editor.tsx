@@ -138,21 +138,37 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
                 </TableCell>
                 <TableCell>
                   <Input
-                    type="number"
-                    min="1"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
                     value={item.quantity}
-                    onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '')
+                      updateItem(item.id, 'quantity', val === '' ? '' : parseInt(val))
+                    }}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value)
+                      if (isNaN(val) || val < 1) {
+                        updateItem(item.id, 'quantity', 1)
+                      }
+                    }}
                     className="w-20"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={item.unit_price}
-                    onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+                      updateItem(item.id, 'unit_price', val === '' ? '' : parseFloat(val) || 0)
+                    }}
+                    onBlur={(e) => {
+                      const val = parseFloat(e.target.value.replace(',', '.'))
+                      if (isNaN(val) || val < 0) {
+                        updateItem(item.id, 'unit_price', 0)
+                      }
+                    }}
                     className="w-32"
                   />
                 </TableCell>
