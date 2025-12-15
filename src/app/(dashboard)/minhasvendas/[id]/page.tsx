@@ -31,6 +31,37 @@ function formatDate(dateStr: string | null): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr))
 }
 
+function formatPaymentCondition(condition: string | null): string {
+  if (!condition || condition.trim() === '') {
+    return 'À vista'
+  }
+
+  const parts = condition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+  
+  if (parts.length === 0) {
+    return 'À vista'
+  }
+
+  if (parts.length === 1) {
+    return `${parts[0]} dias`
+  }
+
+  // Detectar intervalo uniforme
+  const interval = parts[1] - parts[0]
+  const isUniform = parts.every((val, i) => i === 0 || val - parts[i - 1] === interval)
+
+  if (isUniform && interval > 0) {
+    return `${parts.length}x a cada ${interval} dias`
+  }
+
+  // Fallback: mostrar primeiros 3 + ...
+  if (parts.length > 3) {
+    return `${parts.slice(0, 3).join('/')}...`
+  }
+
+  return condition
+}
+
 export default async function VendaDetalhePage({ params }: Props) {
   const { id } = await params
   const sale = await getPersonalSaleById(id)
@@ -85,7 +116,7 @@ export default async function VendaDetalhePage({ params }: Props) {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Condição de Pagamento</p>
-                <p className="font-medium">{sale.payment_condition || 'À vista'}</p>
+                <p className="font-medium">{formatPaymentCondition(sale.payment_condition)}</p>
               </div>
             </div>
             {sale.notes && (
