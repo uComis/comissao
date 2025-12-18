@@ -30,6 +30,7 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    e.stopPropagation() // Evita que o submit propague para forms externos
 
     if (!formRef.current?.validate()) {
       return

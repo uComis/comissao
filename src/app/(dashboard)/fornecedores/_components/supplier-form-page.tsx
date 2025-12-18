@@ -228,7 +228,7 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
         </div>
       </form>
 
-      {/* Dialog de novo produto */}
+      {/* Dialog de novo produto - fora do form para evitar conflito de submit */}
       {isEditing && supplier && (
         <ProductDialog
           open={productDialogOpen}

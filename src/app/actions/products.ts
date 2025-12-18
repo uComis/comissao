@@ -15,7 +15,7 @@ const createProductSchema = z.object({
 
 const updateProductSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
-  sku: z.string().optional(),
+  sku: z.string().nullable().optional(),
   unit_price: z.number().min(0).nullable().optional(),
   is_active: z.boolean().optional(),
 })
