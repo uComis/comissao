@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { MoreHorizontal, Pencil, Trash2, Phone, Mail } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Mail } from 'lucide-react'
 import { deletePersonalClient } from '@/app/actions/personal-clients'
 import { toast } from 'sonner'
 import type { PersonalClient } from '@/types'
@@ -72,6 +72,13 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
     if (client.cpf) return formatCpf(client.cpf)
     if (client.cnpj) return formatCnpj(client.cnpj)
     return '—'
+  }
+
+  function getWhatsAppLink(phone: string): string {
+    const numbers = phone.replace(/\D/g, '')
+    // Adiciona 55 (Brasil) se não tiver código do país
+    const fullNumber = numbers.length <= 11 ? `55${numbers}` : numbers
+    return `https://wa.me/${fullNumber}`
   }
 
   async function handleDelete() {
@@ -125,10 +132,21 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
                 <TableCell>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     {client.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
+                      <a
+                        href={getWhatsAppLink(client.phone)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2.5 hover:text-foreground transition-colors"
+                        title="Abrir no WhatsApp"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src="https://cdn-icons-png.flaticon.com/16/5968/5968841.png"
+                          alt="WhatsApp"
+                          className="h-4 w-4"
+                        />
                         {formatPhone(client.phone)}
-                      </span>
+                      </a>
                     )}
                     {client.email && (
                       <span className="flex items-center gap-1">
