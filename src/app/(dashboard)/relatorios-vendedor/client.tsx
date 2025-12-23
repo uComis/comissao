@@ -20,21 +20,58 @@ import { formatCurrency } from '@/lib/utils'
 import { getPersonalReportsData } from '@/app/actions/personal-reports'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { PlusCircle, BarChart2, TrendingUp, Users, Package, PieChart as PieChartIcon, Rocket } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 const chartConfig = {
   vendas: {
     label: 'Vendas',
-    color: 'hsl(var(--chart-1))',
+    color: '#3b82f6', // blue-500
   },
   comissao: {
     label: 'Comissão',
-    color: 'hsl(var(--chart-2))',
+    color: '#10b981', // emerald-500
   },
   total: {
     label: 'Total',
-    color: 'hsl(var(--chart-3))',
+    color: '#f59e0b', // amber-500
   },
 } satisfies ChartConfig
+
+function EmptyState({ 
+  icon: Icon, 
+  title, 
+  description, 
+  action,
+  className
+}: { 
+  icon: any, 
+  title: string, 
+  description: string, 
+  action?: { label: string, href: string },
+  className?: string
+}) {
+  return (
+    <div className={`flex flex-col items-center justify-center p-8 text-center h-[300px] border-2 border-dashed rounded-lg bg-muted/10 ${className}`}>
+      <div className="rounded-full bg-primary/10 p-4 mb-4">
+        <Icon className="h-8 w-8 text-primary" />
+      </div>
+      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-[300px] mb-6">
+        {description}
+      </p>
+      {action && (
+        <Button asChild variant="default">
+          <Link href={action.href}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {action.label}
+          </Link>
+        </Button>
+      )}
+    </div>
+  )
+}
 
 export default function PersonalReportsClient() {
   const [loading, setLoading] = useState(true)
@@ -68,6 +105,46 @@ export default function PersonalReportsClient() {
 
   if (!data) return <div>Erro ao carregar dados.</div>
 
+  const hasSales = data.monthlyEvolution.length > 0
+  const hasClients = data.clientABC.length > 0
+  const hasProducts = data.productMix.length > 0
+  const hasSuppliers = data.supplierRanking.length > 0
+  const isMultiSupplier = data.supplierRanking.length > 1
+  const singleSupplierName = !isMultiSupplier && hasSuppliers ? data.supplierRanking[0].name : null
+
+  // Tratamento para "Primeiro Mês" - Se houver apenas 1 mês, adicionamos um ponto zero
+  // para dar perspectiva de crescimento no gráfico de linha.
+  const evolutionData = data.monthlyEvolution.length === 1 
+    ? [
+        { name: 'Início', vendas: 0, comissao: 0, period: '0' },
+        ...data.monthlyEvolution
+      ]
+    : data.monthlyEvolution
+
+  // Se não tem absolutamente nada, mostra um Welcome State
+  if (!hasSales && !hasClients && !hasProducts && !hasSuppliers) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <div className="rounded-full bg-primary/10 p-8">
+          <Rocket className="h-16 w-16 text-primary animate-bounce" />
+        </div>
+        <div className="text-center space-y-2 max-w-md">
+          <h1 className="text-3xl font-bold tracking-tight">Seu Painel de Performance</h1>
+          <p className="text-muted-foreground">
+            Sua jornada para o topo começa aqui. Assim que você cadastrar suas primeiras vendas, 
+            esta tela se transformará em uma central de inteligência para o seu negócio.
+          </p>
+        </div>
+        <Button asChild size="lg" className="px-8">
+          <Link href="/minhasvendas/nova">
+            <PlusCircle className="mr-2 h-5 w-5" />
+            Lançar Minha Primeira Venda
+          </Link>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -85,33 +162,120 @@ export default function PersonalReportsClient() {
         </TabsList>
 
         <TabsContent value="geral" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            {/* Evolução Mensal */}
-            <Card className="col-span-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* 1. Evolução Mensal (Sempre no topo) */}
+            <Card className="w-full">
               <CardHeader>
-                <CardTitle>Evolução Mensal</CardTitle>
-                <CardDescription>Vendas vs Comissão (Últimos 6 meses)</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>
+                      {singleSupplierName ? `Performance: ${singleSupplierName}` : "Evolução Mensal"}
+                    </CardTitle>
+                    <CardDescription>
+                      {singleSupplierName ? "Histórico de vendas e comissões desta pasta" : "Vendas vs Comissão (Últimos 6 meses)"}
+                    </CardDescription>
+                  </div>
+                  {data.monthlyEvolution.length === 1 && (
+                    <div className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-medium text-primary animate-pulse">
+                      Primeiro mês ativo
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                  <LineChart data={data.monthlyEvolution} accessibilityLayer>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                    <YAxis tickFormatter={(v) => `R$ ${v/1000}k`} tickLine={false} axisLine={false} />
-                    <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line type="monotone" dataKey="vendas" stroke="var(--color-vendas)" strokeWidth={2} dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="comissao" stroke="var(--color-comissao)" strokeWidth={2} dot={{ r: 4 }} />
-                  </LineChart>
-                </ChartContainer>
+                {hasSales ? (
+                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                    <LineChart data={evolutionData} accessibilityLayer>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickMargin={8}
+                      />
+                      <YAxis tickFormatter={(v) => `R$ ${v/1000}k`} tickLine={false} axisLine={false} />
+                      <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />} />
+                      <ChartLegend content={<ChartLegendContent />} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="vendas" 
+                        stroke="var(--color-vendas)" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "var(--color-vendas)", strokeWidth: 0 }} 
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="comissao" 
+                        stroke="var(--color-comissao)" 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: "var(--color-comissao)", strokeWidth: 0 }} 
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                ) : (
+                  <EmptyState 
+                    icon={TrendingUp}
+                    title="Aguardando Vendas"
+                    description="Aqui você verá o crescimento do seu faturamento e comissões mês a mês."
+                  />
+                )}
               </CardContent>
             </Card>
 
-            {/* Ranking Fornecedores */}
-            <Card className="col-span-3">
+            {/* 2. Composição de Ganhos (Sempre no topo, ao lado da evolução) */}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Composição de Ganhos</CardTitle>
+                <CardDescription>Eficiência: Valor vendido vs Comissão gerada</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {hasSales ? (
+                  <div className="flex flex-col justify-center h-full space-y-8">
+                    {data.commissionFunnel.map((item: any) => (
+                      <div key={item.name} className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-muted-foreground">{formatCurrency(item.value)}</span>
+                        </div>
+                        <div className="h-4 w-full rounded-full bg-secondary overflow-hidden">
+                          <div 
+                            className="h-full transition-all duration-1000 ease-out"
+                            style={{ 
+                              width: `${(item.value / data.commissionFunnel[0].value) * 100}%`,
+                              backgroundColor: item.name === 'Venda Total' ? chartConfig.vendas.color : 
+                                             item.name === 'Comissão Estimada' ? chartConfig.comissao.color : 
+                                             chartConfig.total.color
+                            }}
+                          />
+                        </div>
+                        {item.name === 'Comissão Estimada' && (
+                          <p className="text-[10px] text-muted-foreground text-right italic">
+                            Aprox. {((item.value / data.commissionFunnel[0].value) * 100).toFixed(1)}% do total vendido
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState 
+                    className="border-none bg-transparent"
+                    icon={PieChartIcon}
+                    title="Funil em branco"
+                    description="Acompanhe a conversão do seu esforço de venda em dinheiro no bolso."
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 3. Ranking Fornecedores (Linha de baixo, só se houver mais de um) */}
+          {isMultiSupplier && (
+            <Card className="w-full">
               <CardHeader>
                 <CardTitle>Rentabilidade por Pasta</CardTitle>
-                <CardDescription>Comissão acumulada por fornecedor</CardDescription>
+                <CardDescription>Comparativo de comissão acumulada por fornecedor</CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -125,37 +289,7 @@ export default function PersonalReportsClient() {
                 </ChartContainer>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Funil de Comissão */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Funil de Resultados</CardTitle>
-                <CardDescription>Venda Bruta {'->'} Comissão Estimada {'->'} Realizada</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.commissionFunnel}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
-                    >
-                      {data.commissionFunnel.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(v) => formatCurrency(Number(v))} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          )}
         </TabsContent>
 
         <TabsContent value="clientes" className="space-y-4">
@@ -165,25 +299,19 @@ export default function PersonalReportsClient() {
               <CardDescription>Ranking de clientes por volume de compra</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="relative w-full overflow-auto">
-                <table className="w-full caption-bottom text-sm">
-                  <thead className="[&_tr]:border-b">
-                    <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                      <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Cliente</th>
-                      <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Total Comprado</th>
-                      <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Nº Pedidos</th>
-                      <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Última Venda</th>
-                    </tr>
-                  </thead>
-                  <tbody className="[&_tr:last-child]:border-0">
-                    {data.clientABC.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-8 text-center text-muted-foreground">
-                          Nenhum cliente com vendas registrado.
-                        </td>
+              {hasClients ? (
+                <div className="relative w-full overflow-auto">
+                  <table className="w-full caption-bottom text-sm">
+                    <thead className="[&_tr]:border-b">
+                      <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Cliente</th>
+                        <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Total Comprado</th>
+                        <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Nº Pedidos</th>
+                        <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Última Venda</th>
                       </tr>
-                    ) : (
-                      data.clientABC.map((client: any) => (
+                    </thead>
+                    <tbody className="[&_tr:last-child]:border-0">
+                      {data.clientABC.map((client: any) => (
                         <tr key={client.name} className="border-b transition-colors hover:bg-muted/50">
                           <td className="p-4 align-middle font-medium">{client.name}</td>
                           <td className="p-4 align-middle text-right">{formatCurrency(client.total)}</td>
@@ -192,11 +320,17 @@ export default function PersonalReportsClient() {
                             {format(parseISO(client.lastSale), "dd/MM/yyyy")}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState 
+                  icon={Users}
+                  title="Carteira em construção"
+                  description="Saiba quem são seus melhores clientes e quem precisa de uma visita."
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -208,15 +342,23 @@ export default function PersonalReportsClient() {
               <CardDescription>Produtos que mais geraram receita (Cross-Supplier)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[400px] w-full">
-                <BarChart data={data.productMix} layout="vertical" margin={{ left: 50 }}>
-                  <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={150} />
-                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />} />
-                  <Bar dataKey="total" fill="var(--color-total)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ChartContainer>
+              {hasProducts ? (
+                <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                  <BarChart data={data.productMix} layout="vertical" margin={{ left: 50 }}>
+                    <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={150} />
+                    <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatCurrency(Number(v))} />} />
+                    <Bar dataKey="total" fill="var(--color-total)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <EmptyState 
+                  icon={Package}
+                  title="Mix de produtos"
+                  description="Identifique seus 'carros-chefe' e as oportunidades de venda em todas as suas pastas."
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -224,4 +366,3 @@ export default function PersonalReportsClient() {
     </div>
   )
 }
-
