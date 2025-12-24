@@ -12,7 +12,8 @@ import { createPersonalSupplierWithRule, updatePersonalSupplierWithRule } from '
 import { toast } from 'sonner'
 import { ArrowLeft, Loader2, Plus, Package } from 'lucide-react'
 import Link from 'next/link'
-import type { PersonalSupplier, CommissionRule, Product } from '@/types'
+import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
+import type { CommissionRule, Product } from '@/types'
 
 type Props = {
   supplier?: PersonalSupplier & { commission_rule?: CommissionRule | null }
