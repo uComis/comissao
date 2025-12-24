@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -29,7 +30,7 @@ export default function ResetPasswordPage() {
     }
 
     // Listen for auth state changes - Supabase will process the recovery token
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'PASSWORD_RECOVERY') {
         // User came from recovery link - allow password reset
         setIsValidSession(true)
