@@ -82,7 +82,7 @@ export default function OnboardingPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Como deseja usar o Comissao.io?</CardTitle>
+          <CardTitle className="text-2xl">Como deseja usar o uComiss?</CardTitle>
           <CardDescription>
             Escolha o modo que melhor se adapta ao seu perfil
           </CardDescription>
