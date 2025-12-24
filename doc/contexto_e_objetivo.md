@@ -6,7 +6,7 @@ Aqui está o resumo executivo de toda a nossa jornada de decisão e estratégia 
 2. A Escolha da Ideia: "Gestão de Comissões"
    Analisamos três categorias de ideias: "Matador de Dinossauros" (Mercados antigos), "Unbundling" (Perninha de software grande) e "Novo com IA".
 
-A Vencedora: Escolhemos a Gestão de Comissões para PMEs (provisoriamente Comissao.io).
+A Vencedora: Escolhemos a Gestão de Comissões para PMEs (uComis).
 
 O Conceito: Um middleware que conecta o CRM (Pipedrive) ao Financeiro, automatizando o cálculo de comissões que hoje é feito manualmente em planilhas caóticas.
 

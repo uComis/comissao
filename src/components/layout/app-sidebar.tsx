@@ -133,7 +133,7 @@ export function AppSidebar() {
           />
           <Image
             src={textSrc}
-            alt="Audtrax"
+            alt="uComis"
             width={120}
             height={24}
             priority

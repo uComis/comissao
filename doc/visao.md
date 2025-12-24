@@ -1,5 +1,5 @@
 DOCUMENTO DE VISÃO DO PRODUTO (Vision Board)
-Projeto: Comissao.io (Nome Provisório / TBD) Data: Dezembro/2025 Responsável: [Seu Nome]
+Projeto: uComis Data: Dezembro/2025 Responsável: [Seu Nome]
 
 1. A Tese de Negócio (O "Porquê Agora?")
    O mercado de gestão de vendas em Pequenas e Médias Empresas (PMEs) amadureceu digitalmente com a adoção de CRMs modernos (Pipedrive, HubSpot). No entanto, a camada financeira de incentivos e comissões permaneceu presa em processos manuais arcaicos.

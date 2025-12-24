@@ -1,5 +1,5 @@
 DOCUMENTO DE VISÃO DO PRODUTO (Vision Board)
-Projeto: Comissao.io (Nome Provisório / TBD) Data: Dezembro/2025 Responsável: [Seu Nome]
+Projeto: uComis Data: Dezembro/2025 Responsável: [Seu Nome]
 
 ---
 
@@ -112,7 +112,7 @@ Permite identificar discrepâncias, eliminar disputas e construir confiança ent
 
 ### Vs. Sistemas SFA (Mercos, SuasVendas, Meus Pedidos)
 
-| Aspecto         | SFA Tradicional     | Comissao.io          |
+| Aspecto         | SFA Tradicional     | uComis          |
 | --------------- | ------------------- | -------------------- |
 | Foco            | Emissão de pedidos  | Auditoria de receita |
 | Dono dos dados  | Empresa/Indústria   | Vendedor             |
@@ -121,7 +121,7 @@ Permite identificar discrepâncias, eliminar disputas e construir confiança ent
 
 ### Vs. Excel/Planilhas
 
-| Aspecto              | Excel                | Comissao.io                 |
+| Aspecto              | Excel                | uComis                 |
 | -------------------- | -------------------- | --------------------------- |
 | Input de dados       | Manual, alta fricção | OCR, baixa fricção          |
 | Atualização          | Estático             | Tempo real                  |
@@ -131,7 +131,7 @@ Permite identificar discrepâncias, eliminar disputas e construir confiança ent
 
 ### Vs. Apps Genéricos de Finanças
 
-| Aspecto                  | Apps Financeiros | Comissao.io     |
+| Aspecto                  | Apps Financeiros | uComis     |
 | ------------------------ | ---------------- | --------------- |
 | Lógica de comissão       | Não entendem     | Core do produto |
 | Parcelamento de receita  | Não              | Sim (30/60/90)  |
@@ -573,7 +573,7 @@ EMPRESA CADASTRA VENDEDOR (email: joao@empresa.com)
                     │
                     ▼
 SISTEMA ENVIA EMAIL COM LINK: /invite/{invite_code}
-"Empresa X te adicionou no Comissao.io"
+"Empresa X te adicionou no uComis"
                     │
                     ▼
          ┌──────────┴──────────┐

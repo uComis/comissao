@@ -2,7 +2,7 @@
 
 **Data:** Dezembro/2025  
 **Modelo:** Claude (Anthropic)  
-**Contexto:** Análise da proposta de pivot estratégico do Comissao.io
+**Contexto:** Análise da proposta de pivot estratégico do uComis
 
 ---
 
