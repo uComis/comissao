@@ -24,6 +24,7 @@ const createSaleSchema = z.object({
   notes: z.string().optional(),
   items: z.array(saleItemSchema).optional(),
   gross_value: z.number().min(0).optional(),
+  commission_rate: z.number().min(0).optional(),
 }).refine(data => {
   const hasItems = data.items && data.items.length > 0
   const hasGrossValue = data.gross_value !== undefined && data.gross_value !== null
@@ -146,7 +147,7 @@ export async function createPersonalSale(
       return { success: false, error: limitCheck.error || 'Limite de vendas atingido' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
@@ -155,36 +156,40 @@ export async function createPersonalSale(
     }))
     const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
 
-    // Buscar regra de comissão do fornecedor
-    const { data: supplier, error: supplierError } = await supabase
-      .from('personal_suppliers')
-      .select('commission_rule_id')
-      .eq('id', supplier_id)
-      .single()
-
-    if (supplierError) throw supplierError
-
     let commissionValue = 0
     let commissionRate = 0
 
-    if (supplier.commission_rule_id) {
-      const { data: rule, error: ruleError } = await supabase
-        .from('commission_rules')
-        .select('type, percentage, tiers')
-        .eq('id', supplier.commission_rule_id)
+    // Se o usuário informou a comissão manualmente, usa ela
+    if (manual_commission_rate !== undefined) {
+      commissionRate = manual_commission_rate
+      commissionValue = (grossValue * commissionRate) / 100
+    } else {
+      // Buscar regra de comissão do fornecedor (fallback)
+      const { data: supplier, error: supplierError } = await supabase
+        .from('personal_suppliers')
+        .select('commission_rule_id')
+        .eq('id', supplier_id)
         .single()
 
-      if (!ruleError && rule) {
-        const result = commissionEngine.calculate({
-          netValue: grossValue,
-          rule: {
-            type: rule.type as 'fixed' | 'tiered',
-            percentage: rule.percentage,
-            tiers: rule.tiers,
-          },
-        })
-        commissionValue = result.amount
-        commissionRate = result.percentageApplied
+      if (!supplierError && supplier.commission_rule_id) {
+        const { data: rule, error: ruleError } = await supabase
+          .from('commission_rules')
+          .select('type, percentage, tiers')
+          .eq('id', supplier.commission_rule_id)
+          .single()
+
+        if (!ruleError && rule) {
+          const result = commissionEngine.calculate({
+            netValue: grossValue,
+            rule: {
+              type: rule.type as 'fixed' | 'tiered',
+              percentage: rule.percentage,
+              tiers: rule.tiers,
+            },
+          })
+          commissionValue = result.amount
+          commissionRate = result.percentageApplied
+        }
       }
     }
 
@@ -289,7 +294,7 @@ export async function updatePersonalSale(
       return { success: false, error: 'Venda não encontrada' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
@@ -298,36 +303,40 @@ export async function updatePersonalSale(
     }))
     const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
 
-    // Buscar regra de comissão do fornecedor
-    const { data: supplier, error: supplierError } = await supabase
-      .from('personal_suppliers')
-      .select('commission_rule_id')
-      .eq('id', supplier_id)
-      .single()
-
-    if (supplierError) throw supplierError
-
     let commissionValue = 0
     let commissionRate = 0
 
-    if (supplier.commission_rule_id) {
-      const { data: rule, error: ruleError } = await supabase
-        .from('commission_rules')
-        .select('type, percentage, tiers')
-        .eq('id', supplier.commission_rule_id)
+    // Se o usuário informou a comissão manualmente, usa ela
+    if (manual_commission_rate !== undefined) {
+      commissionRate = manual_commission_rate
+      commissionValue = (grossValue * commissionRate) / 100
+    } else {
+      // Buscar regra de comissão do fornecedor (fallback)
+      const { data: supplier, error: supplierError } = await supabase
+        .from('personal_suppliers')
+        .select('commission_rule_id')
+        .eq('id', supplier_id)
         .single()
 
-      if (!ruleError && rule) {
-        const result = commissionEngine.calculate({
-          netValue: grossValue,
-          rule: {
-            type: rule.type as 'fixed' | 'tiered',
-            percentage: rule.percentage,
-            tiers: rule.tiers,
-          },
-        })
-        commissionValue = result.amount
-        commissionRate = result.percentageApplied
+      if (!supplierError && supplier.commission_rule_id) {
+        const { data: rule, error: ruleError } = await supabase
+          .from('commission_rules')
+          .select('type, percentage, tiers')
+          .eq('id', supplier.commission_rule_id)
+          .single()
+
+        if (!ruleError && rule) {
+          const result = commissionEngine.calculate({
+            netValue: grossValue,
+            rule: {
+              type: rule.type as 'fixed' | 'tiered',
+              percentage: rule.percentage,
+              tiers: rule.tiers,
+            },
+          })
+          commissionValue = result.amount
+          commissionRate = result.percentageApplied
+        }
       }
     }
 

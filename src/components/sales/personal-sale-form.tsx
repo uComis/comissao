@@ -79,6 +79,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     sale?.items && sale.items.length > 0 ? 'items' : 'total'
   )
   const [grossValueInput, setGrossValueInput] = useState(sale?.gross_value?.toString() || '')
+  
+  // Commission rate state
+  const [commissionRate, setCommissionRate] = useState<string>(
+    sale?.commission_rate?.toString() || ''
+  )
+
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (sale?.items && sale.items.length > 0) {
       return sale.items.map(item => ({
@@ -122,7 +128,35 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
 
+  // Efeito para atualizar a comissão quando o fornecedor muda
+  // Mas APENAS se não for uma edição (sale existe) ou se o campo estiver vazio
+  useMemo(() => {
+    if (isEdit && sale?.commission_rate) return // Não sobrecreve na edição se já existe
+
+    const rule = selectedSupplier?.commission_rule
+    if (!rule) {
+      if (!isEdit) setCommissionRate('') // Limpa se não tiver regra e não for edição
+      return
+    }
+
+    let rate = ''
+    if (rule.type === 'fixed' && rule.percentage) {
+      rate = rule.percentage.toString()
+    } else if (rule.type === 'tiered' && rule.tiers && rule.tiers.length > 0) {
+      // Para escalonada, pega a primeira faixa como sugestão inicial
+      rate = rule.tiers[0].percentage.toString()
+    }
+
+    // Só atualiza se achou uma taxa
+    if (rate) {
+      setCommissionRate(rate)
+    }
+  }, [selectedSupplier, isEdit, sale])
+
   const commissionPercentage = useMemo(() => {
+    // Agora usa o valor do input se existir, senão tenta calcular (fallback)
+    if (commissionRate) return parseFloat(commissionRate)
+    
     const rule = selectedSupplier?.commission_rule
     if (!rule) return null
     if (rule.type === 'fixed') return rule.percentage
@@ -131,7 +165,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return rule.tiers[0].percentage
     }
     return null
-  }, [selectedSupplier])
+  }, [selectedSupplier, commissionRate])
 
   // Calcula datas da primeira e última parcela
   const installmentDates = useMemo(() => {
@@ -189,6 +223,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         payment_condition: paymentCondition.trim() || undefined,
         notes: notes.trim() || undefined,
         gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
+        commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
         items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price }) => ({
           product_id,
           product_name,
@@ -307,6 +342,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="commission_rate">Comissão (%)</Label>
+                <div className="relative">
+                  <Input
+                    id="commission_rate"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="0.00"
+                    value={commissionRate}
+                    onChange={(e) => setCommissionRate(e.target.value)}
+                    className="pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                </div>
+                <p className="text-[0.8rem] text-muted-foreground">
+                  Percentual aplicado sobre o valor bruto.
+                </p>
+              </div>
+
               <div className="relative py-4">
                 <Separator />
                 <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
@@ -351,7 +407,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="interval" className="text-xs">
-                          Intervalo (dias)
+                          Prazo de Pagamento (dias)
                         </Label>
                         <Input
                           id="interval"
