@@ -21,6 +21,7 @@ export type PersonalSale = {
   commission_rate: number | null
   sale_date: string | null
   payment_condition: string | null
+  first_installment_date: string | null
   source: 'manual' | 'ocr' | 'api'
   notes: string | null
   created_at: string
@@ -53,8 +54,10 @@ export type CreatePersonalSaleInput = {
   client_name: string
   sale_date: string
   payment_condition?: string
+  first_installment_date?: string
   notes?: string
   items?: CreatePersonalSaleItemInput[]
   gross_value?: number // Novo campo opcional para valor direto
+  commission_rate?: number
 }
 

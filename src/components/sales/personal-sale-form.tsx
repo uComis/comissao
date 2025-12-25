@@ -71,9 +71,68 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [clientId, setClientId] = useState<string | null>(sale?.client_id || null)
   const [clientName, setClientName] = useState(sale?.client_name || '')
   const [saleDate, setSaleDate] = useState(sale?.sale_date || new Date().toISOString().split('T')[0])
+  const [firstInstallmentDate, setFirstInstallmentDate] = useState(sale?.first_installment_date || '')
+  
+  // Função auxiliar para calcular data baseada em dias
+  const calculateDateFromDays = (days: number, baseDateStr: string) => {
+    const date = new Date(baseDateStr + 'T12:00:00')
+    date.setDate(date.getDate() + days)
+    return date.toISOString().split('T')[0]
+  }
+
+  // Função auxiliar para calcular dias baseados em data
+  const calculateDaysFromDate = (targetDateStr: string, baseDateStr: string) => {
+    const target = new Date(targetDateStr + 'T12:00:00')
+    const base = new Date(baseDateStr + 'T12:00:00')
+    const diffTime = Math.abs(target.getTime() - base.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) 
+    return diffDays
+  }
+
   const [paymentType, setPaymentType] = useState<'vista' | 'parcelado'>(initialPayment.type)
   const [installments, setInstallments] = useState(initialPayment.installments)
-  const [interval, setInterval] = useState(initialPayment.interval)
+  const [interval, setInterval] = useState(initialPayment.interval) // Esse é o prazo entre parcelas (ex: 30)
+  
+  // State auxiliar para "Dias até a 1ª parcela"
+  const [firstInstallmentDays, setFirstInstallmentDays] = useState<number>(30)
+  
+  // Inicializa a data da primeira parcela se não estiver definida
+  useMemo(() => {
+    if (paymentType === 'parcelado' && !firstInstallmentDate) {
+      // Usa o valor padrão de 30 dias se não tiver data definida
+      setFirstInstallmentDate(calculateDateFromDays(30, saleDate))
+      setFirstInstallmentDays(30)
+    } else if (paymentType === 'parcelado' && firstInstallmentDate && saleDate) {
+      // Se já tem data, calcula os dias
+      const days = calculateDaysFromDate(firstInstallmentDate, saleDate)
+      setFirstInstallmentDays(days)
+    }
+  }, [paymentType, saleDate, firstInstallmentDate]) // Removido 'interval' das dependências
+
+  // Handler para "Dias até 1ª Parcela"
+  const handleFirstInstallmentDaysChange = (days: number) => {
+    const newDays = Math.max(0, days)
+    setFirstInstallmentDays(newDays)
+    setFirstInstallmentDate(calculateDateFromDays(newDays, saleDate))
+  }
+
+  // Handler para "Data 1ª Parcela"
+  const handleFirstDateChange = (date: string) => {
+    setFirstInstallmentDate(date)
+    if (date && saleDate) {
+      const days = calculateDaysFromDate(date, saleDate)
+      setFirstInstallmentDays(days)
+    }
+  }
+
+  // Quando muda a data da venda, recalcula a data da 1ª parcela mantendo a distência em dias
+  const handleSaleDateChange = (date: string) => {
+    setSaleDate(date)
+    if (paymentType === 'parcelado') {
+      setFirstInstallmentDate(calculateDateFromDays(firstInstallmentDays, date))
+    }
+  }
+
   const [notes, setNotes] = useState(sale?.notes || '')
   const [entryMode, setEntryMode] = useState<'total' | 'items'>(
     sale?.items && sale.items.length > 0 ? 'items' : 'total'
@@ -169,17 +228,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   // Calcula datas da primeira e última parcela
   const installmentDates = useMemo(() => {
-    if (paymentType !== 'parcelado') return null
-    const baseDate = new Date(saleDate + 'T12:00:00')
-    const firstDate = new Date(baseDate)
-    firstDate.setDate(firstDate.getDate() + interval)
-    const lastDate = new Date(baseDate)
-    lastDate.setDate(lastDate.getDate() + installments * interval)
+    if (paymentType !== 'parcelado' || !firstInstallmentDate) return null
+    
+    const firstDate = new Date(firstInstallmentDate + 'T12:00:00')
+    const lastDate = new Date(firstDate)
+    
+    // A primeira parcela é "firstDate", então sobram (installments - 1) parcelas para frente
+    // Assumindo que as demais parcelas seguem o mesmo intervalo (30 dias padrão entre elas ou o intervalo calculado)
+    // O intervalo entre parcelas subsequentes geralmente é fixo (ex: 30 dias), mesmo que o primeiro seja diferente (ex: 45)
+    // Se o usuário mudou o "prazo" para 45 dias, isso é o prazo DA PRIMEIRA. As outras costumam ser a cada 30.
+    // MAS, no seu modelo atual, "interval" é usado para tudo.
+    // Vou manter a lógica onde 'interval' é o espaçamento entre todas. 
+    // Se quiser que a primeira seja 45 e as outras 30, precisaríamos de dois campos: "Prazo 1ª" e "Intervalo Demais".
+    // Por enquanto, vou assumir que o intervalo calculado se aplica a todas.
+    
+    lastDate.setDate(lastDate.getDate() + ((installments - 1) * interval))
+    
     return {
       first: new Intl.DateTimeFormat('pt-BR').format(firstDate),
       last: new Intl.DateTimeFormat('pt-BR').format(lastDate),
     }
-  }, [paymentType, saleDate, installments, interval])
+  }, [paymentType, installments, interval, firstInstallmentDate])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -221,6 +290,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         client_name: clientName,
         sale_date: saleDate,
         payment_condition: paymentCondition.trim() || undefined,
+        first_installment_date: firstInstallmentDate || undefined,
         notes: notes.trim() || undefined,
         gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
         commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
@@ -338,7 +408,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   id="date"
                   type="date"
                   value={saleDate}
-                  onChange={(e) => setSaleDate(e.target.value)}
+                  onChange={(e) => handleSaleDateChange(e.target.value)}
                 />
               </div>
 
@@ -407,7 +477,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="interval" className="text-xs">
-                          Prazo de Pagamento (dias)
+                          Intervalo entre parcelas
                         </Label>
                         <Input
                           id="interval"
@@ -415,6 +485,33 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                           min={1}
                           value={interval}
                           onChange={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-1">
+                        <Label htmlFor="first_days" className="text-xs">
+                          Dias p/ 1ª Parcela
+                        </Label>
+                        <Input
+                          id="first_days"
+                          type="number"
+                          min={0}
+                          value={firstInstallmentDays}
+                          onChange={(e) => handleFirstInstallmentDaysChange(parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="first_installment_date" className="text-xs">
+                          Data da 1ª Parcela
+                        </Label>
+                        <Input
+                          id="first_installment_date"
+                          type="date"
+                          required
+                          value={firstInstallmentDate}
+                          onChange={(e) => handleFirstDateChange(e.target.value)}
                         />
                       </div>
                     </div>

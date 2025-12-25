@@ -21,6 +21,7 @@ const createSaleSchema = z.object({
   client_name: z.string().min(1, 'Nome do cliente é obrigatório'),
   sale_date: z.string().min(1, 'Data é obrigatória'),
   payment_condition: z.string().optional(),
+  first_installment_date: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(saleItemSchema).optional(),
   gross_value: z.number().min(0).optional(),
@@ -147,7 +148,7 @@ export async function createPersonalSale(
       return { success: false, error: limitCheck.error || 'Limite de vendas atingido' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
@@ -203,6 +204,7 @@ export async function createPersonalSale(
         client_name,
         sale_date,
         payment_condition: payment_condition || null,
+        first_installment_date: first_installment_date || null,
         notes: notes || null,
         gross_value: grossValue,
         net_value: grossValue,
@@ -294,7 +296,7 @@ export async function updatePersonalSale(
       return { success: false, error: 'Venda não encontrada' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
@@ -349,6 +351,7 @@ export async function updatePersonalSale(
         client_name,
         sale_date,
         payment_condition: payment_condition || null,
+        first_installment_date: first_installment_date || null,
         notes: notes || null,
         gross_value: grossValue,
         net_value: grossValue,
