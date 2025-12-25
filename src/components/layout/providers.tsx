@@ -3,16 +3,19 @@
 import { ThemeProvider } from 'next-themes'
 import { AuthProvider } from '@/contexts/auth-context'
 import { OrganizationProvider } from '@/contexts/organization-context'
+import { UserProvider } from '@/contexts/user-context'
 import { Toaster } from '@/components/ui/sonner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AuthProvider>
-        <OrganizationProvider>
-          {children}
-          <Toaster />
-        </OrganizationProvider>
+        <UserProvider>
+          <OrganizationProvider>
+            {children}
+            <Toaster />
+          </OrganizationProvider>
+        </UserProvider>
       </AuthProvider>
     </ThemeProvider>
   )

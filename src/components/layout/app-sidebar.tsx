@@ -120,6 +120,8 @@ export function AppSidebar() {
   const iconSrc = isDark ? '/images/logo/logo_icon_dark.svg' : '/images/logo/logo_icon_light.svg'
   const textSrc = isDark ? '/images/logo/logo_texto_dark.svg' : '/images/logo/logo_texto_light.svg'
 
+  if (!mounted) return null
+
   return (
     <Sidebar>
       <SidebarHeader>

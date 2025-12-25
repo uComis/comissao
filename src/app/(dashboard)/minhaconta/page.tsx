@@ -3,23 +3,51 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
+import { useUser } from '@/contexts/user-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, CreditCard } from 'lucide-react'
+import { LogOut, User as UserIcon, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { PlanSelectionDialog } from '@/components/billing/plan-selection-dialog'
+import { ProfileForm } from '@/components/profile/profile-form'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function MinhaContaPage() {
-  const { user, signOut } = useAuth()
+  const { signOut } = useAuth()
+  const { profile } = useUser()
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
 
-  const initials = user?.user_metadata?.full_name
+  const formatDocument = (value: string | null) => {
+    if (!value) return ''
+    const digits = value.replace(/\D/g, '')
+    if (digits.length <= 11) {
+      return digits
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    } else {
+      return digits
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{4})(\d)/, '$1-$2')
+    }
+  }
+
+  const name = profile?.name || 'Sem nome'
+  const initials = name
     ?.split(' ')
     .map((n: string) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2) || user?.email?.[0].toUpperCase() || '?'
-
-  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || 'Sem nome'
+    .slice(0, 2) || profile?.email?.[0].toUpperCase() || '?'
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -29,19 +57,42 @@ export default function MinhaContaPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Perfil</CardTitle>
-          <CardDescription>Informações da sua conta</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div className="space-y-1">
+            <CardTitle>Perfil</CardTitle>
+            <CardDescription>Informações da sua conta e documentos</CardDescription>
+          </div>
+          <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Perfil</DialogTitle>
+                <DialogDescription>
+                  Atualize suas informações de faturamento e nome.
+                </DialogDescription>
+              </DialogHeader>
+              <ProfileForm onSuccess={() => setIsProfileModalOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <AvatarImage src={profile?.avatar_url || undefined} />
               <AvatarFallback className="text-lg">{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-semibold">{name}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <p className="font-semibold text-lg">{name}</p>
+              <p className="text-sm text-muted-foreground">{profile?.email}</p>
+              {profile?.document && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  <span className="font-medium text-foreground">{profile.document_type}:</span> {formatDocument(profile.document)}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

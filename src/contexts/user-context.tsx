@@ -15,6 +15,8 @@ type UserProfile = {
   id: string
   email: string
   name: string | null
+  document: string | null
+  document_type: 'CPF' | 'CNPJ' | null
   avatar_url: string | null
   emails: UserEmail[]
 }
@@ -47,6 +49,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setLoading(true)
 
     try {
+      // Buscar dados do perfil (faturamento/documento)
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
       // Buscar emails secundários
       const { data: emails } = await supabase
         .from('user_emails')
@@ -58,7 +67,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const userProfile: UserProfile = {
         id: user.id,
         email: user.email || '',
-        name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+        name: dbProfile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null,
+        document: dbProfile?.document || null,
+        document_type: dbProfile?.document_type || null,
         avatar_url: user.user_metadata?.avatar_url || null,
         emails: emails || [],
       }

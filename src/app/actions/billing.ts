@@ -1,16 +1,18 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
-import { PostgrestError } from '@supabase/supabase-js'
+import { AsaasService } from '@/lib/clients/asaas'
+import { getProfile } from './profiles'
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
 
 export interface PlanLimits {
+  name?: string
   max_suppliers: number
   max_sales_month: number
   max_users: number
   max_revenue_month: number | null
-  features: Record<string, any>
+  features: Record<string, unknown>
 }
 
 export interface Subscription {
@@ -198,7 +200,7 @@ export async function checkLimit(
       }
       break
     case 'users':
-      if (usage.max_users >= limits.max_users) {
+      if (usage.users_count >= limits.max_users) {
          return { 
           allowed: false, 
           error: `Limite de usuários atingido (${limits.max_users}/${limits.max_users}). Faça um upgrade para continuar.` 
@@ -243,6 +245,127 @@ export async function decrementUsage(
     await supabase.rpc('decrement_suppliers_usage', { user_id_param: userId })
   } else {
     await supabase.rpc('decrement_users_usage', { user_id_param: userId })
+  }
+}
+
+/**
+ * Inicia o processo de assinatura com o Asaas.
+ */
+export async function createSubscriptionAction(planId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  // 1. Buscar o plano selecionado
+  const { data: plan, error: planError } = await supabase
+    .from('plans')
+    .select('*')
+    .eq('id', planId)
+    .single()
+
+  if (planError || !plan) throw new Error('Plano não encontrado')
+
+  try {
+    // 2. Verificar se o usuário tem perfil com documento
+    const profile = await getProfile()
+    if (!profile?.document || !profile?.full_name) {
+      return { 
+        success: false, 
+        error: 'NEEDS_DOCUMENT',
+        message: 'Para assinar um plano, você precisa completar seu cadastro com Nome e CPF/CNPJ.' 
+      }
+    }
+
+    // 3. Buscar ou criar cliente no Asaas
+    let asaasCustomerId: string | null = null
+    
+    // Tentar encontrar um customer ID já vinculado a este usuário
+    const { data: existingSub } = await supabase
+      .from('subscriptions')
+      .select('asaas_customer_id')
+      .eq('user_id', user.id)
+      .not('asaas_customer_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (existingSub?.asaas_customer_id) {
+      asaasCustomerId = existingSub.asaas_customer_id
+    } else {
+      // Criar novo cliente no Asaas
+      const customer = await AsaasService.createCustomer({
+        name: profile.full_name,
+        email: user.email || '',
+        cpfCnpj: profile.document,
+        externalReference: user.id
+      })
+      asaasCustomerId = customer.id
+    }
+
+    // 4. Criar assinatura no Asaas
+    // Vamos usar a primeira parcela para amanhã para dar tempo do checkout
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const asaasSub = await AsaasService.createSubscription({
+      customer: asaasCustomerId!,
+      billingType: 'UNDEFINED', // Permite que o usuário escolha (Cartão, Boleto ou PIX) no checkout do Asaas
+      value: plan.price,
+      nextDueDate: tomorrow.toISOString().split('T')[0],
+      cycle: plan.interval === 'month' ? 'MONTHLY' : 'ANNUALLY',
+      description: `Assinatura Plano ${plan.name} - Comissao.io`,
+      externalReference: user.id
+    }) as { id: string; invoiceUrl?: string; lastInvoiceUrl?: string }
+
+    // 5. Criar o registro da assinatura como 'unpaid' até receber o webhook
+    // Mas antes, vamos cancelar qualquer assinatura trialing ou active anterior para evitar duplicidade
+    await supabase
+      .from('subscriptions')
+      .update({ status: 'canceled' })
+      .eq('user_id', user.id)
+      .in('status', ['trialing', 'active', 'past_due'])
+
+    const { error: subError } = await supabase
+      .from('subscriptions')
+      .insert({
+        user_id: user.id,
+        plan_id: plan.id,
+        status: 'unpaid',
+        asaas_customer_id: asaasCustomerId,
+        asaas_subscription_id: asaasSub.id,
+        plan_snapshot: {
+          name: plan.name,
+          max_suppliers: plan.max_suppliers,
+          max_sales_month: plan.max_sales_month,
+          max_users: plan.max_users,
+          max_revenue_month: plan.max_revenue_month,
+          features: plan.features
+        },
+        current_period_start: new Date().toISOString(),
+      })
+
+    if (subError) throw subError
+
+    return { 
+      success: true, 
+      subscriptionId: asaasSub.id,
+      invoiceUrl: asaasSub.invoiceUrl || asaasSub.lastInvoiceUrl // URL para o usuário pagar
+    }
+
+  } catch (error: unknown) {
+    console.error('Erro ao criar assinatura:', error)
+    const message = error instanceof Error ? error.message : 'Falha ao processar assinatura no Asaas'
+    
+    // Se o Asaas reclamar de falta de documento, tratamos como NEEDS_DOCUMENT
+    if (message.includes('CPF') || message.includes('CNPJ') || message.includes('document')) {
+      return { 
+        success: false, 
+        error: 'NEEDS_DOCUMENT', 
+        message: 'Documento obrigatório para faturamento.' 
+      }
+    }
+
+    return { success: false, error: 'API_ERROR', message }
   }
 }
 

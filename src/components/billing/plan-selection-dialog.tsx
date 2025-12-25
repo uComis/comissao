@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getPlans, getSubscription } from '@/app/actions/billing'
+import { getPlans, getSubscription, createSubscriptionAction } from '@/app/actions/billing'
 import { useAuth } from '@/contexts/auth-context'
+import { toast } from 'sonner'
+import { ProfileCompletionDialog } from './profile-completion-dialog'
 
 interface Plan {
   id: string
@@ -25,7 +27,7 @@ interface Plan {
   max_sales_month: number
   max_users: number
   plan_group: string
-  features: Record<string, any>
+  features: Record<string, unknown>
 }
 
 interface PlanSelectionDialogProps {
@@ -35,10 +37,18 @@ interface PlanSelectionDialogProps {
 
 export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogProps) {
   const { user } = useAuth()
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month')
+  const [subscribingId, setSubscribingId] = useState<string | null>(null)
+  const [showProfileDialog, setShowProfileDialog] = useState(false)
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const maxDiscount = plans.reduce((acc, plan) => {
     if (plan.interval === 'year') {
@@ -107,9 +117,35 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     return features
   }
 
+  const handleSubscribe = async (planId: string) => {
+    try {
+      setSubscribingId(planId)
+      const result = await createSubscriptionAction(planId)
+      
+      if (result.success && result.invoiceUrl) {
+        toast.success('Redirecionando para o checkout...')
+        window.location.href = result.invoiceUrl
+      } else if (!result.success && result.error === 'NEEDS_DOCUMENT') {
+        setPendingPlanId(planId)
+        setShowProfileDialog(true)
+      } else {
+        throw new Error(result.message || 'Não foi possível gerar o link de pagamento.')
+      }
+    } catch (error: unknown) {
+      console.error('Erro ao assinar:', error)
+      const message = error instanceof Error ? error.message : 'Erro ao processar assinatura. Tente novamente.'
+      toast.error(message)
+    } finally {
+      setSubscribingId(null)
+    }
+  }
+
+  if (!mounted) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] lg:max-w-7xl overflow-x-auto overflow-y-auto max-h-[95vh] p-4 md:p-8">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[95vw] lg:max-w-7xl overflow-x-auto overflow-y-auto max-h-[95vh] p-4 md:p-8">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-2xl md:text-4xl text-center font-bold">Escolha seu Plano</DialogTitle>
           <DialogDescription className="text-center text-lg max-w-2xl mx-auto">
@@ -178,7 +214,7 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
                   </CardHeader>
                   <CardContent className="flex-1 p-4 md:p-5 pt-0 md:pt-0">
                     <ul className="space-y-2.5 text-sm">
-                      {getPlanFeatures(plan).map((feature, idx) => {
+                      {getPlanFeatures(plan).map((feature) => {
                         const isHeader = feature.includes('Tudo do plano')
                         
                         return (
@@ -200,9 +236,19 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
                     <Button 
                       className="w-full font-bold py-6" 
                       variant={isRecommended ? 'default' : 'outline'}
-                      disabled={isCurrent}
+                      disabled={isCurrent || !!subscribingId}
+                      onClick={() => handleSubscribe(plan.id)}
                     >
-                      {isCurrent ? 'Plano Atual' : `Assinar ${plan.name}`}
+                      {subscribingId === plan.id ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : isCurrent ? (
+                        'Plano Atual'
+                      ) : (
+                        `Assinar ${plan.name}`
+                      )}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -212,6 +258,16 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
         )}
       </DialogContent>
     </Dialog>
+
+    <ProfileCompletionDialog 
+      open={showProfileDialog}
+      onOpenChange={setShowProfileDialog}
+      onSuccess={() => {
+        setShowProfileDialog(false)
+        if (pendingPlanId) handleSubscribe(pendingPlanId)
+      }}
+    />
+    </>
   )
 }
 
