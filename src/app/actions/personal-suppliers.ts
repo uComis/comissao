@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
+import { checkLimit, incrementUsage, decrementUsage } from './billing'
 import type { CommissionRule, CommissionTier } from '@/types'
 
 // Types
@@ -173,6 +174,12 @@ export async function createPersonalSupplierWithRule(
       return { success: false, error: 'Usuário não autenticado' }
     }
 
+    // Verificar limite de fornecedores
+    const limitCheck = await checkLimit(user.id, 'suppliers')
+    if (!limitCheck.allowed) {
+      return { success: false, error: limitCheck.error || 'Limite de fornecedores atingido' }
+    }
+
     // 1. Criar fornecedor
     const { data: supplier, error: supplierError } = await supabase
       .from('personal_suppliers')
@@ -217,6 +224,9 @@ export async function createPersonalSupplierWithRule(
       .single()
 
     if (updateError) throw updateError
+
+    // 4. Incrementar uso
+    await incrementUsage(user.id, 'suppliers')
 
     revalidatePath('/fornecedores')
     return {
@@ -346,6 +356,12 @@ export async function deletePersonalSupplier(id: string): Promise<ActionResult<v
       .eq('id', id)
 
     if (error) throw error
+
+    // 2. Buscar o user_id antes (ou passar via param) para decrementar
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await decrementUsage(user.id, 'suppliers')
+    }
 
     revalidatePath('/fornecedores')
     return { success: true, data: undefined }

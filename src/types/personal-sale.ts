@@ -54,6 +54,7 @@ export type CreatePersonalSaleInput = {
   sale_date: string
   payment_condition?: string
   notes?: string
-  items: CreatePersonalSaleItemInput[]
+  items?: CreatePersonalSaleItemInput[]
+  gross_value?: number // Novo campo opcional para valor direto
 }
 

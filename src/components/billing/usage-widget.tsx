@@ -1,20 +1,52 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Sparkles } from 'lucide-react'
+import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
 import { PlanSelectionDialog } from './plan-selection-dialog'
+import { getBillingUsage } from '@/app/actions/billing'
 
 export function UsageWidget() {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
-  
-  // Mock data - Em um cenário real viria de uma action/hook
-  const usage = {
-    vendas: { current: 28, limit: 30 },
-    pastas: { current: 1, limit: 1 },
-    plan: 'FREE'
+  const [loading, setLoading] = useState(true)
+  const [usage, setUsage] = useState<{
+    plan: string
+    vendas: { current: number; limit: number }
+    pastas: { current: number; limit: number }
+    status: string
+  } | null>(null)
+
+  useEffect(() => {
+    async function loadUsage() {
+      try {
+        const data = await getBillingUsage()
+        if (data) {
+          setUsage({
+            plan: data.plan,
+            vendas: data.vendas,
+            pastas: data.pastas,
+            status: data.status,
+          })
+        }
+      } catch (error) {
+        console.error('Error loading usage:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadUsage()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="mx-2 mb-4 p-3 rounded-lg border bg-card shadow-sm flex items-center justify-center h-20">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
+  if (!usage) return null
+  
   const vendasProgress = (usage.vendas.current / usage.vendas.limit) * 100
   const isNearLimit = vendasProgress >= 80
 

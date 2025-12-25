@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { sellerRepository } from '@/lib/repositories/seller-repository'
 import { commissionRuleRepository } from '@/lib/repositories/commission-rule-repository'
 import { revalidatePath } from 'next/cache'
+import { checkLimit, incrementUsage, decrementUsage } from './billing'
+import { createClient } from '@/lib/supabase-server'
 import type { Seller, SellerWithRule } from '@/types'
 
 // Schemas de validação
@@ -52,6 +54,23 @@ export async function createSeller(
   }
 
   try {
+    const supabase = await createClient()
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('owner_id')
+      .eq('id', parsed.data.organization_id)
+      .single()
+
+    if (orgError || !org) {
+      return { success: false, error: 'Organização não encontrada' }
+    }
+
+    // Verificar limite de usuários (vendedores)
+    const limitCheck = await checkLimit(org.owner_id, 'users')
+    if (!limitCheck.allowed) {
+      return { success: false, error: limitCheck.error || 'Limite de usuários atingido' }
+    }
+
     const seller = await sellerRepository.create({
       organization_id: parsed.data.organization_id,
       name: parsed.data.name,
@@ -59,9 +78,13 @@ export async function createSeller(
       pipedrive_id: parsed.data.pipedrive_id,
     })
 
+    // Incrementar uso
+    await incrementUsage(org.owner_id, 'users')
+
     revalidatePath('/vendedores')
     return { success: true, data: seller }
   } catch (err) {
+    console.error('Error creating seller:', err)
     return { success: false, error: 'Erro ao criar vendedor' }
   }
 }
@@ -93,10 +116,34 @@ export async function updateSeller(
 
 export async function deleteSeller(id: string): Promise<ActionResult<void>> {
   try {
+    const supabase = await createClient()
+    
+    // Buscar organização para pegar owner_id
+    const { data: seller, error: fetchError } = await supabase
+      .from('sellers')
+      .select('organization_id')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !seller) throw new Error('Vendedor não encontrado')
+
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('owner_id')
+      .eq('id', seller.organization_id)
+      .single()
+
+    if (orgError || !org) throw new Error('Organização não encontrada')
+
     await sellerRepository.delete(id)
+
+    // Decrementar uso
+    await decrementUsage(org.owner_id, 'users')
+
     revalidatePath('/vendedores')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error deleting seller:', err)
     return { success: false, error: 'Erro ao excluir vendedor' }
   }
 }

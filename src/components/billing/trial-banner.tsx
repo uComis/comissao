@@ -1,24 +1,51 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertCircle, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertCircle, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlanSelectionDialog } from './plan-selection-dialog'
+import { getBillingUsage } from '@/app/actions/billing'
+import { differenceInDays, parseISO } from 'date-fns'
 
 export function TrialBanner() {
   const [isVisible, setIsVisible] = useState(true)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
-  
-  // Mock data - Em um cenário real, isso viria do hook de auth ou banco
-  const daysLeft = 3
-  const isTrial = true
+  const [loading, setLoading] = useState(true)
+  const [trialData, setTrialData] = useState<{
+    daysLeft: number
+    isTrial: boolean
+  } | null>(null)
 
-  if (!isVisible || !isTrial) return null
+  useEffect(() => {
+    async function loadTrial() {
+      try {
+        const data = await getBillingUsage()
+        if (data && data.status === 'trialing' && data.trialEndsAt) {
+          const daysLeft = differenceInDays(parseISO(data.trialEndsAt), new Date())
+          setTrialData({
+            daysLeft: Math.max(0, daysLeft),
+            isTrial: true
+          })
+        } else {
+          setTrialData({ daysLeft: 0, isTrial: false })
+        }
+      } catch (error) {
+        console.error('Error loading trial data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadTrial()
+  }, [])
 
   const getBannerStyles = () => {
-    if (daysLeft <= 3) return 'bg-amber-600 text-white'
+    if (trialData && trialData.daysLeft <= 3) return 'bg-amber-600 text-white'
     return 'bg-primary text-primary-foreground'
   }
+
+  if (loading || !isVisible || !trialData?.isTrial) return null
+
+  const daysLeft = trialData.daysLeft
 
   return (
     <>

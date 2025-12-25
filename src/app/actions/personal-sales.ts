@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { commissionEngine } from '@/lib/commission-engine'
+import { checkLimit, incrementUsage, decrementUsage } from './billing'
 import type { PersonalSale, PersonalSaleWithItems, CreatePersonalSaleInput } from '@/types'
 
 // Schemas
@@ -21,7 +22,15 @@ const createSaleSchema = z.object({
   sale_date: z.string().min(1, 'Data é obrigatória'),
   payment_condition: z.string().optional(),
   notes: z.string().optional(),
-  items: z.array(saleItemSchema).min(1, 'Adicione pelo menos um item'),
+  items: z.array(saleItemSchema).optional(),
+  gross_value: z.number().min(0).optional(),
+}).refine(data => {
+  const hasItems = data.items && data.items.length > 0
+  const hasGrossValue = data.gross_value !== undefined && data.gross_value !== null
+  return hasItems || hasGrossValue
+}, {
+  message: 'Informe os itens ou o valor total da venda',
+  path: ['gross_value']
 })
 
 type ActionResult<T> =
@@ -131,14 +140,20 @@ export async function createPersonalSale(
       return { success: false, error: 'Usuário não autenticado' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items } = parsed.data
+    // Verificar limite de vendas
+    const limitCheck = await checkLimit(user.id, 'sales')
+    if (!limitCheck.allowed) {
+      return { success: false, error: limitCheck.error || 'Limite de vendas atingido' }
+    }
+
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
       ...item,
       total_price: item.quantity * item.unit_price,
     }))
-    const grossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+    const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
 
     // Buscar regra de comissão do fornecedor
     const { data: supplier, error: supplierError } = await supabase
@@ -199,29 +214,36 @@ export async function createPersonalSale(
 
     if (saleError) throw saleError
 
-    // Criar itens
-    const itemsToInsert = itemsWithTotal.map(item => ({
-      personal_sale_id: sale.id,
-      product_id: item.product_id || null,
-      product_name: item.product_name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-    }))
+    // Criar itens se houver
+    let insertedItems = []
+    if (itemsWithTotal.length > 0) {
+      const itemsToInsert = itemsWithTotal.map(item => ({
+        personal_sale_id: sale.id,
+        product_id: item.product_id || null,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+      }))
 
-    const { data: insertedItems, error: itemsError } = await supabase
-      .from('personal_sale_items')
-      .insert(itemsToInsert)
-      .select()
+      const { data, error: itemsError } = await supabase
+        .from('personal_sale_items')
+        .insert(itemsToInsert)
+        .select()
 
-    if (itemsError) {
-      // Rollback: excluir venda se falhou ao criar itens
-      await supabase.from('personal_sales').delete().eq('id', sale.id)
-      throw itemsError
+      if (itemsError) {
+        // Rollback: excluir venda se falhou ao criar itens
+        await supabase.from('personal_sales').delete().eq('id', sale.id)
+        throw itemsError
+      }
+      insertedItems = data || []
     }
 
     // Recebíveis são calculados on-the-fly via view v_receivables
     // Não precisa mais gerar registros aqui
+
+    // Incrementar uso
+    await incrementUsage(user.id, 'sales')
 
     revalidatePath('/minhasvendas')
     revalidatePath('/recebiveis')
@@ -267,14 +289,14 @@ export async function updatePersonalSale(
       return { success: false, error: 'Venda não encontrada' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, notes, items = [], gross_value } = parsed.data
 
     // Calcular totais
     const itemsWithTotal = items.map(item => ({
       ...item,
       total_price: item.quantity * item.unit_price,
     }))
-    const grossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+    const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
 
     // Buscar regra de comissão do fornecedor
     const { data: supplier, error: supplierError } = await supabase
@@ -343,22 +365,26 @@ export async function updatePersonalSale(
 
     if (deleteItemsError) throw deleteItemsError
 
-    // Criar novos itens
-    const itemsToInsert = itemsWithTotal.map(item => ({
-      personal_sale_id: sale.id,
-      product_id: item.product_id || null,
-      product_name: item.product_name,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      total_price: item.total_price,
-    }))
+    // Criar novos itens se houver
+    let insertedItems = []
+    if (itemsWithTotal.length > 0) {
+      const itemsToInsert = itemsWithTotal.map(item => ({
+        personal_sale_id: sale.id,
+        product_id: item.product_id || null,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+      }))
 
-    const { data: insertedItems, error: itemsError } = await supabase
-      .from('personal_sale_items')
-      .insert(itemsToInsert)
-      .select()
+      const { data, error: itemsError } = await supabase
+        .from('personal_sale_items')
+        .insert(itemsToInsert)
+        .select()
 
-    if (itemsError) throw itemsError
+      if (itemsError) throw itemsError
+      insertedItems = data || []
+    }
 
     // Recebíveis são calculados on-the-fly via view v_receivables
     // Ao editar a venda, as parcelas atualizam automaticamente
@@ -396,6 +422,9 @@ export async function deletePersonalSale(id: string): Promise<ActionResult<void>
       .eq('user_id', user.id)
 
     if (error) throw error
+
+    // Decrementar uso
+    await decrementUsage(user.id, 'sales')
 
     revalidatePath('/minhasvendas')
     return { success: true, data: undefined }

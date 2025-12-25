@@ -72,6 +72,10 @@ export function PersonalSaleForm({ suppliers, productsBySupplier, sale, mode = '
   const [installments, setInstallments] = useState(initialPayment.installments)
   const [interval, setInterval] = useState(initialPayment.interval)
   const [notes, setNotes] = useState(sale?.notes || '')
+  const [entryMode, setEntryMode] = useState<'total' | 'items'>(
+    sale?.items && sale.items.length > 0 ? 'items' : 'total'
+  )
+  const [grossValueInput, setGrossValueInput] = useState(sale?.gross_value?.toString() || '')
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (sale?.items && sale.items.length > 0) {
       return sale.items.map(item => ({
@@ -99,10 +103,13 @@ export function PersonalSaleForm({ suppliers, productsBySupplier, sale, mode = '
 
   const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
 
-  // Calcula valor total dos itens
+  // Calcula valor total dos itens ou usa o valor informado
   const totalValue = useMemo(() => {
+    if (entryMode === 'total') {
+      return parseFloat(grossValueInput) || 0
+    }
     return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
-  }, [items])
+  }, [items, entryMode, grossValueInput])
 
   // Obtém regra de comissão do fornecedor selecionado
   const selectedSupplier = useMemo(() => {
@@ -147,15 +154,22 @@ export function PersonalSaleForm({ suppliers, productsBySupplier, sale, mode = '
       return
     }
 
-    if (items.length === 0) {
+    if (entryMode === 'items' && items.length === 0) {
       toast.error('Adicione pelo menos um item')
       return
     }
 
-    const invalidItems = items.filter(item => !item.product_name.trim())
-    if (invalidItems.length > 0) {
-      toast.error('Todos os itens precisam ter nome')
+    if (entryMode === 'total' && (!grossValueInput || parseFloat(grossValueInput) <= 0)) {
+      toast.error('Informe o valor total da venda')
       return
+    }
+
+    if (entryMode === 'items') {
+      const invalidItems = items.filter(item => !item.product_name.trim())
+      if (invalidItems.length > 0) {
+        toast.error('Todos os itens precisam ter nome')
+        return
+      }
     }
 
     setSaving(true)
@@ -168,12 +182,13 @@ export function PersonalSaleForm({ suppliers, productsBySupplier, sale, mode = '
         sale_date: saleDate,
         payment_condition: paymentCondition.trim() || undefined,
         notes: notes.trim() || undefined,
-        items: items.map(({ product_id, product_name, quantity, unit_price }) => ({
+        gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
+        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price }) => ({
           product_id,
           product_name,
           quantity,
           unit_price,
-        })),
+        })) : [],
       }
 
       const result = isEdit
@@ -395,16 +410,64 @@ export function PersonalSaleForm({ suppliers, productsBySupplier, sale, mode = '
           </Card>
         </div>
 
-        {/* Itens */}
+        {/* Itens ou Valor Total */}
         <Card>
-          <CardHeader>
-            <CardTitle>Itens da Venda</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle>Detalhes da Venda</CardTitle>
+            <RadioGroup
+              value={entryMode}
+              onValueChange={(v) => setEntryMode(v as 'total' | 'items')}
+              className="flex bg-muted p-1 rounded-lg"
+            >
+              <div className="flex items-center">
+                <RadioGroupItem value="total" id="mode-total" className="sr-only" />
+                <Label
+                  htmlFor="mode-total"
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    entryMode === 'total' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                  }`}
+                >
+                  Valor Total
+                </Label>
+              </div>
+              <div className="flex items-center">
+                <RadioGroupItem value="items" id="mode-items" className="sr-only" />
+                <Label
+                  htmlFor="mode-items"
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    entryMode === 'items' ? 'bg-background shadow-sm' : 'text-muted-foreground'
+                  }`}
+                >
+                  Detalhar Itens
+                </Label>
+              </div>
+            </RadioGroup>
           </CardHeader>
           <CardContent>
             {!supplierId ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground mb-4">
-                  Selecione um fornecedor para adicionar itens
+                  Selecione um fornecedor para continuar
+                </p>
+              </div>
+            ) : entryMode === 'total' ? (
+              <div className="max-w-xs space-y-2 py-4">
+                <Label htmlFor="gross_value">Valor Total da Venda *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                  <Input
+                    id="gross_value"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    className="pl-9"
+                    value={grossValueInput}
+                    onChange={(e) => setGrossValueInput(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Informe o valor total bruto da venda conforme consta na nota ou pedido.
                 </p>
               </div>
             ) : (

@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase'
+import { setupTrialSubscription } from '@/app/actions/billing'
 import { toast } from 'sonner'
 import { Loader2, User, Building2 } from 'lucide-react'
 
@@ -26,7 +27,10 @@ export default function OnboardingPage() {
     }
 
     try {
-      // Salvar preferência do usuário
+      // 1. Criar assinatura trial e usage_stats primeiro (Server Action)
+      await setupTrialSubscription(user.id)
+
+      // 2. Salvar preferência do usuário
       const { error: prefError } = await supabase
         .from('user_preferences')
         .upsert({

@@ -1,6 +1,7 @@
 'use client'
 
-import { Check } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,67 +12,21 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { getPlans, getSubscription } from '@/app/actions/billing'
+import { useAuth } from '@/contexts/auth-context'
 
-const plans = [
-  {
-    name: 'FREE',
-    price: 'R$ 0',
-    description: 'Para quem está começando',
-    features: [
-      '1 Usuário (Solo)',
-      '1 Pasta de organização',
-      'Limite de R$ 2k/mês',
-      '30 vendas por mês',
-      'Permissão de Dono',
-    ],
-    buttonText: 'Plano Atual',
-    variant: 'outline' as const,
-    current: true,
-  },
-  {
-    name: 'PRO',
-    price: 'R$ 49,90',
-    description: 'Para profissionais em crescimento',
-    features: [
-      '1 Usuário (Solo)',
-      '5 Pastas de organização',
-      'Volume financeiro Ilimitado',
-      '300 vendas por mês',
-      'Permissão de Dono',
-    ],
-    buttonText: 'Assinar PRO',
-    variant: 'default' as const,
-  },
-  {
-    name: 'PRO +',
-    price: 'R$ 149,90',
-    description: 'Para pequenas equipes',
-    features: [
-      '3 Usuários (Equipe Pq.)',
-      '15 Pastas de organização',
-      'Volume financeiro Ilimitado',
-      '500 vendas por mês',
-      'Admin / Operador',
-    ],
-    buttonText: 'Assinar PRO+',
-    variant: 'default' as const,
-    recommended: true,
-  },
-  {
-    name: 'ULTRA',
-    price: 'R$ 239,00',
-    description: 'Para grandes escritórios',
-    features: [
-      '5+ Usuários (Escritório)',
-      'Pastas Ilimitadas',
-      'Volume financeiro Ilimitado',
-      'Vendas Ilimitadas',
-      'Perfis Personalizados',
-    ],
-    buttonText: 'Assinar ULTRA',
-    variant: 'default' as const,
-  },
-]
+interface Plan {
+  id: string
+  name: string
+  price: number
+  description: string
+  interval: string
+  max_suppliers: number
+  max_sales_month: number
+  max_users: number
+  plan_group: string
+  features: Record<string, any>
+}
 
 interface PlanSelectionDialogProps {
   open: boolean
@@ -79,61 +34,182 @@ interface PlanSelectionDialogProps {
 }
 
 export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogProps) {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month')
+
+  const maxDiscount = plans.reduce((acc, plan) => {
+    if (plan.interval === 'year') {
+      const monthlyPlan = plans.find(p => p.plan_group === plan.plan_group && p.interval === 'month')
+      if (monthlyPlan) {
+        const discount = 1 - (plan.price / (monthlyPlan.price * 12))
+        return Math.max(acc, Math.round(discount * 100))
+      }
+    }
+    return acc
+  }, 0)
+
+  useEffect(() => {
+    if (open && user) {
+      async function loadData() {
+        try {
+          const [plansData, subData] = await Promise.all([
+            getPlans(),
+            getSubscription(user!.id)
+          ])
+          setPlans(plansData)
+          setCurrentPlanId(subData?.plan_id || null)
+        } catch (error) {
+          console.error('Error loading plans:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      loadData()
+    }
+  }, [open, user])
+
+  const filteredPlans = plans.filter(p => p.interval === billingInterval)
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(price)
+  }
+
+  const getPlanFeatures = (plan: Plan) => {
+    const planOrder = ['free', 'pro', 'pro_plus', 'ultra']
+    const planNames: Record<string, string> = {
+      'free': 'FREE',
+      'pro': 'PRO',
+      'pro_plus': 'PRO +',
+      'ultra': 'ULTRA'
+    }
+
+    const features: string[] = []
+    const currentIndex = planOrder.indexOf(plan.plan_group)
+    
+    // Adiciona o prefixo de hierarquia se não for o primeiro plano
+    if (currentIndex > 0) {
+      features.push(`Tudo do plano ${planNames[planOrder[currentIndex - 1]]}, mais:`)
+    }
+
+    features.push(plan.max_users === 1 ? '1 Usuário (Solo)' : `${plan.max_users} Usuários`)
+    features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} Pastas de organização`)
+    features.push(plan.max_sales_month >= 99999 ? 'Vendas Ilimitadas' : `${plan.max_sales_month} vendas por mês`)
+    
+    if (plan.features.custom_reports) features.push('Relatórios Avançados')
+    if (plan.features.api_access) features.push('Acesso via API')
+    
+    return features
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] lg:max-w-7xl overflow-x-auto overflow-y-auto max-h-[95vh] p-4 md:p-8">
-        <DialogHeader className="mb-8">
+        <DialogHeader className="mb-4">
           <DialogTitle className="text-2xl md:text-4xl text-center font-bold">Escolha seu Plano</DialogTitle>
           <DialogDescription className="text-center text-lg max-w-2xl mx-auto">
             Selecione a melhor opção para o seu momento e escale sua operação com controle total.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 py-4 min-w-max lg:min-w-0 justify-center items-stretch">
-          {plans.map((plan) => (
-            <Card 
-              key={plan.name} 
-              className={`flex flex-col relative transition-all duration-200 w-full sm:w-[300px] lg:w-full lg:min-w-[260px] xl:min-w-[280px] ${
-                plan.recommended ? 'border-primary shadow-2xl ring-2 ring-primary ring-offset-4 ring-offset-background z-10' : 'hover:border-primary/40'
-              }`}
-            >
-              {plan.recommended && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge variant="default" className="bg-primary text-primary-foreground">
-                    Recomendado
-                  </Badge>
-                </div>
-              )}
-              <CardHeader className="space-y-1 p-4 md:p-5">
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <CardDescription className="line-clamp-1">{plan.description}</CardDescription>
-                <div className="pt-3">
-                  <span className="text-2xl md:text-3xl font-bold tracking-tight">{plan.price}</span>
-                  <span className="text-muted-foreground text-xs ml-1">/mês</span>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 p-4 md:p-5 pt-0 md:pt-0">
-                <ul className="space-y-2.5 text-sm">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2 leading-tight">
-                      <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter className="p-4 md:p-5">
-                <Button 
-                  className="w-full font-bold py-6" 
-                  variant={plan.variant}
-                  disabled={plan.current}
-                >
-                  {plan.buttonText}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+        <div className="flex justify-center items-center gap-4 mb-8">
+          <button 
+            onClick={() => setBillingInterval('month')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              billingInterval === 'month' 
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            Mensal
+          </button>
+          <button 
+            onClick={() => setBillingInterval('year')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              billingInterval === 'year' 
+                ? 'bg-primary text-primary-foreground shadow-sm' 
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            Anual {maxDiscount > 0 && (
+              <Badge className="ml-1 bg-emerald-600 text-white hover:bg-emerald-600 border-none shadow-sm">
+                -{maxDiscount}%
+              </Badge>
+            )}
+          </button>
         </div>
+
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 py-4 min-w-max lg:min-w-0 justify-center items-stretch">
+            {filteredPlans.map((plan) => {
+              const isCurrent = currentPlanId === plan.id
+              const isRecommended = plan.plan_group === 'pro_plus'
+
+              return (
+                <Card 
+                  key={plan.id} 
+                  className={`flex flex-col relative transition-all duration-200 w-full sm:w-[300px] lg:w-full lg:min-w-[260px] xl:min-w-[280px] ${
+                    isRecommended ? 'border-primary shadow-2xl ring-2 ring-primary ring-offset-4 ring-offset-background z-10' : 'hover:border-primary/40'
+                  }`}
+                >
+                  {isRecommended && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      <Badge variant="default" className="bg-primary text-primary-foreground">
+                        Recomendado
+                      </Badge>
+                    </div>
+                  )}
+                  <CardHeader className="space-y-1 p-4 md:p-5">
+                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                    <CardDescription className="line-clamp-1">{plan.description || 'Para impulsionar suas vendas'}</CardDescription>
+                    <div className="pt-3">
+                      <span className="text-2xl md:text-3xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
+                      <span className="text-muted-foreground text-xs ml-1">/{plan.interval === 'month' ? 'mês' : 'ano'}</span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 p-4 md:p-5 pt-0 md:pt-0">
+                    <ul className="space-y-2.5 text-sm">
+                      {getPlanFeatures(plan).map((feature, idx) => {
+                        const isHeader = feature.includes('Tudo do plano')
+                        
+                        return (
+                          <li key={feature} className={`flex items-start gap-2 leading-tight ${isHeader ? 'mb-1' : ''}`}>
+                            {isHeader ? (
+                              <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-5 border-primary/30 text-primary bg-primary/5">PLUS</Badge>
+                            ) : (
+                              <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                            )}
+                            <span className={isHeader ? 'font-bold text-foreground' : 'text-muted-foreground'}>
+                              {feature}
+                            </span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </CardContent>
+                  <CardFooter className="p-4 md:p-5">
+                    <Button 
+                      className="w-full font-bold py-6" 
+                      variant={isRecommended ? 'default' : 'outline'}
+                      disabled={isCurrent}
+                    >
+                      {isCurrent ? 'Plano Atual' : `Assinar ${plan.name}`}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
