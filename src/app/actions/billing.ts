@@ -276,10 +276,16 @@ export async function createSubscriptionAction(planId: string) {
       }
     }
 
-    // 3. Buscar ou criar cliente no Asaas
+    // 3. Buscar ou resolver cliente no Asaas (Fluxo Robusto)
     let asaasCustomerId: string | null = null
+    const customerData = {
+      name: profile.full_name,
+      email: user.email || '',
+      cpfCnpj: profile.document,
+      externalReference: user.id
+    }
     
-    // Tentar encontrar um customer ID já vinculado a este usuário
+    // 3.1 Tentar pelo ID salvo no banco
     const { data: existingSub } = await supabase
       .from('subscriptions')
       .select('asaas_customer_id')
@@ -290,16 +296,40 @@ export async function createSubscriptionAction(planId: string) {
       .maybeSingle()
 
     if (existingSub?.asaas_customer_id) {
-      asaasCustomerId = existingSub.asaas_customer_id
+      // Verifica se o cliente ainda existe e é válido no Asaas
+      const existingCustomer = await AsaasService.getCustomer(existingSub.asaas_customer_id)
+      if (existingCustomer && !existingCustomer.deleted) {
+        asaasCustomerId = existingCustomer.id
+      }
+    }
+
+    // 3.2 Se não achou pelo ID válido, tenta pelo CPF/CNPJ
+    if (!asaasCustomerId) {
+      const customerByCpf = await AsaasService.findCustomerByCpfCnpj(profile.document)
+      if (customerByCpf && !customerByCpf.deleted) {
+        asaasCustomerId = customerByCpf.id
+      }
+    }
+
+    // 3.3 Se não achou pelo CPF, tenta pelo Email
+    if (!asaasCustomerId && user.email) {
+      const customerByEmail = await AsaasService.findCustomerByEmail(user.email)
+      if (customerByEmail && !customerByEmail.deleted) {
+        asaasCustomerId = customerByEmail.id
+      }
+    }
+
+    // 3.4 Se achou alguém, atualiza os dados para garantir consistência
+    if (asaasCustomerId) {
+      try {
+        await AsaasService.updateCustomer(asaasCustomerId, customerData)
+      } catch (err) {
+        console.warn('Erro ao atualizar dados do cliente no Asaas (não crítico):', err)
+      }
     } else {
-      // Criar novo cliente no Asaas
-      const customer = await AsaasService.createCustomer({
-        name: profile.full_name,
-        email: user.email || '',
-        cpfCnpj: profile.document,
-        externalReference: user.id
-      })
-      asaasCustomerId = customer.id
+      // 3.5 Se não achou ninguém, cria novo
+      const newCustomer = await AsaasService.createCustomer(customerData)
+      asaasCustomerId = newCustomer.id
     }
 
     // 4. Criar assinatura no Asaas
@@ -317,20 +347,65 @@ export async function createSubscriptionAction(planId: string) {
       externalReference: user.id
     }) as { id: string; invoiceUrl?: string; lastInvoiceUrl?: string }
 
-    // 5. Criar o registro da assinatura como 'unpaid' até receber o webhook
-    // Mas antes, vamos cancelar qualquer assinatura trialing ou active anterior para evitar duplicidade
-    await supabase
-      .from('subscriptions')
-      .update({ status: 'canceled' })
-      .eq('user_id', user.id)
-      .in('status', ['trialing', 'active', 'past_due'])
+    // 5. Buscar a fatura gerada para obter o link de pagamento
+    // Como a assinatura foi criada com billingType UNDEFINED, precisamos pegar o link da cobrança gerada
+    let invoiceUrl = asaasSub.invoiceUrl || asaasSub.lastInvoiceUrl
 
+    if (!invoiceUrl) {
+      try {
+        const payments = await AsaasService.getSubscriptionPayments(asaasSub.id)
+        if (payments.data && payments.data.length > 0) {
+          // Pega a primeira fatura pendente
+          const pendingPayment = payments.data.find(p => p.status === 'PENDING') || payments.data[0]
+          invoiceUrl = pendingPayment.invoiceUrl
+        }
+      } catch (err) {
+        console.error('Erro ao buscar fatura da assinatura:', err)
+      }
+    }
+
+    if (!invoiceUrl) {
+      throw new Error('Assinatura criada, mas não foi possível gerar o link de pagamento.')
+    }
+
+    // 6. Limpeza de assinaturas anteriores (Opção C - Substituição Automática)
+    // Busca qualquer assinatura anterior que não esteja cancelada (unpaid, trialing, active, past_due)
+    const { data: previousSubs } = await supabase
+      .from('subscriptions')
+      .select('id, asaas_subscription_id')
+      .eq('user_id', user.id)
+      .in('status', ['unpaid', 'trialing', 'active', 'past_due'])
+
+    if (previousSubs && previousSubs.length > 0) {
+      console.log(`Cancelando ${previousSubs.length} assinaturas anteriores para limpar o fluxo...`)
+      
+      for (const sub of previousSubs) {
+        // 1. Cancelar no Asaas se tiver ID vinculado
+        if (sub.asaas_subscription_id) {
+          try {
+            await AsaasService.cancelSubscription(sub.asaas_subscription_id)
+          } catch (err) {
+            console.error(`Erro ao cancelar assinatura antiga ${sub.asaas_subscription_id} no Asaas:`, err)
+            // Não travamos o fluxo, apenas logamos
+          }
+        }
+      }
+
+      // 2. Marcar todas como canceladas no banco de uma vez
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled' })
+        .eq('user_id', user.id)
+        .in('status', ['unpaid', 'trialing', 'active', 'past_due'])
+    }
+    
+    // 7. Salvar a nova assinatura no banco
     const { error: subError } = await supabase
       .from('subscriptions')
       .insert({
         user_id: user.id,
         plan_id: plan.id,
-        status: 'unpaid',
+        status: 'unpaid', // Fica unpaid até o webhook confirmar o pagamento
         asaas_customer_id: asaasCustomerId,
         asaas_subscription_id: asaasSub.id,
         plan_snapshot: {
@@ -346,12 +421,13 @@ export async function createSubscriptionAction(planId: string) {
 
     if (subError) throw subError
 
-    return { 
+    const retorno = { 
       success: true, 
       subscriptionId: asaasSub.id,
-      invoiceUrl: asaasSub.invoiceUrl || asaasSub.lastInvoiceUrl // URL para o usuário pagar
+      invoiceUrl: invoiceUrl // URL garantida agora
     }
 
+    return retorno;
   } catch (error: unknown) {
     console.error('Erro ao criar assinatura:', error)
     const message = error instanceof Error ? error.message : 'Falha ao processar assinatura no Asaas'

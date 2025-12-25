@@ -40,6 +40,8 @@ export interface AsaasCustomer {
   id: string;
   name: string;
   email: string;
+  cpfCnpj?: string;
+  deleted?: boolean;
   externalReference?: string;
   // Adicione outros campos se necessário
 }
@@ -61,6 +63,23 @@ export interface AsaasListResponse<T> {
   limit: number;
   offset: number;
   data: T[];
+}
+
+export interface AsaasPayment {
+  id: string;
+  customer: string;
+  subscription?: string;
+  installment?: string;
+  paymentLink?: string;
+  dueDate: string;
+  value: number;
+  netValue: number;
+  billingType: string;
+  status: string;
+  invoiceUrl: string;
+  invoiceNumber: string;
+  externalReference?: string;
+  deleted: boolean;
 }
 
 export class AsaasService {
@@ -130,7 +149,7 @@ export class AsaasService {
   }
 
   /**
-   * Busca um cliente pelo email ou externalReference.
+   * Busca um cliente pelo email.
    */
   static async findCustomerByEmail(email: string): Promise<AsaasCustomer | null> {
     const data = await this.request<AsaasListResponse<AsaasCustomer>>(`/customers?email=${encodeURIComponent(email)}`, {
@@ -140,13 +159,39 @@ export class AsaasService {
   }
 
   /**
+   * Busca um cliente pelo CPF/CNPJ.
+   */
+  static async findCustomerByCpfCnpj(cpfCnpj: string): Promise<AsaasCustomer | null> {
+    const cleanCpfCnpj = cpfCnpj.replace(/\D/g, '');
+    const data = await this.request<AsaasListResponse<AsaasCustomer>>(`/customers?cpfCnpj=${cleanCpfCnpj}`, {
+      method: 'GET',
+    });
+    return data.data?.[0] || null;
+  }
+
+  /**
+   * Busca um cliente pelo ID.
+   */
+  static async getCustomer(customerId: string): Promise<AsaasCustomer | null> {
+    try {
+      return await this.request<AsaasCustomer>(`/customers/${customerId}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
    * Cria uma nova assinatura.
    */
   static async createSubscription(input: AsaasSubscriptionInput): Promise<AsaasSubscription> {
-    return this.request<AsaasSubscription>('/subscriptions', {
+    const response = await this.request<AsaasSubscription>('/subscriptions', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    console.log('Asaas Subscription Response:', JSON.stringify(response, null, 2));
+    return response;
   }
 
   /**
@@ -154,6 +199,15 @@ export class AsaasService {
    */
   static async getCustomerSubscriptions(customerId: string): Promise<AsaasListResponse<AsaasSubscription>> {
     return this.request<AsaasListResponse<AsaasSubscription>>(`/subscriptions?customer=${customerId}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Busca as cobranças de uma assinatura.
+   */
+  static async getSubscriptionPayments(subscriptionId: string): Promise<AsaasListResponse<AsaasPayment>> {
+    return this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${subscriptionId}`, {
       method: 'GET',
     });
   }

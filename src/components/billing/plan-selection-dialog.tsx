@@ -123,8 +123,9 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
       const result = await createSubscriptionAction(planId)
       
       if (result.success && result.invoiceUrl) {
-        toast.success('Redirecionando para o checkout...')
-        window.location.href = result.invoiceUrl
+        toast.success('Fatura gerada! Abra a nova aba para pagar.')
+        window.open(result.invoiceUrl, '_blank')
+        onOpenChange(false) // Fecha o modal para mostrar o app de volta
       } else if (!result.success && result.error === 'NEEDS_DOCUMENT') {
         setPendingPlanId(planId)
         setShowProfileDialog(true)
