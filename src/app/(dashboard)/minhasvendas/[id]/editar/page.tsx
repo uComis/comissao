@@ -3,6 +3,7 @@ import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { PersonalSaleForm } from '@/components/sales'
+import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -16,7 +17,7 @@ export default async function EditarVendaPage({ params }: Props) {
     notFound()
   }
 
-  const suppliers = await getPersonalSuppliers()
+  const suppliers = (await getPersonalSuppliers()) as any as PersonalSupplierWithRules[]
 
   // Buscar produtos de cada fornecedor
   const productsBySupplier: Record<string, Awaited<ReturnType<typeof getProductsBySupplier>>> = {}

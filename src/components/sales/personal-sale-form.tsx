@@ -17,21 +17,30 @@ import {
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Eye } from 'lucide-react'
+import { Plus, Eye, Save } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientCombobox, ClientDialog } from '@/components/clients'
 import { SupplierDialog } from '@/components/suppliers'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
+import { addCommissionRule } from '@/app/actions/personal-suppliers' // Import nova action
 import { toast } from 'sonner'
-import type { PersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers' // Tipo atualizado
 import type { Product, PersonalClient } from '@/types'
 import type { CreatePersonalSaleItemInput, PersonalSaleWithItems } from '@/types/personal-sale'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from "@/components/ui/dialog"
 
 type SaleItem = CreatePersonalSaleItemInput & { id: string }
 
 type Props = {
-  suppliers: PersonalSupplierWithRule[]
+  suppliers: PersonalSupplierWithRules[]
   productsBySupplier: Record<string, Product[]>
   sale?: PersonalSaleWithItems
   mode?: 'create' | 'edit'
@@ -217,10 +226,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   )
   const [grossValueInput, setGrossValueInput] = useState(sale?.gross_value?.toString() || '')
   
-  // Commission rate state
+  // Commission logic states
+  const [selectedRuleId, setSelectedRuleId] = useState<string>('custom')
   const [commissionRate, setCommissionRate] = useState<string>(
     sale?.commission_rate?.toString() || ''
   )
+  const [showSaveRuleDialog, setShowSaveRuleDialog] = useState(false)
+  const [newRuleName, setNewRuleName] = useState('')
+  const [savingRule, setSavingRule] = useState(false)
 
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (sale?.items && sale.items.length > 0) {
@@ -260,49 +273,116 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
   }, [items, entryMode, grossValueInput])
 
-  // Obtém regra de comissão do fornecedor selecionado
+  // Obtém fornecedor selecionado
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
 
-  // Efeito para atualizar a comissão quando o fornecedor muda
-  // Mas APENAS se não for uma edição (sale existe) ou se o campo estiver vazio
+  // Quando o fornecedor muda, reseta a regra selecionada para a default
   useMemo(() => {
-    if (isEdit && sale?.commission_rate) return // Não sobrecreve na edição se já existe
+      if (selectedSupplier && !isEdit) {
+          const defaultRule = selectedSupplier.default_rule
+          if (defaultRule) {
+              setSelectedRuleId(defaultRule.id)
+              // Atualiza a taxa visualmente
+              if (defaultRule.type === 'fixed' && defaultRule.percentage) {
+                  setCommissionRate(defaultRule.percentage.toString())
+              } else if (defaultRule.type === 'tiered' && defaultRule.tiers?.[0]) {
+                  setCommissionRate(defaultRule.tiers[0].percentage.toString())
+              }
+          } else {
+              setSelectedRuleId('custom')
+              setCommissionRate('')
+          }
+      }
+  }, [supplierId, isEdit]) // Depende apenas do ID e modo, não do objeto inteiro para evitar loops
 
-    const rule = selectedSupplier?.commission_rule
-    if (!rule) {
-      if (!isEdit) setCommissionRate('') // Limpa se não tiver regra e não for edição
-      return
-    }
+  // Quando a regra selecionada muda
+  const handleRuleChange = (ruleId: string) => {
+      setSelectedRuleId(ruleId)
+      
+      if (ruleId === 'custom') {
+          // Mantém o valor atual para edição livre ou limpa? Melhor manter.
+          return
+      }
 
-    let rate = ''
-    if (rule.type === 'fixed' && rule.percentage) {
-      rate = rule.percentage.toString()
-    } else if (rule.type === 'tiered' && rule.tiers && rule.tiers.length > 0) {
-      // Para escalonada, pega a primeira faixa como sugestão inicial
-      rate = rule.tiers[0].percentage.toString()
-    }
+      const rule = selectedSupplier?.commission_rules.find(r => r.id === ruleId)
+      if (rule) {
+          if (rule.type === 'fixed' && rule.percentage) {
+              setCommissionRate(rule.percentage.toString())
+          } else if (rule.type === 'tiered' && rule.tiers?.[0]) {
+              // TODO: Lógica de tiers baseada no valor total?
+              // Por enquanto pega o primeiro tier como referência
+              setCommissionRate(rule.tiers[0].percentage.toString())
+          }
+      }
+  }
 
-    // Só atualiza se achou uma taxa
-    if (rate) {
-      setCommissionRate(rate)
-    }
-  }, [selectedSupplier, isEdit, sale])
+  // Quando o valor da comissão é editado manualmente
+  const handleCommissionRateChange = (value: string) => {
+      setCommissionRate(value)
+      // Se mudou o valor e estava numa regra fixa, muda para custom
+      // (a menos que o valor coincida, mas simplificamos mudando pra custom sempre que edita na mão)
+      if (selectedRuleId !== 'custom') {
+          setSelectedRuleId('custom')
+      }
+  }
+
+  // Salvar nova regra
+  async function handleSaveNewRule() {
+      if (!newRuleName.trim()) {
+          toast.error('Informe o nome da regra')
+          return
+      }
+      if (!commissionRate || parseFloat(commissionRate) <= 0) {
+          toast.error('Informe uma porcentagem válida')
+          return
+      }
+
+      setSavingRule(true)
+      try {
+          const result = await addCommissionRule(supplierId, {
+              name: newRuleName,
+              type: 'fixed',
+              percentage: parseFloat(commissionRate),
+              tiers: null,
+              is_default: false // Nunca cria como default pelo atalho da venda
+          })
+
+          if (result.success) {
+              toast.success('Regra salva com sucesso!')
+              
+              // Atualiza a lista local de fornecedores com a nova regra
+              setSuppliersList(prev => prev.map(s => {
+                  if (s.id === supplierId) {
+                      return {
+                          ...s,
+                          commission_rules: [...s.commission_rules, result.data]
+                      }
+                  }
+                  return s
+              }))
+              
+              // Seleciona a nova regra
+              setSelectedRuleId(result.data.id)
+              setShowSaveRuleDialog(false)
+              setNewRuleName('')
+          } else {
+              toast.error(result.error)
+          }
+      } catch (error) {
+          console.error(error)
+          toast.error('Erro ao salvar regra')
+      } finally {
+          setSavingRule(false)
+      }
+  }
 
   const commissionPercentage = useMemo(() => {
-    // Agora usa o valor do input se existir, senão tenta calcular (fallback)
+    // Agora usa o valor do input se existir
     if (commissionRate) return parseFloat(commissionRate)
-    
-    const rule = selectedSupplier?.commission_rule
-    if (!rule) return null
-    if (rule.type === 'fixed') return rule.percentage
-    // Para escalonada, pega a primeira faixa como referência
-    if (rule.type === 'tiered' && rule.tiers && rule.tiers.length > 0) {
-      return rule.tiers[0].percentage
-    }
     return null
-  }, [selectedSupplier, commissionRate])
+  }, [commissionRate])
 
   // Calcula datas da primeira e última parcela
   const installmentDates = useMemo(() => {
@@ -424,7 +504,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     setClientRefreshTrigger((prev) => prev + 1)
   }
 
-  function handleSupplierCreated(supplier: PersonalSupplierWithRule) {
+    function handleSupplierCreated(supplier: PersonalSupplierWithRules) {
     setSuppliersList((prev) => [...prev, supplier])
     setSupplierId(supplier.id)
   }
@@ -496,8 +576,28 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="commission_rate">Comissão (%)</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <Label htmlFor="commission_rate">Comissão</Label>
+                    
+                    {/* Seletor de Regras */}
+                    {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                        <Select value={selectedRuleId} onValueChange={handleRuleChange}>
+                            <SelectTrigger className="h-7 w-[180px] text-xs">
+                                <SelectValue placeholder="Regra..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="custom">Personalizado</SelectItem>
+                                {selectedSupplier.commission_rules.map(rule => (
+                                    <SelectItem key={rule.id} value={rule.id}>
+                                        {rule.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+
                 <div className="relative">
                   <Input
                     id="commission_rate"
@@ -507,14 +607,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     max="100"
                     placeholder="0.00"
                     value={commissionRate}
-                    onChange={(e) => setCommissionRate(e.target.value)}
+                    onChange={(e) => handleCommissionRateChange(e.target.value)}
                     className="pr-8"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
                 </div>
-                <p className="text-[0.8rem] text-muted-foreground">
-                  Percentual aplicado sobre o valor bruto.
-                </p>
+                
+                <div className="flex justify-between items-start">
+                    <p className="text-[0.8rem] text-muted-foreground">
+                    Percentual aplicado sobre o valor bruto.
+                    </p>
+                    {/* Botão Salvar Nova Regra (só aparece se for Custom e tiver valor) */}
+                    {selectedRuleId === 'custom' && commissionRate && parseFloat(commissionRate) > 0 && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] text-blue-600 hover:text-blue-700 px-2 -mt-1"
+                            onClick={() => setShowSaveRuleDialog(true)}
+                        >
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar como regra
+                        </Button>
+                    )}
+                </div>
               </div>
 
               <div className="relative py-4">
@@ -789,6 +905,38 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         totalValue={totalValue}
         commissionPercentage={commissionPercentage}
       />
+
+      {/* Dialog para salvar nova regra */}
+      <Dialog open={showSaveRuleDialog} onOpenChange={setShowSaveRuleDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Salvar Nova Regra</DialogTitle>
+            <DialogDescription>
+              Crie uma regra para reutilizar esta taxa de {commissionRate}% no futuro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rule-name">Nome da Regra</Label>
+              <Input
+                id="rule-name"
+                value={newRuleName}
+                onChange={(e) => setNewRuleName(e.target.value)}
+                placeholder="Ex: Promoção de Natal"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowSaveRuleDialog(false)}>
+                Cancelar
+            </Button>
+            <Button type="button" onClick={handleSaveNewRule} disabled={savingRule}>
+              {savingRule ? 'Salvando...' : 'Salvar Regra'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

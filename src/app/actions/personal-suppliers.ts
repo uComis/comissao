@@ -21,13 +21,15 @@ export type PersonalSupplier = {
   updated_at: string
 }
 
-export type PersonalSupplierWithRule = PersonalSupplier & {
-  commission_rule: CommissionRule | null
+export type PersonalSupplierWithRules = PersonalSupplier & {
+  commission_rules: CommissionRule[]
+  default_rule?: CommissionRule | null
 }
 
 // Schemas de validação
 const ruleInputSchema = z.object({
-  name: z.string().min(1),
+  id: z.string().optional(), // ID opcional para edição
+  name: z.string().min(1, 'Nome da regra é obrigatório'),
   type: z.enum(['fixed', 'tiered']),
   percentage: z.number().min(0).max(100).nullable(),
   tiers: z.array(z.object({
@@ -35,18 +37,20 @@ const ruleInputSchema = z.object({
     max: z.number().min(0).nullable(),
     percentage: z.number().min(0).max(100),
   })).nullable(),
+  is_default: z.boolean().optional(),
 })
 
 const createSupplierWithRuleSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   cnpj: z.string().optional(),
-  rule: ruleInputSchema,
+  rule: ruleInputSchema.optional().nullable(),
 })
 
-const updateSupplierWithRuleSchema = z.object({
+const updateSupplierWithRulesSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
   cnpj: z.string().optional(),
-  rule: ruleInputSchema.optional(),
+  rules: z.array(ruleInputSchema).optional(),
+  default_rule_id: z.string().optional(),
 })
 
 // Types de retorno
@@ -118,7 +122,7 @@ export async function getPersonalSupplierById(id: string): Promise<PersonalSuppl
   return data
 }
 
-export async function getPersonalSupplierWithRule(id: string): Promise<PersonalSupplierWithRule | null> {
+export async function getPersonalSupplierWithRules(id: string): Promise<PersonalSupplierWithRules | null> {
   const supabase = await createClient()
 
   // Buscar fornecedor
@@ -133,24 +137,22 @@ export async function getPersonalSupplierWithRule(id: string): Promise<PersonalS
     throw supplierError
   }
 
-  // Buscar regra de comissão se existir
-  let commission_rule: CommissionRule | null = null
+  // Buscar todas as regras deste fornecedor
+  const { data: rules, error: rulesError } = await supabase
+    .from('commission_rules')
+    .select('*')
+    .eq('personal_supplier_id', id)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
 
-  if (supplier.commission_rule_id) {
-    const { data: rule, error: ruleError } = await supabase
-      .from('commission_rules')
-      .select('*')
-      .eq('id', supplier.commission_rule_id)
-      .single()
+  if (rulesError) throw rulesError
 
-    if (!ruleError && rule) {
-      commission_rule = rule
-    }
-  }
+  const defaultRule = rules?.find(r => r.id === supplier.commission_rule_id) || rules?.[0] || null
 
   return {
     ...supplier,
-    commission_rule,
+    commission_rules: rules || [],
+    default_rule: defaultRule,
   }
 }
 
@@ -160,7 +162,7 @@ export async function getPersonalSupplierWithRule(id: string): Promise<PersonalS
 
 export async function createPersonalSupplierWithRule(
   input: z.infer<typeof createSupplierWithRuleSchema>
-): Promise<ActionResult<PersonalSupplierWithRule>> {
+): Promise<ActionResult<PersonalSupplierWithRules>> {
   const parsed = createSupplierWithRuleSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message }
@@ -193,37 +195,40 @@ export async function createPersonalSupplierWithRule(
 
     if (supplierError) throw supplierError
 
-    // 2. Criar regra de comissão vinculada ao fornecedor
+    // 2. Criar regra de comissão inicial (se fornecida)
     const { rule } = parsed.data
-    const { data: commissionRule, error: ruleError } = await supabase
-      .from('commission_rules')
-      .insert({
-        personal_supplier_id: supplier.id,
-        name: rule.name,
-        type: rule.type,
-        percentage: rule.type === 'fixed' ? rule.percentage : null,
-        tiers: rule.type === 'tiered' ? rule.tiers : null,
-        is_default: false,
-        is_active: true,
-      })
-      .select()
-      .single()
+    let commissionRule: CommissionRule | undefined
 
-    if (ruleError) {
-      // Rollback: excluir fornecedor se falhou ao criar regra
-      await supabase.from('personal_suppliers').delete().eq('id', supplier.id)
-      throw ruleError
+    if (rule) {
+      const { data: newRule, error: ruleError } = await supabase
+        .from('commission_rules')
+        .insert({
+          personal_supplier_id: supplier.id,
+          name: rule.name,
+          type: rule.type,
+          percentage: rule.type === 'fixed' ? rule.percentage : null,
+          tiers: rule.type === 'tiered' ? rule.tiers : null,
+          is_default: true, // A primeira regra é sempre padrão
+          is_active: true,
+        })
+        .select()
+        .single()
+
+      if (ruleError) {
+        // Rollback: excluir fornecedor se falhou ao criar regra
+        await supabase.from('personal_suppliers').delete().eq('id', supplier.id)
+        throw ruleError
+      }
+      commissionRule = newRule
+
+      // 3. Atualizar fornecedor com ID da regra padrão
+      const { error: updateError } = await supabase
+        .from('personal_suppliers')
+        .update({ commission_rule_id: commissionRule.id })
+        .eq('id', supplier.id)
+
+      if (updateError) throw updateError
     }
-
-    // 3. Atualizar fornecedor com ID da regra
-    const { data: updatedSupplier, error: updateError } = await supabase
-      .from('personal_suppliers')
-      .update({ commission_rule_id: commissionRule.id })
-      .eq('id', supplier.id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
 
     // 4. Incrementar uso
     await incrementUsage(user.id, 'suppliers')
@@ -232,8 +237,10 @@ export async function createPersonalSupplierWithRule(
     return {
       success: true,
       data: {
-        ...updatedSupplier,
-        commission_rule: commissionRule,
+        ...supplier, // Retorna supplier original (pode ter sido atualizado com ID da regra, mas para UI o id basta)
+        commission_rule_id: commissionRule?.id || null, // Atualiza ID se criou regra
+        commission_rules: commissionRule ? [commissionRule] : [],
+        default_rule: commissionRule || null,
       },
     }
   } catch (err) {
@@ -242,11 +249,11 @@ export async function createPersonalSupplierWithRule(
   }
 }
 
-export async function updatePersonalSupplierWithRule(
+export async function updatePersonalSupplierWithRules(
   id: string,
-  input: z.infer<typeof updateSupplierWithRuleSchema>
-): Promise<ActionResult<PersonalSupplierWithRule>> {
-  const parsed = updateSupplierWithRuleSchema.safeParse(input)
+  input: z.infer<typeof updateSupplierWithRulesSchema>
+): Promise<ActionResult<PersonalSupplierWithRules>> {
+  const parsed = updateSupplierWithRulesSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message }
   }
@@ -254,22 +261,14 @@ export async function updatePersonalSupplierWithRule(
   try {
     const supabase = await createClient()
 
-    // 1. Buscar fornecedor atual
-    const { data: currentSupplier, error: fetchError } = await supabase
-      .from('personal_suppliers')
-      .select('*, commission_rule:commission_rules(*)')
-      .eq('id', id)
-      .single()
-
-    if (fetchError) throw fetchError
-
-    // 2. Atualizar dados do fornecedor
+    // 1. Atualizar dados do fornecedor
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     }
 
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name
     if (parsed.data.cnpj !== undefined) updateData.cnpj = parsed.data.cnpj || null
+    if (parsed.data.default_rule_id !== undefined) updateData.commission_rule_id = parsed.data.default_rule_id
 
     const { data: updatedSupplier, error: updateError } = await supabase
       .from('personal_suppliers')
@@ -280,68 +279,102 @@ export async function updatePersonalSupplierWithRule(
 
     if (updateError) throw updateError
 
-    // 3. Atualizar regra de comissão (se fornecida)
-    let commissionRule = currentSupplier.commission_rule
+    // 2. Gerenciar regras (Create/Update/Delete implícito por ausência)
+    // NOTA: Para simplificar, assumimos que as regras passadas são as que devem existir.
+    // Mas no fluxo de UI atual, geralmente editamos uma a uma ou adicionamos.
+    // Vamos focar em criar/atualizar as regras enviadas.
 
-    if (parsed.data.rule) {
-      const { rule } = parsed.data
+    if (parsed.data.rules) {
+      for (const rule of parsed.data.rules) {
+        if (rule.id) {
+          // Update existente
+          const { error: ruleError } = await supabase
+            .from('commission_rules')
+            .update({
+              name: rule.name,
+              type: rule.type,
+              percentage: rule.type === 'fixed' ? rule.percentage : null,
+              tiers: rule.type === 'tiered' ? rule.tiers : null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', rule.id)
+            .eq('personal_supplier_id', id) // Segurança
 
-      if (currentSupplier.commission_rule_id) {
-        // Atualizar regra existente
-        const { data: updatedRule, error: ruleError } = await supabase
-          .from('commission_rules')
-          .update({
-            name: rule.name,
-            type: rule.type,
-            percentage: rule.type === 'fixed' ? rule.percentage : null,
-            tiers: rule.type === 'tiered' ? rule.tiers : null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', currentSupplier.commission_rule_id)
-          .select()
-          .single()
+          if (ruleError) throw ruleError
+        } else {
+          // Create nova regra
+          const { error: ruleError } = await supabase
+            .from('commission_rules')
+            .insert({
+              personal_supplier_id: id,
+              name: rule.name,
+              type: rule.type,
+              percentage: rule.type === 'fixed' ? rule.percentage : null,
+              tiers: rule.type === 'tiered' ? rule.tiers : null,
+              is_default: !!rule.is_default,
+              is_active: true,
+            })
 
-        if (ruleError) throw ruleError
-        commissionRule = updatedRule
-      } else {
-        // Criar nova regra
-        const { data: newRule, error: ruleError } = await supabase
-          .from('commission_rules')
-          .insert({
-            personal_supplier_id: id,
-            name: rule.name,
-            type: rule.type,
-            percentage: rule.type === 'fixed' ? rule.percentage : null,
-            tiers: rule.type === 'tiered' ? rule.tiers : null,
-            is_default: false,
-            is_active: true,
-          })
-          .select()
-          .single()
-
-        if (ruleError) throw ruleError
-
-        // Vincular regra ao fornecedor
-        await supabase
-          .from('personal_suppliers')
-          .update({ commission_rule_id: newRule.id })
-          .eq('id', id)
-
-        commissionRule = newRule
+          if (ruleError) throw ruleError
+        }
       }
     }
 
-    revalidatePath('/fornecedores')
+    // 3. Buscar dados atualizados para retorno
     return {
       success: true,
-      data: {
-        ...updatedSupplier,
-        commission_rule: commissionRule,
-      },
+      data: (await getPersonalSupplierWithRules(id))!,
     }
   } catch (err) {
     console.error('Error updating supplier:', err)
     return { success: false, error: 'Erro ao atualizar fornecedor' }
+  }
+}
+
+// Action específica para adicionar uma regra isolada (usada na venda ou edit)
+export async function addCommissionRule(
+  supplierId: string,
+  ruleData: z.infer<typeof ruleInputSchema>
+): Promise<ActionResult<CommissionRule>> {
+  const parsed = ruleInputSchema.safeParse(ruleData)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  try {
+    const supabase = await createClient()
+
+    const { data: newRule, error } = await supabase
+      .from('commission_rules')
+      .insert({
+        personal_supplier_id: supplierId,
+        name: parsed.data.name,
+        type: parsed.data.type,
+        percentage: parsed.data.type === 'fixed' ? parsed.data.percentage : null,
+        tiers: parsed.data.type === 'tiered' ? parsed.data.tiers : null,
+        is_default: !!parsed.data.is_default,
+        is_active: true,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    
+    // Se foi marcada como default, atualiza o fornecedor
+    if (parsed.data.is_default) {
+       await supabase
+        .from('personal_suppliers')
+        .update({ commission_rule_id: newRule.id })
+        .eq('id', supplierId)
+    }
+
+    revalidatePath('/fornecedores')
+    revalidatePath(`/fornecedores/${supplierId}`)
+    
+    return { success: true, data: newRule }
+  } catch (err) {
+    console.error('Error adding rule:', err)
+    return { success: false, error: 'Erro ao adicionar regra' }
   }
 }
 

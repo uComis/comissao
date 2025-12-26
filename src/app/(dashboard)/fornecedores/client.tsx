@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Building2 } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
-import type { PersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
-  initialSuppliers: PersonalSupplierWithRule[]
+  initialSuppliers: PersonalSupplierWithRules[]
 }
 
 export function FornecedoresClient({ initialSuppliers }: Props) {
@@ -19,7 +19,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   
   const hasSuppliers = suppliers.length > 0
 
-  function handleSupplierCreated(newSupplier: PersonalSupplierWithRule) {
+  function handleSupplierCreated(newSupplier: PersonalSupplierWithRules) {
     setSuppliers(prev => [...prev, newSupplier])
     router.refresh()
   }

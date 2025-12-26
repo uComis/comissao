@@ -1,4 +1,4 @@
-import { getPersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import { getPersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { SupplierFormPage } from '../_components/supplier-form-page'
 import { notFound } from 'next/navigation'
@@ -11,7 +11,7 @@ export default async function EditarFornecedorPage({ params }: Props) {
   const { id } = await params
   
   const [supplier, products] = await Promise.all([
-    getPersonalSupplierWithRule(id),
+    getPersonalSupplierWithRules(id),
     getProductsBySupplier(id),
   ])
 

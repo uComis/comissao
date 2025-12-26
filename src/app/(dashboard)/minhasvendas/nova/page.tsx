@@ -1,9 +1,10 @@
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { PersonalSaleForm } from '@/components/sales'
+import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 export default async function NovaVendaPage() {
-  const suppliers = await getPersonalSuppliers()
+  const suppliers = (await getPersonalSuppliers()) as any as PersonalSupplierWithRules[]
   
   // Buscar produtos de cada fornecedor
   const productsBySupplier: Record<string, Awaited<ReturnType<typeof getProductsBySupplier>>> = {}
