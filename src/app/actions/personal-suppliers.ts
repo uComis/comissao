@@ -62,7 +62,7 @@ type ActionResult<T> =
 // QUERIES
 // =====================================================
 
-export async function getPersonalSuppliers(): Promise<PersonalSupplierWithRule[]> {
+export async function getPersonalSuppliers(): Promise<PersonalSupplierWithRules[]> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -78,32 +78,46 @@ export async function getPersonalSuppliers(): Promise<PersonalSupplierWithRule[]
   if (suppliersError) throw suppliersError
   if (!suppliers || suppliers.length === 0) return []
 
-  // Buscar regras de comissão vinculadas
-  const ruleIds = suppliers
-    .map(s => s.commission_rule_id)
-    .filter((id): id is string => id !== null)
+  const supplierIds = suppliers.map(s => s.id)
 
-  let rulesMap: Record<string, CommissionRule> = {}
+  // Buscar TODAS as regras vinculadas aos fornecedores encontrados
+  const { data: rules, error: rulesError } = await supabase
+    .from('commission_rules')
+    .select('*')
+    .in('personal_supplier_id', supplierIds)
+    .eq('is_active', true)
 
-  if (ruleIds.length > 0) {
-    const { data: rules, error: rulesError } = await supabase
-      .from('commission_rules')
-      .select('*')
-      .in('id', ruleIds)
+  if (rulesError) throw rulesError
 
-    if (rulesError) throw rulesError
-    if (rules) {
-      rulesMap = Object.fromEntries(rules.map(r => [r.id, r]))
-    }
+  // Agrupar regras por fornecedor
+  const rulesBySupplier: Record<string, CommissionRule[]> = {}
+  
+  if (rules) {
+    rules.forEach(rule => {
+      // Garantir que personal_supplier_id existe na regra (deveria, pois filtramos por ele)
+      const supplierId = rule.personal_supplier_id
+      if (supplierId) {
+        if (!rulesBySupplier[supplierId]) {
+            rulesBySupplier[supplierId] = []
+        }
+        rulesBySupplier[supplierId].push(rule)
+      }
+    })
   }
 
   // Combinar dados
-  return suppliers.map(supplier => ({
-    ...supplier,
-    commission_rule: supplier.commission_rule_id 
-      ? rulesMap[supplier.commission_rule_id] || null 
-      : null,
-  }))
+  return suppliers.map(supplier => {
+    const supplierRules = rulesBySupplier[supplier.id] || []
+    const defaultRule = supplier.commission_rule_id 
+        ? supplierRules.find(r => r.id === supplier.commission_rule_id) 
+        : supplierRules[0] // Fallback
+
+    return {
+        ...supplier,
+        commission_rules: supplierRules,
+        default_rule: defaultRule || null
+    }
+  })
 }
 
 export async function getPersonalSupplierById(id: string): Promise<PersonalSupplier | null> {

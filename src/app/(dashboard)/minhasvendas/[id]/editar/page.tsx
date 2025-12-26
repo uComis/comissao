@@ -17,7 +17,7 @@ export default async function EditarVendaPage({ params }: Props) {
     notFound()
   }
 
-  const suppliers = (await getPersonalSuppliers()) as any as PersonalSupplierWithRules[]
+  const suppliers = await getPersonalSuppliers()
 
   // Buscar produtos de cada fornecedor
   const productsBySupplier: Record<string, Awaited<ReturnType<typeof getProductsBySupplier>>> = {}
