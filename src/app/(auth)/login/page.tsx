@@ -1,8 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { useTheme } from 'next-themes'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +24,16 @@ export default function LoginPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
   const [resetEmailSent, setResetEmailSent] = useState(false)
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDark = mounted && resolvedTheme === 'dark'
+  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,7 +88,16 @@ export default function LoginPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">uComis</CardTitle>
+            <div className="flex justify-center mb-4">
+              <Image
+                src={logoSrc}
+                alt="uComis"
+                width={180}
+                height={40}
+                priority
+                className="h-10 w-auto"
+              />
+            </div>
             <CardDescription>Configure o Supabase para acessar o sistema</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -198,9 +218,20 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">uComis</CardTitle>
-          <CardDescription>Auditoria de comissões para vendedores</CardDescription>
+        <CardHeader className="text-center pt-10 pb-8">
+          <div className="flex justify-center mb-6">
+            <Image
+              src={logoSrc}
+              alt="uComis"
+              width={160}
+              height={32}
+              priority
+              className="h-8 w-auto"
+            />
+          </div>
+          <CardDescription className="text-sm font-medium tracking-wide uppercase opacity-70">
+            Auditoria de comissões para vendedores
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button className="w-full" variant="outline" onClick={handleGoogleLogin}>

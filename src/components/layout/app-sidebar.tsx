@@ -119,30 +119,21 @@ export function AppSidebar() {
   const menuSections = userMode === 'personal' ? personalMenuSections : orgMenuSections
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const iconSrc = isDark ? '/images/logo/logo_icon_dark.svg' : '/images/logo/logo_icon_light.svg'
-  const textSrc = isDark ? '/images/logo/logo_texto_dark.svg' : '/images/logo/logo_texto_light.svg'
+  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
 
   if (!mounted) return null
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-3">
+        <div className="flex items-center justify-center px-4 pt-8 pb-8">
           <Image
-            src={iconSrc}
-            alt=""
-            width={32}
-            height={32}
-            priority
-            className="h-8 w-auto"
-          />
-          <Image
-            src={textSrc}
+            src={logoSrc}
             alt="uComis"
-            width={120}
-            height={24}
+            width={140}
+            height={28}
             priority
-            className="h-5 w-auto"
+            className="h-7 w-auto opacity-90 hover:opacity-100 transition-opacity"
           />
         </div>
       </SidebarHeader>

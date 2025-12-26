@@ -76,11 +76,7 @@ export function PersonalSaleTable({ sales }: Props) {
   }
 
   if (sales.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        Nenhuma venda cadastrada.
-      </div>
-    )
+    return null
   }
 
   return (
