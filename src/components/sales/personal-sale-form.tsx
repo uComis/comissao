@@ -217,6 +217,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     sale?.items && sale.items.length > 0 ? 'items' : 'total'
   )
   const [grossValueInput, setGrossValueInput] = useState(sale?.gross_value?.toString() || '')
+  const [taxRateInput, setTaxRateInput] = useState(sale?.tax_rate?.toString() || '')
   
   const [selectedRuleId, setSelectedRuleId] = useState<string>('custom')
   const [commissionRate, setCommissionRate] = useState<string>(
@@ -252,10 +253,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const totalValue = useMemo(() => {
     if (entryMode === 'total') {
-      return parseFloat(grossValueInput) || 0
+      const gross = parseFloat(grossValueInput) || 0
+      const taxRate = parseFloat(taxRateInput) || 0
+      return gross * (1 - (taxRate / 100))
     }
-    return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
-  }, [items, entryMode, grossValueInput])
+    return items.reduce((sum, item) => {
+        const gross = item.quantity * item.unit_price
+        const tax = gross * ((item.tax_rate || 0) / 100)
+        return sum + (gross - tax)
+    }, 0)
+  }, [items, entryMode, grossValueInput, taxRateInput])
 
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
@@ -419,12 +426,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         first_installment_date: firstInstallmentDate || undefined,
         notes: notes.trim() || undefined,
         gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
+        tax_rate: entryMode === 'total' ? (parseFloat(taxRateInput) || 0) : undefined,
         commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
-        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price }) => ({
+        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate }) => ({
           product_id,
           product_name,
           quantity,
           unit_price,
+          tax_rate: tax_rate || 0
         })) : [],
       }
 
@@ -574,20 +583,51 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <div className="flex flex-col items-center justify-center py-8 space-y-6">
                 
                 {/* Bloco de Valor Total */}
-                <div className="flex flex-col items-center space-y-2 w-full">
-                    <Label htmlFor="gross_value" className="text-muted-foreground text-sm uppercase tracking-wide font-semibold">Valor Total da Venda</Label>
-                    <div className="relative w-full max-w-sm">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-xl font-medium">R$</span>
-                    <Input
-                        id="gross_value"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="0,00"
-                        className="pl-12 h-16 text-3xl font-bold text-center shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary"
-                        value={grossValueInput}
-                        onChange={(e) => setGrossValueInput(e.target.value)}
-                    />
+                <div className="flex flex-col items-center w-full max-w-2xl gap-8">
+                    {/* Linha 1: Valor Total (Hero) */}
+                    <div className="flex flex-col items-center space-y-3 w-full">
+                        <Label htmlFor="gross_value" className="text-muted-foreground text-sm uppercase tracking-wide font-bold">Valor Total da Venda</Label>
+                        <div className="relative w-full max-w-lg">
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-medium">R$</span>
+                            <Input
+                                id="gross_value"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="0,00"
+                                className="pl-16 h-20 text-4xl font-bold text-center shadow-lg border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
+                                value={grossValueInput}
+                                onChange={(e) => setGrossValueInput(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Linha 2: Impostos e Resultado (Secundário) */}
+                    <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg border border-border/50">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Descontar Impostos:</span>
+                            <div className="relative w-24">
+                                <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    max="100"
+                                    className="pr-7 h-9 text-right font-medium"
+                                    value={taxRateInput}
+                                    onChange={(e) => setTaxRateInput(e.target.value)}
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                            </div>
+                        </div>
+
+                        <div className="h-4 w-px bg-border mx-2"></div>
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Base de Cálculo:</span>
+                            <span className="text-lg font-bold text-foreground">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+                            </span>
+                        </div>
                     </div>
                 </div>
               </div>

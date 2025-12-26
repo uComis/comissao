@@ -56,6 +56,7 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
       product_name: '',
       quantity: 1,
       unit_price: 0,
+      tax_rate: 0,
     }
     const updated = [...items, newItem]
     setItems(updated)
@@ -116,7 +117,8 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
               <TableHead className="min-w-[250px]">Produto</TableHead>
               <TableHead className="w-[100px]">Qtd</TableHead>
               <TableHead className="w-[150px]">Preço Unit.</TableHead>
-              <TableHead className="w-[150px] text-right">Total</TableHead>
+              <TableHead className="w-[100px]">Impostos (%)</TableHead>
+              <TableHead className="w-[150px] text-right">Total Líq.</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -172,8 +174,20 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
                     className="w-32"
                   />
                 </TableCell>
+                <TableCell>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={item.tax_rate ?? 0}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+                      updateItem(item.id, 'tax_rate', val === '' ? '' : parseFloat(val) || 0)
+                    }}
+                    className="w-20"
+                  />
+                </TableCell>
                 <TableCell className="text-right font-mono">
-                  {formatCurrency(item.quantity * item.unit_price)}
+                  {formatCurrency((item.quantity * item.unit_price) * (1 - ((item.tax_rate || 0) / 100)))}
                 </TableCell>
                 <TableCell>
                   <Button
@@ -190,7 +204,7 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
             ))}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <p className="text-muted-foreground mb-4">Nenhum item adicionado</p>
                   <Button type="button" variant="outline" onClick={addItem}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -210,8 +224,14 @@ export function SaleItemsEditor({ products, value, onChange }: Props) {
         </Button>
 
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Total</p>
-          <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+          <p className="text-sm text-muted-foreground">Total Líquido</p>
+          <p className="text-2xl font-bold">
+            {formatCurrency(items.reduce((sum, item) => {
+              const gross = item.quantity * item.unit_price
+              const tax = gross * ((item.tax_rate || 0) / 100)
+              return sum + (gross - tax)
+            }, 0))}
+          </p>
         </div>
       </div>
     </div>

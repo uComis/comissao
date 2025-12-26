@@ -13,6 +13,7 @@ const saleItemSchema = z.object({
   product_name: z.string().min(1, 'Nome do produto é obrigatório'),
   quantity: z.number().positive('Quantidade deve ser maior que zero'),
   unit_price: z.number().min(0, 'Preço não pode ser negativo'),
+  tax_rate: z.number().min(0).max(100).optional(),
 })
 
 const createSaleSchema = z.object({
@@ -25,6 +26,7 @@ const createSaleSchema = z.object({
   notes: z.string().optional(),
   items: z.array(saleItemSchema).optional(),
   gross_value: z.number().min(0).optional(),
+  tax_rate: z.number().min(0).max(100).optional(),
   commission_rate: z.number().min(0).optional(),
 }).refine(data => {
   const hasItems = data.items && data.items.length > 0
@@ -181,7 +183,7 @@ export async function createPersonalSale(
 
         if (!ruleError && rule) {
           const result = commissionEngine.calculate({
-            netValue: grossValue,
+            netValue: finalNetValue,
             rule: {
               type: rule.type as 'fixed' | 'tiered',
               percentage: rule.percentage,
@@ -206,8 +208,10 @@ export async function createPersonalSale(
         payment_condition: payment_condition || null,
         first_installment_date: first_installment_date || null,
         notes: notes || null,
-        gross_value: grossValue,
-        net_value: grossValue,
+        gross_value: finalGrossValue,
+        net_value: finalNetValue,
+        tax_rate: finalTaxRate,
+        tax_amount: finalTaxAmount,
         commission_value: commissionValue,
         commission_rate: commissionRate,
         source: 'manual',
@@ -296,22 +300,48 @@ export async function updatePersonalSale(
       return { success: false, error: 'Venda não encontrada' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
-    const itemsWithTotal = items.map(item => ({
-      ...item,
-      total_price: item.quantity * item.unit_price,
-    }))
-    const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+    const itemsWithTotal = items.map(item => {
+      const total_price = item.quantity * item.unit_price
+      const tax_amount = total_price * ((item.tax_rate || 0) / 100)
+      const net_value = total_price - tax_amount
+      
+      return {
+        ...item,
+        total_price,
+        tax_amount,
+        net_value
+      }
+    })
+
+    // Se tem itens, soma o bruto e o líquido dos itens
+    // Se não, usa o gross_value e aplica a tax_rate geral
+    let finalGrossValue = 0
+    let finalNetValue = 0
+    let finalTaxAmount = 0
+    let finalTaxRate = 0
+
+    if (itemsWithTotal.length > 0) {
+      finalGrossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+      finalNetValue = itemsWithTotal.reduce((sum, item) => sum + item.net_value, 0)
+      finalTaxAmount = itemsWithTotal.reduce((sum, item) => sum + item.tax_amount, 0)
+      finalTaxRate = finalGrossValue > 0 ? (finalTaxAmount / finalGrossValue) * 100 : 0
+    } else {
+      finalGrossValue = gross_value || 0
+      finalTaxRate = tax_rate || 0
+      finalTaxAmount = finalGrossValue * (finalTaxRate / 100)
+      finalNetValue = finalGrossValue - finalTaxAmount
+    }
 
     let commissionValue = 0
     let commissionRate = 0
 
-    // Se o usuário informou a comissão manualmente, usa ela
+    // Se o usuário informou a comissão manualmente, usa ela sobre o LÍQUIDO
     if (manual_commission_rate !== undefined) {
       commissionRate = manual_commission_rate
-      commissionValue = (grossValue * commissionRate) / 100
+      commissionValue = (finalNetValue * commissionRate) / 100
     } else {
       // Buscar regra de comissão do fornecedor (fallback)
       const { data: supplier, error: supplierError } = await supabase
@@ -329,7 +359,7 @@ export async function updatePersonalSale(
 
         if (!ruleError && rule) {
           const result = commissionEngine.calculate({
-            netValue: grossValue,
+            netValue: finalNetValue,
             rule: {
               type: rule.type as 'fixed' | 'tiered',
               percentage: rule.percentage,
@@ -353,8 +383,10 @@ export async function updatePersonalSale(
         payment_condition: payment_condition || null,
         first_installment_date: first_installment_date || null,
         notes: notes || null,
-        gross_value: grossValue,
-        net_value: grossValue,
+        gross_value: finalGrossValue,
+        net_value: finalNetValue,
+        tax_rate: finalTaxRate,
+        tax_amount: finalTaxAmount,
         commission_value: commissionValue,
         commission_rate: commissionRate,
       })
@@ -387,6 +419,9 @@ export async function updatePersonalSale(
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total_price,
+        tax_rate: item.tax_rate || 0,
+        tax_amount: item.tax_amount,
+        net_value: item.net_value
       }))
 
       const { data, error: itemsError } = await supabase

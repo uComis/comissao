@@ -6,6 +6,9 @@ export type PersonalSaleItem = {
   quantity: number
   unit_price: number
   total_price: number
+  tax_rate: number
+  tax_amount: number
+  net_value: number
   created_at: string
 }
 
@@ -17,6 +20,8 @@ export type PersonalSale = {
   client_name: string | null
   gross_value: number | null
   net_value: number | null
+  tax_rate: number | null
+  tax_amount: number | null
   commission_value: number | null
   commission_rate: number | null
   sale_date: string | null
@@ -46,6 +51,7 @@ export type CreatePersonalSaleItemInput = {
   product_name: string
   quantity: number
   unit_price: number
+  tax_rate?: number
 }
 
 export type CreatePersonalSaleInput = {
@@ -58,6 +64,6 @@ export type CreatePersonalSaleInput = {
   notes?: string
   items?: CreatePersonalSaleItemInput[]
   gross_value?: number // Novo campo opcional para valor direto
+  tax_rate?: number
   commission_rate?: number
 }
-
