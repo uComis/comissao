@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,8 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Separator } from '@/components/ui/separator'
-import { Plus, Eye, Save } from 'lucide-react'
+import { Plus, Eye, Save, Wand2 } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientCombobox, ClientDialog } from '@/components/clients'
@@ -36,6 +35,14 @@ import {
     DialogDescription,
     DialogFooter
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type SaleItem = CreatePersonalSaleItemInput & { id: string }
 
@@ -147,20 +154,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     
     const normalized = quickCondition.replace(/[\s,-]+/g, '/')
     
-    // Check if it's a truncated string (contains "...")
     if (normalized.includes('...')) {
-        // If it contains "...", we don't try to parse it. 
-        // We assume the user didn't change the underlying logic via the text input
-        // or if they did, they messed up. 
-        // Best UX: revert to the correct display based on current technical values.
-        setIsUpdatingFromQuick(false) // Trigger the useMemo below to regenerate the string
+        setIsUpdatingFromQuick(false)
         return
     }
 
     const parts = normalized.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
     
     if (parts.length > 0) {
-      // Logic for parsing manual input
       const first = parts[0]
       const count = parts.length
       
@@ -179,7 +180,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
       setInterval(detectedInterval)
       
-      // Update the string immediately to reflect what was parsed (in full)
       setQuickCondition(parts.join('/'))
     }
     
@@ -196,7 +196,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       const safeInterval = getSafeNumber(interval, 30)
       const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
 
-      // Se for muitas parcelas (>5), gera uma representação resumida
       if (safeInstallments > 5) {
           const parts = []
           for (let i = 0; i < 3; i++) {
@@ -204,7 +203,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           }
           setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
       } else {
-          // Se for poucas, mostra tudo
           const parts = []
           for (let i = 0; i < safeInstallments; i++) {
             parts.push(safeFirstDays + (i * safeInterval))
@@ -267,34 +265,32 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       if (selectedSupplier && !isEdit) {
           const defaultRule = selectedSupplier.default_rule
           if (defaultRule) {
-              setSelectedRuleId(defaultRule.id)
               if (defaultRule.type === 'fixed' && defaultRule.percentage) {
                   setCommissionRate(defaultRule.percentage.toString())
               } else if (defaultRule.type === 'tiered' && defaultRule.tiers?.[0]) {
                   setCommissionRate(defaultRule.tiers[0].percentage.toString())
               }
+              // Marca como regra selecionada para não mostrar botão de salvar
+              setSelectedRuleId(defaultRule.id)
           } else {
-              setSelectedRuleId('custom')
               setCommissionRate('')
+              setSelectedRuleId('custom')
           }
       }
   }, [supplierId, isEdit])
 
-  const handleRuleChange = (ruleId: string) => {
-      setSelectedRuleId(ruleId)
-      
-      if (ruleId === 'custom') {
-          return
-      }
-
+  const applyRule = (ruleId: string) => {
       const rule = selectedSupplier?.commission_rules.find(r => r.id === ruleId)
       if (rule) {
           if (rule.type === 'fixed' && rule.percentage) {
               setCommissionRate(rule.percentage.toString())
+              toast.success(`Taxa de ${rule.percentage}% aplicada!`)
           } else if (rule.type === 'tiered' && rule.tiers?.[0]) {
               setCommissionRate(rule.tiers[0].percentage.toString())
+              toast.success(`Taxa base de ${rule.tiers[0].percentage}% aplicada!`)
           }
       }
+      setSelectedRuleId(ruleId)
   }
 
   const handleCommissionRateChange = (value: string) => {
@@ -534,7 +530,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </CardContent>
         </Card>
 
-        {/* Bloco 2: O Que (Itens da Venda) */}
+        {/* Bloco 2: O Que (Itens + Comissão Global) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>O que foi vendido?</CardTitle>
@@ -594,75 +590,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     />
                     </div>
                 </div>
-
-                {/* Divisor Sutil */}
-                <div className="w-12 h-px bg-border/50"></div>
-
-                {/* Bloco de Comissão */}
-                <div className="flex flex-col items-center space-y-3 w-full animate-in fade-in slide-in-from-bottom-2 duration-500 delay-100">
-                    <Label htmlFor="commission_rate" className="text-muted-foreground text-xs uppercase tracking-wide font-semibold">
-                        Minha Comissão
-                    </Label>
-                    
-                    {/* Seletor de Regras */}
-                    {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                        <div className="w-full max-w-[200px] mb-1">
-                            <Select value={selectedRuleId} onValueChange={handleRuleChange}>
-                                <SelectTrigger className="h-7 text-xs w-full justify-center text-muted-foreground border-transparent hover:border-border transition-colors bg-muted/30 rounded-full">
-                                    <SelectValue placeholder="Selecionar regra..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="custom">Personalizado</SelectItem>
-                                    {selectedSupplier.commission_rules.map(rule => (
-                                        <SelectItem key={rule.id} value={rule.id}>
-                                            {rule.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    <div className="relative w-full max-w-[140px]">
-                      <Input
-                        id="commission_rate"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        placeholder="0.00"
-                        value={commissionRate}
-                        onChange={(e) => handleCommissionRateChange(e.target.value)}
-                        className="pr-8 h-12 text-2xl font-bold text-center border-none bg-transparent hover:bg-muted/20 transition-colors focus-visible:ring-0 focus-visible:bg-muted/30"
-                      />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
-                    </div>
-
-                    {/* Valor Estimado (Resultado) */}
-                    {totalValue > 0 && commissionPercentage !== null && commissionPercentage > 0 && (
-                        <div className="bg-emerald-50 text-emerald-900 px-4 py-2 rounded-full border border-emerald-100 flex items-center gap-2 shadow-sm mt-2">
-                            <span className="text-xs font-semibold text-emerald-700 uppercase">A Receber:</span>
-                            <span className="text-lg font-bold">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * (commissionPercentage / 100))}
-                            </span>
-                        </div>
-                    )}
-
-                    {/* Botão Salvar Regra */}
-                    {selectedRuleId === 'custom' && commissionRate && parseFloat(commissionRate) > 0 && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => setShowSaveRuleDialog(true)}
-                        >
-                            <Save className="h-3 w-3 mr-1" />
-                            Salvar taxa
-                        </Button>
-                    )}
-                </div>
-
               </div>
             ) : (
               <SaleItemsEditor
@@ -672,6 +599,89 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               />
             )}
           </CardContent>
+          
+          {/* Rodapé Universal de Comissão */}
+          {supplierId && (
+            <CardFooter className="flex flex-col items-center border-t bg-muted/20 py-8 space-y-6">
+                
+                {/* 1. Header da Comissão */}
+                <div className="flex flex-col items-center space-y-1">
+                    <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                        Minha Comissão
+                    </Label>
+                </div>
+
+                {/* 2. Input Hero + Botão Mágico */}
+                <div className="flex items-center gap-2">
+                     <div className="relative w-40">
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="100"
+                        placeholder="0.00"
+                        value={commissionRate}
+                        onChange={(e) => handleCommissionRateChange(e.target.value)}
+                        className="pr-8 h-14 text-3xl font-bold text-center border-2 shadow-sm focus-visible:ring-0 focus-visible:border-primary"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
+                    </div>
+
+                    {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
+                                    <Wand2 className="h-6 w-6" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {selectedSupplier.commission_rules.map(rule => (
+                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
+                                        <span>{rule.name}</span>
+                                        <span className="font-bold text-muted-foreground">
+                                            {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
+                                        </span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                </div>
+
+                {/* 3. Feedback Visual de Valor */}
+                <div className="flex flex-col items-center gap-2">
+                    {totalValue > 0 && commissionPercentage !== null && commissionPercentage > 0 ? (
+                        <div className="bg-emerald-50 text-emerald-900 px-6 py-3 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm animate-in zoom-in-95 duration-300">
+                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">A Receber</span>
+                            <span className="text-2xl font-bold tracking-tight">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * (commissionPercentage / 100))}
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="h-12 flex items-center text-muted-foreground/50 text-sm italic">
+                            Preencha valor e taxa para calcular
+                        </div>
+                    )}
+                    
+                    {/* Atalho para Salvar Nova Regra */}
+                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && (
+                         <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 mt-1"
+                            onClick={() => setShowSaveRuleDialog(true)}
+                        >
+                            <Save className="h-3 w-3 mr-1" />
+                            Salvar esta taxa como regra
+                        </Button>
+                    )}
+                </div>
+
+            </CardFooter>
+          )}
         </Card>
 
         {/* Bloco 3: Financeiro (Pagamento) */}
@@ -682,15 +692,24 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardContent>
              
             {/* Data da Venda (Âncora Temporal) */}
-             <div className="flex flex-col items-center justify-center space-y-2 mb-8">
-                <Label htmlFor="date" className="text-muted-foreground text-xs uppercase tracking-wide font-semibold">Data da Venda</Label>
-                <Input
-                    id="date"
-                    type="date"
-                    value={saleDate}
-                    onChange={(e) => handleSaleDateChange(e.target.value)}
-                    className="w-auto text-center font-medium shadow-sm"
-                />
+             <div className="flex flex-col items-center justify-center space-y-3 mb-6">
+                <Label htmlFor="date" className="text-muted-foreground text-sm uppercase tracking-wide font-bold">Data da Venda</Label>
+                <div className="relative">
+                    <Input
+                        id="date"
+                        type="date"
+                        value={saleDate}
+                        onChange={(e) => handleSaleDateChange(e.target.value)}
+                        className="w-auto min-w-[200px] text-center font-bold text-lg h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary px-4"
+                    />
+                </div>
+             </div>
+
+             {/* Separador Visual Customizado */}
+             <div className="flex items-center justify-center gap-4 mb-8 opacity-50">
+                <div className="h-px bg-border w-12"></div>
+                <div className="h-1 w-1 rounded-full bg-border"></div>
+                <div className="h-px bg-border w-12"></div>
              </div>
 
              {/* Seletor de Tipo */}
