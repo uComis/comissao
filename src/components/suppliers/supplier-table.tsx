@@ -28,12 +28,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
-import { deletePersonalSupplier, type PersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import { deletePersonalSupplier, type PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import type { CommissionRule } from '@/types'
 
 type Props = {
-  suppliers: PersonalSupplierWithRule[]
+  suppliers: PersonalSupplierWithRules[]
 }
 
 function formatCnpj(cnpj: string): string {
@@ -106,7 +106,7 @@ export function SupplierTable({ suppliers }: Props) {
                 <TableCell className="text-muted-foreground font-mono text-sm">
                   {formatCnpj(supplier.cnpj || '')}
                 </TableCell>
-                <TableCell>{getRuleDescription(supplier.commission_rule)}</TableCell>
+                <TableCell>{getRuleDescription(supplier.default_rule || null)}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

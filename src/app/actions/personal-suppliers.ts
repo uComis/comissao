@@ -238,7 +238,7 @@ export async function createPersonalSupplierWithRule(
       // 3. Atualizar fornecedor com ID da regra padrão
       const { error: updateError } = await supabase
         .from('personal_suppliers')
-        .update({ commission_rule_id: commissionRule.id })
+        .update({ commission_rule_id: newRule.id })
         .eq('id', supplier.id)
 
       if (updateError) throw updateError

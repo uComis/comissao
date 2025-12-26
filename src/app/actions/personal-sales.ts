@@ -150,14 +150,38 @@ export async function createPersonalSale(
       return { success: false, error: limitCheck.error || 'Limite de vendas atingido' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, commission_rate: manual_commission_rate } = parsed.data
+    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais
-    const itemsWithTotal = items.map(item => ({
-      ...item,
-      total_price: item.quantity * item.unit_price,
-    }))
-    const grossValue = gross_value ?? itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+    const itemsWithTotal = items.map(item => {
+      const total_price = item.quantity * item.unit_price
+      const tax_amount = total_price * ((item.tax_rate || 0) / 100)
+      const net_value = total_price - tax_amount
+      
+      return {
+        ...item,
+        total_price,
+        tax_amount,
+        net_value
+      }
+    })
+
+    let finalGrossValue = 0
+    let finalNetValue = 0
+    let finalTaxAmount = 0
+    let finalTaxRate = 0
+
+    if (itemsWithTotal.length > 0) {
+      finalGrossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
+      finalNetValue = itemsWithTotal.reduce((sum, item) => sum + item.net_value, 0)
+      finalTaxAmount = itemsWithTotal.reduce((sum, item) => sum + item.tax_amount, 0)
+      finalTaxRate = finalGrossValue > 0 ? (finalTaxAmount / finalGrossValue) * 100 : 0
+    } else {
+      finalGrossValue = gross_value || 0
+      finalTaxRate = tax_rate || 0
+      finalTaxAmount = finalGrossValue * (finalTaxRate / 100)
+      finalNetValue = finalGrossValue - finalTaxAmount
+    }
 
     let commissionValue = 0
     let commissionRate = 0
@@ -165,7 +189,7 @@ export async function createPersonalSale(
     // Se o usuário informou a comissão manualmente, usa ela
     if (manual_commission_rate !== undefined) {
       commissionRate = manual_commission_rate
-      commissionValue = (grossValue * commissionRate) / 100
+      commissionValue = (finalNetValue * commissionRate) / 100
     } else {
       // Buscar regra de comissão do fornecedor (fallback)
       const { data: supplier, error: supplierError } = await supabase

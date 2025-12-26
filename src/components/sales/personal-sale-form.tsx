@@ -979,8 +979,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         open={installmentsSheetOpen}
         onOpenChange={setInstallmentsSheetOpen}
         saleDate={saleDate}
-        installments={installments}
-        interval={interval}
+        installments={getSafeNumber(installments, 1)}
+        interval={getSafeNumber(interval, 30)}
         totalValue={totalValue}
         commissionPercentage={commissionPercentage}
       />

@@ -160,14 +160,6 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           cnpj: cleanCnpj,
           default_rule_id: defaultRuleId!,
           rules: rules.map(r => ({
-            id: r.id.length < 36 ? undefined : r.id, // Se for ID temp (muito curto? uuid tem 36), remove. Mas crypto.randomUUID gera 36.
-                                                     // Melhor lógica: verificar se existe no supplier original.
-                                                     // Simplificando: o backend decide se é insert ou update pelo ID.
-                                                     // Se o ID for gerado no front e não existir no banco, vai dar erro?
-                                                     // Não, o backend faria update where id=... e não acharia.
-                                                     // CORREÇÃO: IDs gerados no front não existem no banco. Precisamos identificar quais são novos.
-                                                     // Solução: IDs temporários no front. O backend ignora IDs que não existem?
-                                                     // O ideal é mandar sem ID se for novo.
             id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
             name: r.name,
             type: r.type,
