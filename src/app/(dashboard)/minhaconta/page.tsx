@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useUser } from '@/contexts/user-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PlanSelectionDialog } from '@/components/billing/plan-selection-dialog'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { Badge } from '@/components/ui/badge'
@@ -19,14 +19,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { getEnvironmentVariables, EnvironmentVariable } from '@/app/actions/profiles'
+import { getSubscription } from '@/app/actions/billing'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
+interface SubscriptionInfo {
+  planName: string
+  status: string
+}
+
 export default function MinhaContaPage() {
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const { profile } = useUser()
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -35,6 +41,21 @@ export default function MinhaContaPage() {
   const [envVarsOpen, setEnvVarsOpen] = useState(false)
   const [showSecrets, setShowSecrets] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
+
+  useEffect(() => {
+    async function loadSubscription() {
+      if (!user?.id) return
+      const sub = await getSubscription(user.id)
+      if (sub) {
+        setSubscription({
+          planName: (sub.plan_snapshot as { name?: string })?.name || 'Plano',
+          status: sub.status
+        })
+      }
+    }
+    loadSubscription()
+  }, [user?.id])
 
   const loadEnvVars = async () => {
     if (envVars.length > 0) return // já carregou
@@ -151,11 +172,21 @@ export default function MinhaContaPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
             <div>
-              <p className="font-semibold">Plano Atual: FREE</p>
-              <p className="text-sm text-muted-foreground">Você está usando a versão gratuita com limites reduzidos.</p>
+              <p className="font-semibold">
+                Plano Atual: {subscription?.planName || 'FREE'}
+                {subscription?.status === 'past_due' && (
+                  <Badge variant="destructive" className="ml-2">Pendente</Badge>
+                )}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {subscription 
+                  ? `Sua assinatura está ${subscription.status === 'active' ? 'ativa' : 'pendente de pagamento'}.`
+                  : 'Você está usando a versão gratuita com limites reduzidos.'
+                }
+              </p>
             </div>
             <Button variant="default" size="sm" onClick={() => setIsPlanModalOpen(true)}>
-              Fazer Upgrade
+              {subscription ? 'Gerenciar Plano' : 'Fazer Upgrade'}
             </Button>
           </div>
         </CardContent>

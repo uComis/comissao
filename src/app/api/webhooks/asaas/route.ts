@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { createAdminClient } from '@/lib/supabase-server';
 import { NextResponse } from 'next/server';
 
 const ASAAS_WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN;
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     const { event, payment, subscription } = body;
     console.log(`Webhook Asaas recebido: ${event}`, body);
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // 2. Processar eventos de pagamento
     if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {

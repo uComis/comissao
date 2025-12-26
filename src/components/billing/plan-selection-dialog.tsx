@@ -61,6 +61,8 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     return acc
   }, 0)
 
+  const [hasEverSubscribed, setHasEverSubscribed] = useState(false)
+
   useEffect(() => {
     if (open && user) {
       async function loadData() {
@@ -71,6 +73,8 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
           ])
           setPlans(plansData)
           setCurrentPlanId(subData?.plan_id || null)
+          // Se tem assinatura ativa/past_due, já assinou alguma vez
+          setHasEverSubscribed(!!subData)
         } catch (error) {
           console.error('Error loading plans:', error)
         } finally {
@@ -81,7 +85,10 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     }
   }, [open, user])
 
-  const filteredPlans = plans.filter(p => p.interval === billingInterval)
+  // Filtra por intervalo e esconde FREE se já assinou algum plano
+  const filteredPlans = plans
+    .filter(p => p.interval === billingInterval)
+    .filter(p => hasEverSubscribed ? p.plan_group !== 'free' : true)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
