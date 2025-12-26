@@ -542,7 +542,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         {/* Bloco 2: O Que (Itens + Comissão Global) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>O que foi vendido?</CardTitle>
+            <CardTitle>
+              {entryMode === 'total' ? 'Qual o valor da venda?' : 'O que foi vendido?'}
+            </CardTitle>
             <RadioGroup
               value={entryMode}
               onValueChange={(v) => setEntryMode(v as 'total' | 'items')}
