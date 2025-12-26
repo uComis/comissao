@@ -125,15 +125,23 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
   }
 
   const handleSubscribe = async (planId: string) => {
+    // Abre a janela ANTES do await para evitar popup blocker
+    const newWindow = window.open('', '_blank')
+    
     try {
       setSubscribingId(planId)
       const result = await createSubscriptionAction(planId)
       
       if (result.success) {
-        toast.success('Fatura gerada! Abra a nova aba para pagar.')
-        window.open(result.invoiceUrl, '_blank')
-        onOpenChange(false) // Fecha o modal para mostrar o app de volta
+        toast.success('Fatura gerada! Redirecionando para pagamento...')
+        if (newWindow && result.invoiceUrl) {
+          newWindow.location.href = result.invoiceUrl
+        }
+        onOpenChange(false)
       } else {
+        // Fecha a janela vazia se deu erro
+        newWindow?.close()
+        
         if (result.error === 'NEEDS_DOCUMENT') {
           setPendingPlanId(planId)
           setShowProfileDialog(true)
@@ -142,6 +150,9 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
         }
       }
     } catch (error: unknown) {
+      // Fecha a janela vazia se deu erro
+      newWindow?.close()
+      
       console.error('Erro ao assinar:', error)
       const message = error instanceof Error ? error.message : 'Erro ao processar assinatura. Tente novamente.'
       toast.error(message)
