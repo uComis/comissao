@@ -12,6 +12,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
 } from '@/components/ui/sidebar'
 import { Home, Users, Scale, ShoppingCart, BarChart3, Building2, Settings, PlusCircle, Target, CreditCard } from 'lucide-react'
 import Link from 'next/link'
@@ -126,7 +127,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center justify-center px-4 pt-8 pb-8">
+        <div className="flex items-center justify-center px-4 py-[clamp(1.5rem,5vh,2.5rem)]">
           <Image
             src={logoSrc}
             alt="uComis"
@@ -138,24 +139,27 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {menuSections.map((section) => (
-          <SidebarGroup key={section.label}>
-            <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={pathname === item.url}>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+        {menuSections.map((section, index) => (
+          <div key={section.label}>
+            {index > 0 && <SidebarSeparator className="my-1 opacity-30" />}
+            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+              <SidebarGroupLabel className="h-8 mb-1 text-[9px]">{section.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  {section.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={pathname === item.url}>
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </div>
         ))}
       </SidebarContent>
       <SidebarFooter>
@@ -219,7 +223,7 @@ function PerformanceWidget() {
     <>
       <div 
         onClick={() => setIsDialogOpen(true)}
-        className={`mx-2 mb-4 cursor-pointer rounded-lg border bg-card p-3 shadow-sm transition-all duration-500 hover:border-primary/50 hover:bg-accent/50 group ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+        className={`mx-3 mb-[clamp(0.5rem,2vh,1.5rem)] cursor-pointer rounded-lg border bg-card p-[clamp(0.75rem,2vh,1rem)] shadow-sm transition-all duration-500 hover:border-primary/50 hover:bg-accent/50 group ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
       >
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">
