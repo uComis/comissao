@@ -14,7 +14,7 @@ export function StatCard({ label, value, icon: Icon, percentage, percentageLabel
   const displayPercentage = Math.abs(percentage)
 
   return (
-    <Card className="border-none shadow-sm h-fit py-3 md:py-6">
+    <Card className="border-none shadow-sm h-full py-3 md:py-6">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 md:px-6">
         <CardTitle className="text-sm md:text-base font-semibold">{label}</CardTitle>
         <Icon className="h-5 w-5 md:h-6 md:w-6" />
