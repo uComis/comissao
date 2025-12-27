@@ -34,15 +34,15 @@ export function DonutCard({ title, value, data }: DonutCardProps) {
 
   return (
     <Card className="border-none shadow-sm h-full overflow-hidden flex flex-col py-3 md:py-6">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 md:px-6">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0 md:pb-2 px-3 md:px-6">
         <CardTitle className="text-sm md:text-base font-semibold">
           {title}
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="px-3 md:px-6 flex-1 flex flex-col">
-        {/* Valor idêntico ao StatCard */}
-        <div className="text-2xl md:text-4xl font-bold truncate">
+      <CardContent className="px-3 md:px-6 flex-1 flex flex-col pt-0 md:pt-0">
+        {/* Valor com 2rem no mobile e 4xl no desktop */}
+        <div className="text-[2rem] md:text-4xl font-bold truncate leading-none md:leading-tight">
           {value}
         </div>
 
@@ -57,10 +57,10 @@ export function DonutCard({ title, value, data }: DonutCardProps) {
                   style={{ backgroundColor: item.fill }} 
                 />
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold leading-none">
+                  <span className="text-xs font-bold leading-none text-foreground">
                     {Math.round((item.value / total) * 100)}%
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-medium uppercase truncate max-w-[100px] leading-none">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase truncate max-w-[80px] leading-none">
                     {item.name}
                   </span>
                 </div>
@@ -69,7 +69,7 @@ export function DonutCard({ title, value, data }: DonutCardProps) {
           </div>
 
           {/* Donut Chart (Mantendo o estilo que você gostou) */}
-          <div className="relative w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 shrink-0">
+          <div className="relative w-40 h-40 md:w-32 md:h-32 lg:w-36 lg:h-36 shrink-0">
             <ChartContainer config={chartConfig} className="w-full h-full">
               <PieChart>
                 <ChartTooltip content={<ChartTooltipContent hideLabel />} />
@@ -77,9 +77,9 @@ export function DonutCard({ title, value, data }: DonutCardProps) {
                   data={data}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius="75%"
+                  innerRadius="50%"
                   outerRadius="100%"
-                  paddingAngle={4}
+                  paddingAngle={2}
                   strokeWidth={0}
                 >
                   {data.map((entry, index) => (
