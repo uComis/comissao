@@ -63,6 +63,36 @@ export async function updateCommissionGoal(goal: number): Promise<ActionResult<v
   }
 }
 
+export async function updateUserMode(mode: 'personal' | 'organization'): Promise<ActionResult<void>> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return { success: false, error: 'Usuário não autenticado' }
+    }
+
+    const { error } = await supabase
+      .from('user_preferences')
+      .upsert({ 
+        user_id: user.id, 
+        user_mode: mode,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+
+    if (error) throw error
+
+    revalidatePath('/')
+    revalidatePath('/home')
+    revalidatePath('/minhaconta')
+    
+    return { success: true, data: undefined }
+  } catch (error) {
+    console.error('Error updating user mode:', error)
+    return { success: false, error: 'Erro ao atualizar modo de visualização' }
+  }
+}
+
 export async function getPerformanceStats() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()

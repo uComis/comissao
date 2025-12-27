@@ -21,11 +21,16 @@ import {
 } from "@/components/ui/dialog"
 import { getEnvironmentVariables, EnvironmentVariable } from '@/app/actions/profiles'
 import { getSubscription } from '@/app/actions/billing'
+import { getUserPreferences, updateUserMode } from '@/app/actions/user-preferences'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface SubscriptionInfo {
   planName: string
@@ -35,6 +40,7 @@ interface SubscriptionInfo {
 export default function MinhaContaPage() {
   const { signOut, user } = useAuth()
   const { profile } = useUser()
+  const router = useRouter()
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [envVars, setEnvVars] = useState<EnvironmentVariable[]>([])
@@ -43,20 +49,50 @@ export default function MinhaContaPage() {
   const [showSecrets, setShowSecrets] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
+  const [userMode, setUserMode] = useState<'personal' | 'organization' | null>(null)
+  const [isUpdatingMode, setIsUpdatingMode] = useState(false)
 
   useEffect(() => {
-    async function loadSubscription() {
+    async function loadInitialData() {
       if (!user?.id) return
-      const sub = await getSubscription(user.id)
+      
+      const [sub, prefs] = await Promise.all([
+        getSubscription(user.id),
+        getUserPreferences()
+      ])
+
       if (sub) {
         setSubscription({
           planName: (sub.plan_snapshot as { name?: string })?.name || 'Plano',
           status: sub.status
         })
       }
+
+      if (prefs) {
+        setUserMode(prefs.user_mode)
+      }
     }
-    loadSubscription()
+    loadInitialData()
   }, [user?.id])
+
+  const handleModeChange = async (mode: string) => {
+    const newMode = mode as 'personal' | 'organization'
+    if (newMode === userMode || isUpdatingMode) return
+
+    setIsUpdatingMode(true)
+    const result = await updateUserMode(newMode)
+    
+    if (result.success) {
+      setUserMode(newMode)
+      toast.success(`Modo alterado para ${newMode === 'personal' ? 'Vendedor' : 'Organização'}`)
+      // Redireciona para a home correta do modo
+      router.push(newMode === 'personal' ? '/home' : '/')
+      router.refresh()
+    } else {
+      toast.error(result.error)
+    }
+    setIsUpdatingMode(false)
+  }
 
   const loadEnvVars = async () => {
     if (envVars.length > 0) return // já carregou
@@ -162,6 +198,39 @@ export default function MinhaContaPage() {
               )}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Modo de Visualização</CardTitle>
+          <CardDescription>Escolha como deseja utilizar o sistema</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {userMode === null ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          ) : (
+            <>
+              <Tabs value={userMode} onValueChange={handleModeChange}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="personal" disabled={isUpdatingMode}>
+                    Vendedor
+                  </TabsTrigger>
+                  <TabsTrigger value="organization" disabled={isUpdatingMode}>
+                    Organização
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <p className="text-xs text-muted-foreground mt-3">
+                {userMode === 'personal' 
+                  ? 'Você está vendo suas vendas e comissões pessoais.' 
+                  : 'Você está vendo a gestão da sua equipe e organização.'}
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 

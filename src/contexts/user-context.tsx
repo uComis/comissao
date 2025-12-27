@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useAuth } from './auth-context'
+import { updateProfile } from '@/app/actions/profiles'
 
 type UserEmail = {
   id: string
@@ -65,15 +66,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .order('is_primary', { ascending: false })
 
       // Montar perfil
+      const metadataAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture
+      const dbAvatar = dbProfile?.avatar_url
+
       const userProfile: UserProfile = {
         id: user.id,
         email: user.email || '',
         name: dbProfile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || null,
         document: dbProfile?.document || null,
         document_type: dbProfile?.document_type || null,
-        avatar_url: user.user_metadata?.avatar_url || null,
+        avatar_url: dbAvatar || metadataAvatar || null,
         is_super_admin: Boolean(dbProfile?.is_super_admin),
         emails: emails || [],
+      }
+
+      // Sync silencioso do avatar se necessário
+      if (metadataAvatar && metadataAvatar !== dbAvatar) {
+        // Faz o update sem esperar para não travar o carregamento do perfil
+        updateProfile({ avatar_url: metadataAvatar }).catch(err => {
+          console.error('Error syncing avatar to DB:', err)
+        })
       }
 
       // Se não existe email primário na tabela, criar

@@ -10,6 +10,7 @@ export interface Profile {
   full_name: string | null
   document: string | null
   document_type: 'CPF' | 'CNPJ' | null
+  avatar_url: string | null
   updated_at: string
   created_at: string
 }
@@ -37,6 +38,7 @@ export async function updateProfile(input: {
   full_name?: string
   document?: string
   document_type?: 'CPF' | 'CNPJ'
+  avatar_url?: string
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -48,7 +50,7 @@ export async function updateProfile(input: {
       user_id: user.id,
       ...input,
       updated_at: new Date().toISOString()
-    })
+    }, { onConflict: 'user_id' })
 
   if (error) {
     console.error('Error updating profile:', error)
