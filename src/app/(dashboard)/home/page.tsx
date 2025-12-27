@@ -23,7 +23,7 @@ const subscriptionsData = [
 
 export default function AnalyticsPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[1500px] mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-4xl font-bold tracking-tight">Analytics</h1>
         
