@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
 import { useUser } from '@/contexts/user-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check, ArrowRight } from 'lucide-react'
+import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check, ArrowRight, Shield, Mail, Lock, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { PlanSelectionDialog } from '@/components/billing/plan-selection-dialog'
 import { ProfileForm } from '@/components/profile/profile-form'
@@ -38,7 +38,7 @@ interface SubscriptionInfo {
 }
 
 export default function MinhaContaPage() {
-  const { signOut, user } = useAuth()
+  const { signOut, user, linkIdentity } = useAuth()
   const { profile } = useUser()
   const router = useRouter()
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
@@ -51,6 +51,22 @@ export default function MinhaContaPage() {
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
   const [userMode, setUserMode] = useState<'personal' | 'organization' | null>(null)
   const [isUpdatingMode, setIsUpdatingMode] = useState(false)
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
+
+  const identities = user?.identities || []
+  const hasGoogle = identities.some(id => id.provider === 'google')
+  const hasPassword = identities.some(id => id.provider === 'email')
+
+  const handleLinkGoogle = async () => {
+    try {
+      setIsLinkingGoogle(true)
+      await linkIdentity('google')
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao vincular conta Google')
+    } finally {
+      setIsLinkingGoogle(false)
+    }
+  }
 
   useEffect(() => {
     async function loadInitialData() {
@@ -147,6 +163,8 @@ export default function MinhaContaPage() {
     .toUpperCase()
     .slice(0, 2) || profile?.email?.[0].toUpperCase() || '?'
 
+  const isOrganizationEnabled = process.env.NEXT_PUBLIC_ENABLE_ORGANIZATION === 'true'
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -203,36 +221,136 @@ export default function MinhaContaPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Modo de Visualização</CardTitle>
-          <CardDescription>Escolha como deseja utilizar o sistema</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            Segurança e Acesso
+          </CardTitle>
+          <CardDescription>Gerencie como você acessa sua conta</CardDescription>
         </CardHeader>
-        <CardContent>
-          {userMode === null ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-4 w-3/4" />
+        <CardContent className="space-y-4">
+          <div className="grid gap-4">
+            {/* Método Google */}
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white rounded-full border shadow-sm">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Conta Google</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasGoogle ? 'Sua conta está vinculada' : 'Acesse com um clique via Google'}
+                  </p>
+                </div>
+              </div>
+              {hasGoogle ? (
+                <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                  <Check className="h-3 w-3 mr-1" />
+                  Conectado
+                </Badge>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLinkGoogle}
+                  disabled={isLinkingGoogle}
+                >
+                  {isLinkingGoogle ? 'Conectando...' : 'Vincular'}
+                </Button>
+              )}
             </div>
-          ) : (
-            <>
-              <Tabs value={userMode} onValueChange={handleModeChange}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="personal" disabled={isUpdatingMode}>
-                    Vendedor
-                  </TabsTrigger>
-                  <TabsTrigger value="organization" disabled={isUpdatingMode}>
-                    Organização
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <p className="text-xs text-muted-foreground mt-3">
-                {userMode === 'personal' 
-                  ? 'Você está vendo suas vendas e comissões pessoais.' 
-                  : 'Você está vendo a gestão da sua equipe e organização.'}
-              </p>
-            </>
+
+            {/* Método Email/Senha */}
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded-full">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Email e Senha</p>
+                  <p className="text-xs text-muted-foreground">
+                    Acesso tradicional via email
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {hasPassword && (
+                  <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                    Ativo
+                  </Badge>
+                )}
+                {!hasPassword && !hasGoogle && (
+                   <Badge variant="secondary">Método atual</Badge>
+                )}
+                {hasPassword && (
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/reset-password">
+                      Alterar
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {!hasPassword && hasGoogle && (
+            <p className="text-[10px] text-muted-foreground italic text-center">
+              Você está autenticado via Google. Não é necessário criar uma senha uComis.
+            </p>
           )}
         </CardContent>
       </Card>
+
+      {isOrganizationEnabled && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Modo de Visualização</CardTitle>
+            <CardDescription>Escolha como deseja utilizar o sistema</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {userMode === null ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ) : (
+              <>
+                <Tabs value={userMode} onValueChange={handleModeChange}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="personal" disabled={isUpdatingMode}>
+                      Vendedor
+                    </TabsTrigger>
+                    <TabsTrigger value="organization" disabled={isUpdatingMode}>
+                      Organização
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <p className="text-xs text-muted-foreground mt-3">
+                  {userMode === 'personal' 
+                    ? 'Você está vendo suas vendas e comissões pessoais.' 
+                    : 'Você está vendo a gestão da sua equipe e organização.'}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
