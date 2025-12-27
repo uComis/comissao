@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
+import { AlertTriangle, Sparkles } from 'lucide-react'
 import { PlanSelectionDialog } from './plan-selection-dialog'
 import { getBillingUsage } from '@/app/actions/billing'
 
@@ -37,13 +37,7 @@ export function UsageWidget() {
     loadUsage()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="mx-2 mb-4 p-3 rounded-lg border bg-card shadow-sm flex items-center justify-center h-20">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+  if (loading) return null
 
   if (!usage) return null
   
