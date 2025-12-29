@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, PlusCircle, LayoutDashboard, Wallet } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, LayoutDashboard, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -29,6 +29,7 @@ type MenuItem = {
   title: string
   url: string
   icon: React.ElementType
+  actionUrl?: string
 }
 
 type MenuSection = {
@@ -64,8 +65,13 @@ const personalMenuSections: MenuSection[] = [
     label: 'Vendas',
     items: [
       { title: 'Analytics', url: '/home', icon: LayoutDashboard },
-      { title: 'Nova Venda', url: '/minhasvendas/nova', icon: PlusCircle },
-      { title: 'Minhas Vendas', url: '/minhasvendas', icon: ShoppingCart },
+      { title: 'Minhas Vendas', url: '/minhasvendas', icon: ShoppingCart, actionUrl: '/minhasvendas/nova' },
+    ],
+  },
+  {
+    label: 'Resultados',
+    items: [
+      { title: 'Faturamento', url: '/faturamento', icon: Wallet },
     ],
   },
   {
@@ -73,12 +79,6 @@ const personalMenuSections: MenuSection[] = [
     items: [
       { title: 'Meus Clientes', url: '/clientes', icon: Users },
       { title: 'Minhas Pastas', url: '/fornecedores', icon: Building2 },
-    ],
-  },
-  {
-    label: 'Resultados',
-    items: [
-      { title: 'Faturamento', url: '/faturamento', icon: Wallet },
     ],
   },
 ]
@@ -142,13 +142,22 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
                   {section.items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={pathname === item.url}>
+                    <SidebarMenuItem key={item.title} className="relative">
+                      <SidebarMenuButton asChild isActive={pathname === item.url || pathname === item.actionUrl}>
                         <Link href={item.url}>
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
+                      {item.actionUrl && (
+                        <Link
+                          href={item.actionUrl}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors"
+                          title="Nova Venda"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Link>
+                      )}
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>
