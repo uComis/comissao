@@ -32,7 +32,7 @@ export function BottomNav() {
       aria-label="Navegação inferior"
     >
       <div className="mx-auto w-full max-w-md px-4">
-        <div className="relative h-[84px] rounded-3xl border border-border/60 bg-background/80 shadow-lg shadow-black/5 backdrop-blur-xl">
+        <div className="relative h-[95px] rounded-3xl border border-border/60 bg-background/80 shadow-lg shadow-black/5 backdrop-blur-xl">
           <div className="grid h-full grid-cols-5 items-center px-2">
             {mainItems.map((item) => {
               const Icon = item.icon

@@ -9,6 +9,7 @@ import { differenceInDays, parseISO } from 'date-fns'
 export function TrialBanner() {
   const [isVisible, setIsVisible] = useState(true)
   const [isAnimated, setIsAnimated] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [trialData, setTrialData] = useState<{
@@ -41,8 +42,8 @@ export function TrialBanner() {
   // Dispara a animação após o carregamento quando há dados de trial
   useEffect(() => {
     if (!loading && trialData?.isTrial && isVisible) {
-      // Delay de 3 segundos para o usuário se situar na página primeiro
-      const timer = setTimeout(() => setIsAnimated(true), 3000)
+      // Delay de 2 segundos para o usuário se situar na página primeiro
+      const timer = setTimeout(() => setIsAnimated(true), 2000)
       return () => clearTimeout(timer)
     }
   }, [loading, trialData?.isTrial, isVisible])
@@ -64,7 +65,8 @@ export function TrialBanner() {
     <>
       <div 
         className={`
-          w-full overflow-hidden transition-all duration-[2000ms] ease-out
+          w-full overflow-hidden transition-all ease-out
+          ${isClosing ? 'duration-[1000ms]' : 'duration-[2000ms]'}
           ${isAnimated ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}
         `}
       >
@@ -85,8 +87,9 @@ export function TrialBanner() {
           </div>
           <button 
             onClick={() => {
+              setIsClosing(true)
               setIsAnimated(false)
-              setTimeout(() => setIsVisible(false), 2000)
+              setTimeout(() => setIsVisible(false), 1000)
             }} 
             className="hover:opacity-70 shrink-0 ml-2"
           >
