@@ -50,8 +50,8 @@ export function ClientesClient({ initialClients }: Props) {
           </p>
         </div>
         <Button onClick={handleNewClient}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Cliente
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Novo Cliente</span>
         </Button>
       </div>
 

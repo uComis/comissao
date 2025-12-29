@@ -43,8 +43,8 @@ async function SalesContent() {
         </div>
         <Button asChild>
           <Link href="/minhasvendas/nova">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Venda
+            <Plus className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Nova Venda</span>
           </Link>
         </Button>
       </div>

@@ -17,8 +17,10 @@ import {
   FilterX,
   X,
   CheckCircle,
-  CalendarCheck
+  CalendarCheck,
+  DollarSign
 } from 'lucide-react'
+import { StatCard } from '@/components/dashboard/stat-card'
 import {
   Dialog,
   DialogContent,
@@ -197,7 +199,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
     <div className="relative pb-24">
       <div className="space-y-6 max-w-5xl mx-auto">
         {/* Header com Botão de Ação Principal */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-bold tracking-tight text-primary">
               {isHome ? 'Faturamento' : 'Recebíveis'}
@@ -206,14 +208,13 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               {isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.'}
             </p>
           </div>
-          
           {!isEditMode ? (
             <Button 
               onClick={() => setIsEditMode(true)}
               className="bg-primary hover:bg-primary/90 shadow-lg group"
             >
-              <CalendarCheck className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-              Registrar Recebimentos
+              <CalendarCheck className="h-4 w-4 transition-transform group-hover:scale-110 md:mr-2" />
+              <span className="hidden md:inline">Registrar Recebimentos</span>
             </Button>
           ) : (
             <Button 
@@ -221,76 +222,51 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
               className="border-destructive text-destructive hover:bg-destructive/10"
             >
-              <X className="mr-2 h-4 w-4" />
-              Cancelar Edição
+              <X className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Cancelar Edição</span>
             </Button>
           )}
         </div>
 
         {/* Cards de Totais */}
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <button 
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+          <StatCard
+            label="Total Projetado"
+            value={formatCurrency(stats.totalPending + stats.totalReceived)}
+            icon={DollarSign}
             onClick={() => setFilterStatus('all')}
-            className={cn("text-left transition-all duration-200", filterStatus === 'all' ? "scale-[1.02]" : "opacity-80 hover:opacity-100")}
-          >
-            <Card className={cn("h-full border-2", filterStatus === 'all' ? "border-primary/50 shadow-md" : "border-transparent")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Total Projetado</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalPending + stats.totalReceived)}</div>
-              </CardContent>
-            </Card>
-          </button>
-
-          <button 
+            active={filterStatus === 'all'}
+          />
+          <StatCard
+            label="A Receber"
+            value={formatCurrency(stats.totalPending)}
+            icon={Clock}
+            subtitle={`${stats.countPending} parcelas`}
             onClick={() => setFilterStatus('pending')}
-            className={cn("text-left transition-all duration-200", filterStatus === 'pending' ? "scale-[1.02]" : "opacity-80 hover:opacity-100")}
-          >
-            <Card className={cn("h-full border-2", filterStatus === 'pending' ? "border-blue-500/50 shadow-md" : "border-transparent")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">A Receber</CardTitle>
-                <Clock className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.totalPending)}</div>
-                <p className="text-[10px] font-medium text-muted-foreground mt-1">{stats.countPending} PARCELAS</p>
-              </CardContent>
-            </Card>
-          </button>
-
-          <button 
+            active={filterStatus === 'pending'}
+            valueClassName="text-blue-600"
+            iconClassName="text-blue-500"
+          />
+          <StatCard
+            label="Atrasados"
+            value={formatCurrency(stats.totalOverdue)}
+            icon={AlertTriangle}
+            subtitle={`${stats.countOverdue} parcelas`}
             onClick={() => setFilterStatus('overdue')}
-            className={cn("text-left transition-all duration-200", filterStatus === 'overdue' ? "scale-[1.02]" : "opacity-80 hover:opacity-100")}
-          >
-            <Card className={cn("h-full border-2", filterStatus === 'overdue' ? "border-destructive/50 shadow-md" : "border-transparent", stats.totalOverdue > 0 && filterStatus !== 'overdue' && "border-destructive/20")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Atrasados</CardTitle>
-                <AlertTriangle className={cn('h-4 w-4', stats.totalOverdue > 0 ? 'text-destructive animate-bounce' : 'text-muted-foreground')} />
-              </CardHeader>
-              <CardContent>
-                <div className={cn('text-2xl font-bold', stats.totalOverdue > 0 ? 'text-destructive' : 'text-muted-foreground')}>{formatCurrency(stats.totalOverdue)}</div>
-                <p className="text-[10px] font-medium text-muted-foreground mt-1">{stats.countOverdue} PARCELAS</p>
-              </CardContent>
-            </Card>
-          </button>
-
-          <button 
+            active={filterStatus === 'overdue'}
+            valueClassName={stats.totalOverdue > 0 ? "text-destructive" : "text-muted-foreground"}
+            iconClassName={stats.totalOverdue > 0 ? "text-destructive animate-bounce" : "text-muted-foreground"}
+          />
+          <StatCard
+            label="Recebidos"
+            value={formatCurrency(stats.totalReceived)}
+            icon={CheckCircle2}
+            subtitle={`${stats.countReceived} parcelas`}
             onClick={() => setFilterStatus('received')}
-            className={cn("text-left transition-all duration-200", filterStatus === 'received' ? "scale-[1.02]" : "opacity-80 hover:opacity-100")}
-          >
-            <Card className={cn("h-full border-2", filterStatus === 'received' ? "border-green-500/50 shadow-md" : "border-transparent")}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-                <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recebidos</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalReceived)}</div>
-                <p className="text-[10px] font-medium text-muted-foreground mt-1">{stats.countReceived} PARCELAS</p>
-              </CardContent>
-            </Card>
-          </button>
+            active={filterStatus === 'received'}
+            valueClassName="text-green-600"
+            iconClassName="text-green-600"
+          />
         </div>
 
         {/* Toolbar */}
