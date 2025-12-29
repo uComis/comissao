@@ -107,6 +107,44 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const [quickCondition, setQuickCondition] = useState('')
   const [isUpdatingFromQuick, setIsUpdatingFromQuick] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [irregularPatternWarning, setIrregularPatternWarning] = useState<string | null>(null)
+
+  // Opções de autocomplete para condições de pagamento
+  const paymentConditionSuggestions = [
+    { label: 'À vista', value: '0' },
+    { label: '30/60/90', value: '30/60/90', description: 'Entrada 30, intervalo 30' },
+    { label: '28/56/84', value: '28/56/84', description: 'Ciclo 28 dias' },
+    { label: '30/45/60/75/90', value: '30/45/60/75/90', description: 'Entrada 30, intervalo 15' },
+    { label: '15/45/75/105', value: '15/45/75/105', description: 'Entrada 15, intervalo 30' },
+    { label: '15/30/45/60', value: '15/30/45/60', description: 'Entrada 15, intervalo 15' },
+    { label: '20/50/80/110', value: '20/50/80/110', description: 'Entrada 20, intervalo 30' },
+    { label: '45/75/105', value: '45/75/105', description: 'Entrada 45, intervalo 30' },
+    { label: '60/90/120', value: '60/90/120', description: 'Entrada 60, intervalo 30' },
+  ]
+
+  // Função para detectar padrão irregular
+  const detectIrregularPattern = (parts: number[]): { isIrregular: boolean; intervals: number[] } => {
+    if (parts.length < 3) return { isIrregular: false, intervals: [] }
+    
+    const intervals: number[] = []
+    for (let i = 1; i < parts.length; i++) {
+      intervals.push(parts[i] - parts[i - 1])
+    }
+    
+    // Verifica se todos os intervalos são iguais
+    const firstInterval = intervals[0]
+    const isIrregular = intervals.some(int => int !== firstInterval)
+    
+    return { isIrregular, intervals }
+  }
+
+  // Filtra sugestões baseado no input
+  const filteredSuggestions = paymentConditionSuggestions.filter(suggestion =>
+    suggestion.value.startsWith(quickCondition) || 
+    suggestion.label.toLowerCase().includes(quickCondition.toLowerCase()) ||
+    quickCondition === ''
+  )
 
   const getSafeNumber = (val: string | number, min: number = 0) => {
     if (val === '' || val === undefined || val === null) return min
@@ -150,6 +188,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   const handleQuickConditionBlur = () => {
+    setShowSuggestions(false)
     setIsUpdatingFromQuick(true)
     
     const normalized = quickCondition.replace(/[\s,-]+/g, '/')
@@ -164,6 +203,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (parts.length > 0) {
       const first = parts[0]
       const count = parts.length
+      
+      // Detectar padrão irregular ANTES de normalizar
+      const { isIrregular, intervals } = detectIrregularPattern(parts)
+      
+      if (isIrregular && parts.length >= 3) {
+        // Mostra alerta com os intervalos detectados
+        const uniqueIntervals = [...new Set(intervals)]
+        setIrregularPatternWarning(
+          `Padrão irregular. Condições comuns seguem intervalos fixos como 30/60/90. Intervalos detectados: ${uniqueIntervals.join(', ')} dias.`
+        )
+      } else {
+        setIrregularPatternWarning(null)
+      }
       
       let detectedInterval = getSafeNumber(interval, 30)
 
@@ -184,6 +236,29 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
     
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
+  }
+
+  const handleSelectSuggestion = (value: string) => {
+    if (value === '0') {
+      setPaymentType('vista')
+      setShowSuggestions(false)
+      return
+    }
+    setQuickCondition(value)
+    setShowSuggestions(false)
+    setIrregularPatternWarning(null)
+    // Dispara o processamento após um pequeno delay
+    setTimeout(() => {
+      const parts = value.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+      if (parts.length > 0) {
+        const first = parts[0]
+        const detectedInterval = parts.length > 1 ? parts[1] - parts[0] : 30
+        setInstallments(parts.length)
+        setFirstInstallmentDays(first)
+        setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
+        setInterval(detectedInterval > 0 ? detectedInterval : 30)
+      }
+    }, 0)
   }
 
   useMemo(() => {
@@ -790,7 +865,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             {paymentType === 'parcelado' && (
             <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                 
-                {/* 1. O Comando (Input Rápido) */}
+                {/* 1. O Comando (Input Rápido com Autocomplete) */}
                 <div className="space-y-3">
                     <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
                         Digite os prazos (ex: 30/60/90)
@@ -801,13 +876,66 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             placeholder="30/60/90"
                             value={quickCondition}
                             onChange={(e) => {
-                            setQuickCondition(e.target.value)
-                            setIsUpdatingFromQuick(true)
+                              setQuickCondition(e.target.value)
+                              setIsUpdatingFromQuick(true)
+                              setIrregularPatternWarning(null)
                             }}
-                            onBlur={handleQuickConditionBlur}
-                            className="h-14 text-xl font-medium text-center border-2 border-primary/20 focus-visible:border-primary focus-visible:ring-0 shadow-sm"
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={(e) => {
+                              // Delay para permitir clique nas sugestões
+                              setTimeout(() => {
+                                setShowSuggestions(false)
+                                handleQuickConditionBlur()
+                              }, 150)
+                            }}
+                            className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                              irregularPatternWarning 
+                                ? 'border-amber-400 focus-visible:border-amber-500' 
+                                : 'border-primary/20 focus-visible:border-primary'
+                            }`}
                         />
+                        
+                        {/* Autocomplete Dropdown */}
+                        {showSuggestions && filteredSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                            {filteredSuggestions.map((suggestion, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  handleSelectSuggestion(suggestion.value)
+                                }}
+                              >
+                                <span className="font-medium">{suggestion.label}</span>
+                                {suggestion.description && (
+                                  <span className="text-xs text-muted-foreground">{suggestion.description}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
+                    
+                    {/* Alerta de Padrão Irregular */}
+                    {irregularPatternWarning && (
+                      <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
+                          <button
+                            type="button"
+                            className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
+                            onClick={() => setIrregularPatternWarning(null)}
+                          >
+                            Entendi, continuar assim
+                          </button>
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 {/* 2. A Conexão */}
