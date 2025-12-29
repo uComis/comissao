@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, BarChart3, Building2, Settings, PlusCircle, LayoutDashboard, Wallet } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, PlusCircle, LayoutDashboard, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -41,7 +41,6 @@ const orgMenuSections: MenuSection[] = [
     label: 'Dashboard',
     items: [
       { title: 'Dashboard', url: '/', icon: Home },
-      { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
     ],
   },
   {
@@ -80,7 +79,6 @@ const personalMenuSections: MenuSection[] = [
     label: 'Resultados',
     items: [
       { title: 'Faturamento', url: '/faturamento', icon: Wallet },
-      { title: 'Relatórios', url: '/relatorios-vendedor', icon: BarChart3 },
     ],
   },
 ]
