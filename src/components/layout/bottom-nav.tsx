@@ -1,6 +1,6 @@
 'use client'
 
-import { LayoutDashboard, ShoppingCart, ReceiptText, Wallet, Settings, Users, Building2 } from 'lucide-react'
+import { TrendingUp, Receipt, Plus, Wallet, FolderOpen, Users, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -8,10 +8,10 @@ import { cn } from '@/lib/utils'
 import { useState } from 'react'
 
 const mainItems = [
-  { title: 'Analytics', url: '/home', icon: LayoutDashboard },
-  { title: 'Vendas', url: '/minhasvendas', icon: ShoppingCart },
-  { title: 'Nova', url: '/minhasvendas/nova', icon: ReceiptText, isAction: true },
-  { title: 'Faturamento', url: '/faturamento', icon: Wallet },
+  { title: 'Analytics', url: '/home', icon: TrendingUp },
+  { title: 'Extrato', url: '/minhasvendas', icon: Receipt },
+  { title: 'Nova', url: '/minhasvendas/nova', icon: Plus, isAction: true },
+  { title: 'Recebíveis', url: '/faturamento', icon: Wallet },
 ]
 
 const gestaoItems = [
@@ -46,7 +46,7 @@ export function BottomNav() {
                       className="group absolute -top-8 left-1/2 -translate-x-1/2"
                     >
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/25 ring-4 ring-background transition-transform duration-150 active:scale-95 group-hover:brightness-105">
-                        <Icon className="h-7 w-7" />
+                        <Icon className="h-7 w-7" strokeWidth={3} />
                       </div>
                     </Link>
                   </div>
@@ -85,12 +85,12 @@ export function BottomNav() {
               )
             })}
 
-            {/* Gestão com Popover */}
+            {/* Cadastros com Popover */}
             <Popover open={gestaoOpen} onOpenChange={setGestaoOpen}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Gestão"
+                  aria-label="Cadastros"
                   aria-expanded={gestaoOpen}
                   className="flex h-full flex-col items-center justify-center gap-1 px-1 transition-colors active:scale-[0.98]"
                 >
@@ -100,7 +100,7 @@ export function BottomNav() {
                       isGestaoActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
                     )}
                   >
-                    <Settings className="h-6 w-6" />
+                    <FolderOpen className="h-6 w-6" />
                   </span>
                   <span
                     className={cn(
@@ -108,7 +108,7 @@ export function BottomNav() {
                       isGestaoActive ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
                     )}
                   >
-                    Gestão
+                    Cadastros
                   </span>
                 </button>
               </PopoverTrigger>
