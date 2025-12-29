@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -21,15 +21,25 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: (supplier: PersonalSupplierWithRules) => void
+  initialName?: string
 }
 
-export function SupplierDialog({ open, onOpenChange, onSuccess }: Props) {
+export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = '' }: Props) {
   const ruleFormRef = useRef<RuleFormRef>(null)
   
-  const [name, setName] = useState('')
+  const [name, setName] = useState(initialName)
   const [cnpj, setCnpj] = useState('')
   const [hasCommission, setHasCommission] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setName(initialName)
+      setCnpj('')
+      setHasCommission(false)
+    }
+  }, [open, initialName])
 
   function formatCnpj(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 14)

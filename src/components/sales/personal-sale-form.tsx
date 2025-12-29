@@ -8,19 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Plus, Eye, Save, Wand2 } from 'lucide-react'
+import { Eye, Save, Wand2 } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
-import { ClientCombobox, ClientDialog } from '@/components/clients'
-import { SupplierDialog } from '@/components/suppliers'
+import { ClientPicker, ClientDialog } from '@/components/clients'
+import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { addCommissionRule } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
@@ -320,8 +313,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => (i + 1) * getSafeNumber(interval, 30)).join('/')
 
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
+  const [clientInitialName, setClientInitialName] = useState('')
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  const [supplierInitialName, setSupplierInitialName] = useState('')
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
 
   const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
@@ -570,49 +565,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardContent className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 space-y-2">
               <Label htmlFor="supplier">Fornecedor *</Label>
-              <div className="flex gap-2">
-                <Select value={supplierId} onValueChange={handleSupplierChange}>
-                  <SelectTrigger id="supplier" className="flex-1">
-                    <SelectValue placeholder="Selecione o fornecedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliersList.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setSupplierDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <SupplierPicker
+                suppliers={suppliersList}
+                value={supplierId}
+                onChange={handleSupplierChange}
+                onAddClick={(name) => {
+                  setSupplierInitialName(name || '')
+                  setSupplierDialogOpen(true)
+                }}
+                placeholder="Selecione o fornecedor"
+              />
             </div>
 
             <div className="flex-1 space-y-2">
               <Label>Cliente *</Label>
-              <div className="flex gap-2">
-                <ClientCombobox
-                  value={clientId}
-                  onChange={handleClientChange}
-                  placeholder="Selecionar cliente..."
-                  className="flex-1"
-                  refreshTrigger={clientRefreshTrigger}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setClientDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <ClientPicker
+                value={clientId}
+                onChange={handleClientChange}
+                onAddClick={(name) => {
+                  setClientInitialName(name || '')
+                  setClientDialogOpen(true)
+                }}
+                placeholder="Selecionar cliente..."
+                refreshTrigger={clientRefreshTrigger}
+              />
             </div>
           </CardContent>
         </Card>
@@ -1098,12 +1074,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}
         onSuccess={handleClientCreated}
+        initialName={clientInitialName}
       />
 
       <SupplierDialog
         open={supplierDialogOpen}
         onOpenChange={setSupplierDialogOpen}
         onSuccess={handleSupplierCreated}
+        initialName={supplierInitialName}
       />
 
       <InstallmentsSheet
