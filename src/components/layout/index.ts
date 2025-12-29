@@ -1,4 +1,5 @@
 export { AppSidebar } from './app-sidebar'
+export { BottomNav } from './bottom-nav'
 export { Header } from './header'
 export { Providers } from './providers'
 export { ThemeToggle } from './theme-toggle'

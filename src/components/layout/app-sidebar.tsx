@@ -120,7 +120,7 @@ export function AppSidebar() {
   if (!mounted) return null
 
   return (
-    <Sidebar>
+    <Sidebar collapsible="offcanvas">
       <SidebarHeader>
         <div className="flex items-center justify-center px-4 py-[clamp(1.5rem,5vh,2.5rem)]">
           <Image

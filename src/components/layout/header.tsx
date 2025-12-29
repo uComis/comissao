@@ -18,16 +18,22 @@ import { LogOut, User, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Badge } from '@/components/ui/badge'
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
 
 export function Header() {
   const { signOut } = useAuth()
   const { profile } = useUser()
+  const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     const timeout = setTimeout(() => setMounted(true), 0)
     return () => clearTimeout(timeout)
   }, [])
+
+  const isDark = mounted && resolvedTheme === 'dark'
+  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
 
   const name = profile?.name || 'Usuário'
   const initials = name
@@ -40,7 +46,7 @@ export function Header() {
   if (!mounted) {
     return (
       <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
-        <SidebarTrigger />
+        <SidebarTrigger className="hidden md:flex" />
         <div className="flex-1" />
       </header>
     )
@@ -48,7 +54,19 @@ export function Header() {
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4">
-      <SidebarTrigger />
+      <SidebarTrigger className="hidden md:flex" />
+
+      {/* Logo mobile */}
+      <Link href="/home" className="md:hidden">
+        <Image
+          src={logoSrc}
+          alt="uComis"
+          width={100}
+          height={20}
+          priority
+          className="h-5 w-auto"
+        />
+      </Link>
 
       <div className="flex-1" />
 
