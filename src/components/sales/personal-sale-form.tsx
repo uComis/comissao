@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { NumberStepper } from '@/components/ui/number-stepper'
 import { Eye, Save, Wand2 } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
@@ -708,19 +709,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
                 {/* 2. Input Hero + Botão Mágico */}
                 <div className="flex items-center gap-2">
-                     <div className="relative w-40">
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max="100"
-                        placeholder="0.00"
-                        value={commissionRate}
-                        onChange={(e) => handleCommissionRateChange(e.target.value)}
-                        className="pr-8 h-14 text-3xl font-bold text-center border-2 shadow-sm focus-visible:ring-0 focus-visible:border-primary"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
-                    </div>
+                    <NumberStepper
+                      value={commissionRate ? parseFloat(commissionRate) : 0}
+                      onChange={(val) => handleCommissionRateChange(String(val))}
+                      min={0}
+                      max={100}
+                      step={0.5}
+                      suffix="%"
+                      size="lg"
+                      className="w-44"
+                    />
 
                     {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
                         <DropdownMenu>
@@ -925,44 +923,43 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 {/* 3. A Mecânica (Box Técnico) */}
                 <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="installments" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         Qtd.
                         </Label>
-                        <Input
-                        id="installments"
-                        type="number"
-                        min={1}
-                        className="h-9 bg-background text-center"
-                        value={installments}
-                        onChange={(e) => setInstallments(e.target.value)}
-                        onBlur={(e) => setInstallments(Math.max(1, parseInt(e.target.value) || 1))}
+                        <NumberStepper
+                          value={typeof installments === 'number' ? installments : parseInt(String(installments)) || 1}
+                          onChange={(val) => setInstallments(val)}
+                          min={1}
+                          max={24}
+                          step={1}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="interval" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         Intervalo
                         </Label>
-                        <Input
-                        id="interval"
-                        type="number"
-                        min={1}
-                        className="h-9 bg-background text-center"
-                        value={interval}
-                        onChange={(e) => setInterval(e.target.value)}
-                        onBlur={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        <NumberStepper
+                          value={typeof interval === 'number' ? interval : parseInt(String(interval)) || 30}
+                          onChange={(val) => setInterval(val)}
+                          min={1}
+                          step={5}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="first_days" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         1ª em (dias)
                         </Label>
-                        <Input
-                        id="first_days"
-                        type="number"
-                        min={0}
-                        className="h-9 bg-background text-center"
-                        value={firstInstallmentDays}
-                        onChange={(e) => handleFirstInstallmentDaysChange(e.target.value)}
+                        <NumberStepper
+                          value={typeof firstInstallmentDays === 'number' ? firstInstallmentDays : parseInt(String(firstInstallmentDays)) || 30}
+                          onChange={(val) => {
+                            setFirstInstallmentDays(val)
+                            setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                          }}
+                          min={0}
+                          step={5}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">

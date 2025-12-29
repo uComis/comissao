@@ -23,7 +23,8 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet'
-import { Plus, Minus, Trash2, ChevronLeft, Pencil, Check } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, Pencil, Check } from 'lucide-react'
+import { NumberStepper } from '@/components/ui/number-stepper'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Product } from '@/types'
 import type { CreatePersonalSaleItemInput } from '@/types/personal-sale'
@@ -692,73 +693,3 @@ function MobileProductSearch({
   )
 }
 
-// === Componente NumberStepper para inputs numéricos mobile ===
-function NumberStepper({
-  value,
-  onChange,
-  min = 0,
-  max,
-  step = 1,
-  suffix,
-}: {
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number
-  suffix?: string
-}) {
-  function decrement() {
-    const newVal = Math.max(min, value - step)
-    onChange(Number(newVal.toFixed(2)))
-  }
-
-  function increment() {
-    const newVal = max !== undefined ? Math.min(max, value + step) : value + step
-    onChange(Number(newVal.toFixed(2)))
-  }
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
-    const num = parseFloat(val)
-    if (!isNaN(num)) {
-      const clamped = max !== undefined ? Math.min(max, Math.max(min, num)) : Math.max(min, num)
-      onChange(Number(clamped.toFixed(2)))
-    } else if (val === '') {
-      onChange(min)
-    }
-  }
-
-  return (
-    <div className="flex items-center h-12 rounded-md border bg-background">
-      <button
-        type="button"
-        onClick={decrement}
-        disabled={value <= min}
-        className="flex items-center justify-center h-full w-12 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-l-md"
-      >
-        <Minus className="h-5 w-5" />
-      </button>
-      
-      <div className="flex-1 flex items-center justify-center border-x">
-        <input
-          type="text"
-          inputMode="decimal"
-          value={value}
-          onChange={handleInputChange}
-          className="w-full h-full text-center text-lg font-medium bg-transparent outline-none"
-        />
-        {suffix && <span className="text-muted-foreground mr-2">{suffix}</span>}
-      </div>
-      
-      <button
-        type="button"
-        onClick={increment}
-        disabled={max !== undefined && value >= max}
-        className="flex items-center justify-center h-full w-12 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-r-md"
-      >
-        <Plus className="h-5 w-5" />
-      </button>
-    </div>
-  )
-}
