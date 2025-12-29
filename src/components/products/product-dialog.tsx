@@ -20,9 +20,11 @@ type Props = {
   supplierId: string
   product?: Product | null
   showSku?: boolean
+  initialName?: string
+  onProductCreated?: (product: Product) => void
 }
 
-export function ProductDialog({ open, onOpenChange, supplierId, product, showSku = true }: Props) {
+export function ProductDialog({ open, onOpenChange, supplierId, product, showSku = true, initialName, onProductCreated }: Props) {
   const formRef = useRef<ProductFormRef>(null)
   const [loading, setLoading] = useState(false)
 
@@ -63,12 +65,13 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
           unit_price: formData.unit_price,
         })
 
-        if (result.success) {
+        if (result.success && result.data) {
           toast.success('Produto criado')
           formRef.current?.reset()
+          onProductCreated?.(result.data)
           onOpenChange(false)
         } else {
-          toast.error(result.error)
+          toast.error(result.error || 'Erro ao criar produto')
         }
       }
     } finally {
@@ -91,7 +94,7 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <ProductForm ref={formRef} product={product} showSku={showSku} />
+          <ProductForm ref={formRef} product={product} showSku={showSku} initialName={initialName} />
 
           <DialogFooter>
             <Button

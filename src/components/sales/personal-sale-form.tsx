@@ -596,7 +596,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         {/* Bloco 2: O Que (Itens + Comissão Global) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>O que foi vendido?</CardTitle>
+            <CardTitle>{entryMode === 'total' ? 'Informe o total da venda' : 'Informe os itens da venda'}</CardTitle>
             <RadioGroup
               value={entryMode}
               onValueChange={(v) => setEntryMode(v as 'total' | 'items')}
@@ -610,7 +610,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     entryMode === 'total' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                   }`}
                 >
-                  Valor Total
+                  Total
                 </Label>
               </div>
               <div className="flex items-center">
@@ -621,7 +621,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     entryMode === 'items' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                   }`}
                 >
-                  Detalhar Itens
+                  Itens
                 </Label>
               </div>
             </RadioGroup>
@@ -690,6 +690,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 products={selectedProducts}
                 value={items}
                 onChange={setItems}
+                supplierId={supplierId}
               />
             )}
           </CardContent>
