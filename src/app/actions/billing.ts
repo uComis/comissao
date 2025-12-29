@@ -170,13 +170,26 @@ export async function setupTrialSubscription(userId: string) {
 
 /**
  * Helper para verificar limites antes de uma ação.
+ * Se o usuário não tiver assinatura/usage, cria automaticamente (defensive).
  */
 export async function checkLimit(
   userId: string, 
   feature: 'sales' | 'suppliers' | 'users'
 ): Promise<{ allowed: boolean; error?: string }> {
-  const subscription = await getSubscription(userId)
-  const usage = await getUsageStats(userId)
+  let subscription = await getSubscription(userId)
+  let usage = await getUsageStats(userId)
+
+  // Defensive: se usuário antigo não tem subscription/usage, criar automaticamente
+  if (!subscription || !usage) {
+    try {
+      await setupTrialSubscription(userId)
+      subscription = await getSubscription(userId)
+      usage = await getUsageStats(userId)
+    } catch (err) {
+      console.error('Erro ao criar subscription automática:', err)
+      return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }
+    }
+  }
 
   if (!subscription || !usage) {
     return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }

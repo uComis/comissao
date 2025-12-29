@@ -477,7 +477,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   function handleSupplierCreated(supplier: PersonalSupplierWithRules) {
     setSuppliersList((prev) => [...prev, supplier])
-    setSupplierId(supplier.id)
+    // Timeout garante que o Select seja renderizado com a nova lista antes de selecionar
+    setTimeout(() => {
+      setSupplierId(supplier.id)
+    }, 0)
   }
 
   return (
