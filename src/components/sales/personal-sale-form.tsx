@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { NumberStepper } from '@/components/ui/number-stepper'
-import { Eye, Save, Wand2 } from 'lucide-react'
+import { Eye, Save, Wand2, X, Pencil } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
@@ -295,6 +295,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [showSaveRuleDialog, setShowSaveRuleDialog] = useState(false)
   const [newRuleName, setNewRuleName] = useState('')
   const [savingRule, setSavingRule] = useState(false)
+  
+  // Estado para modo de edição quando há comissões diferentes nos itens
+  const [isEqualizingCommission, setIsEqualizingCommission] = useState(false)
+  const [equalizingValue, setEqualizingValue] = useState<number>(0)
 
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (sale?.items && sale.items.length > 0) {
@@ -431,6 +435,86 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (commissionRate) return parseFloat(commissionRate)
     return null
   }, [commissionRate])
+
+  // Análise das comissões dos itens
+  const itemsCommissionAnalysis = useMemo(() => {
+    if (entryMode !== 'items' || items.length === 0) {
+      return { hasItems: false, allSame: true, uniqueRates: [], avgRate: 0, totalCommission: 0 }
+    }
+    
+    const rates = items.map(i => i.commission_rate || 0)
+    const uniqueRates = [...new Set(rates)]
+    const allSame = uniqueRates.length === 1
+    
+    // Calcula comissão total baseada nos itens
+    const totalCommission = items.reduce((sum, item) => {
+      const gross = item.quantity * item.unit_price
+      const tax = gross * ((item.tax_rate || 0) / 100)
+      const net = gross - tax
+      return sum + (net * ((item.commission_rate || 0) / 100))
+    }, 0)
+    
+    // Taxa média ponderada
+    const avgRate = totalValue > 0 ? (totalCommission / totalValue) * 100 : 0
+    
+    return {
+      hasItems: true,
+      allSame,
+      uniqueRates,
+      avgRate: Math.round(avgRate * 100) / 100,
+      totalCommission
+    }
+  }, [items, entryMode, totalValue])
+
+  // Sincroniza o campo global com os itens quando todos têm mesma comissão
+  useMemo(() => {
+    if (entryMode === 'items' && items.length > 0 && itemsCommissionAnalysis.allSame) {
+      const itemRate = items[0].commission_rate || 0
+      if (parseFloat(commissionRate || '0') !== itemRate) {
+        setCommissionRate(itemRate.toString())
+      }
+    }
+  }, [items, entryMode, itemsCommissionAnalysis.allSame])
+
+  // Handler para mudança de comissão que propaga para itens se necessário
+  const handleGlobalCommissionChange = (value: string) => {
+    const newRate = parseFloat(value) || 0
+    
+    if (entryMode === 'items' && items.length > 0) {
+      // Propaga para todos os itens
+      const updatedItems = items.map(item => ({
+        ...item,
+        commission_rate: newRate
+      }))
+      setItems(updatedItems)
+    }
+    
+    setCommissionRate(value)
+    if (selectedRuleId !== 'custom') {
+      setSelectedRuleId('custom')
+    }
+  }
+  
+  // Handler para quando está no modo "igualar" e edita o valor
+  const handleEqualizingCommissionChange = (newValue: number) => {
+    // Arredonda para múltiplo de 0.5 mais próximo
+    const rounded = Math.round(newValue * 2) / 2
+    setEqualizingValue(rounded)
+    handleGlobalCommissionChange(rounded.toString())
+    setIsEqualizingCommission(false)
+    toast.success(`Comissão de ${rounded}% aplicada a todos os itens!`)
+  }
+  
+  // Inicia o modo de igualar
+  const startEqualizingMode = () => {
+    setEqualizingValue(itemsCommissionAnalysis.avgRate)
+    setIsEqualizingCommission(true)
+  }
+  
+  // Cancela o modo de igualar
+  const cancelEqualizingMode = () => {
+    setIsEqualizingCommission(false)
+  }
 
   const installmentDates = useMemo(() => {
     if (paymentType !== 'parcelado') return null
@@ -705,65 +789,136 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             <CardFooter className="flex flex-col items-center border-t bg-muted/20 py-8 space-y-6">
                 
                 {/* 1. Header da Comissão */}
-                <div className="flex flex-col items-center space-y-1">
+                <div className="relative w-full flex justify-center">
                     <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Minha Comissão
                     </Label>
+                    {/* Botão X para cancelar modo de igualar */}
+                    {isEqualizingCommission && (
+                      <button
+                        type="button"
+                        onClick={cancelEqualizingMode}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Manter comissões personalizadas"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                 </div>
 
-                {/* 2. Input Hero + Botão Mágico */}
-                <div className="flex items-center gap-2">
-                    <NumberStepper
-                      value={commissionRate ? parseFloat(commissionRate) : 0}
-                      onChange={(val) => handleCommissionRateChange(String(val))}
-                      min={0}
-                      max={100}
-                      step={0.5}
-                      suffix="%"
-                      size="lg"
-                      className="w-44"
-                    />
+                {/* 2. Input ou Texto baseado no estado */}
+                <div className="flex flex-col items-center gap-4">
+                    {/* Caso: Comissões diferentes nos itens E não está editando */}
+                    {entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && !isEqualizingCommission ? (
+                      /* Valor + ícone de editar */
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="text-4xl font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+                          onClick={startEqualizingMode}
+                        >
+                          {itemsCommissionAnalysis.avgRate.toFixed(1).replace('.', ',')}%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={startEqualizingMode}
+                          className="p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                          title="Editar comissão"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && isEqualizingCommission ? (
+                      /* Caso: Modo de edição para igualar */
+                      <NumberStepper
+                        value={equalizingValue}
+                        onChange={handleEqualizingCommissionChange}
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        suffix="%"
+                        size="lg"
+                        className="w-52"
+                      />
+                    ) : (
+                      /* Caso: Normal (modo total OU itens com comissão igual) */
+                      <div className="flex items-center gap-2">
+                        <NumberStepper
+                          value={commissionRate ? parseFloat(commissionRate) : 0}
+                          onChange={(val) => handleGlobalCommissionChange(String(val))}
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          suffix="%"
+                          size="lg"
+                          className="w-52"
+                        />
 
-                    {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
-                                    <Wand2 className="h-6 w-6" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {selectedSupplier.commission_rules.map(rule => (
-                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
-                                        <span>{rule.name}</span>
-                                        <span className="font-bold text-muted-foreground">
-                                            {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
-                                        </span>
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
+                                        <Wand2 className="h-6 w-6" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {selectedSupplier.commission_rules.map(rule => (
+                                        <DropdownMenuItem key={rule.id} onClick={() => {
+                                          applyRule(rule.id)
+                                          // Também propaga para os itens
+                                          if (entryMode === 'items' && items.length > 0) {
+                                            const ruleRate = rule.type === 'fixed' ? rule.percentage : rule.tiers?.[0]?.percentage
+                                            if (ruleRate) {
+                                              const updatedItems = items.map(item => ({
+                                                ...item,
+                                                commission_rate: ruleRate
+                                              }))
+                                              setItems(updatedItems)
+                                            }
+                                          }
+                                        }} className="flex justify-between items-center cursor-pointer">
+                                            <span>{rule.name}</span>
+                                            <span className="font-bold text-muted-foreground">
+                                                {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
+                                            </span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                      </div>
                     )}
                 </div>
 
                 {/* 3. Feedback Visual de Valor */}
                 <div className="flex flex-col items-center gap-2">
-                    {totalValue > 0 && commissionPercentage !== null && commissionPercentage > 0 ? (
+                    {(() => {
+                      // Calcula o valor a receber baseado no modo
+                      let commissionToShow = 0
+                      if (entryMode === 'items' && itemsCommissionAnalysis.hasItems) {
+                        commissionToShow = itemsCommissionAnalysis.totalCommission
+                      } else if (totalValue > 0 && commissionPercentage !== null) {
+                        commissionToShow = totalValue * (commissionPercentage / 100)
+                      }
+                      
+                      return commissionToShow > 0 ? (
                         <div className="bg-emerald-50 text-emerald-900 px-6 py-3 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm animate-in zoom-in-95 duration-300">
                             <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">A Receber</span>
                             <span className="text-2xl font-bold tracking-tight">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * (commissionPercentage / 100))}
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionToShow)}
                             </span>
                         </div>
-                    ) : (
+                      ) : (
                         <div className="h-12 flex items-center text-muted-foreground/50 text-sm italic">
                             Preencha valor e taxa para calcular
                         </div>
-                    )}
+                      )
+                    })()}
                     
                     {/* Atalho para Salvar Nova Regra */}
-                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && (
+                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && entryMode === 'total' && (
                          <Button
                             type="button"
                             variant="ghost"
