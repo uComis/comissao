@@ -23,7 +23,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet'
-import { Plus, Trash2, ChevronLeft, Pencil, Check } from 'lucide-react'
+import { Plus, Trash2, ChevronLeft, Pencil, Check, Link2 } from 'lucide-react'
 import { NumberStepper } from '@/components/ui/number-stepper'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { Product } from '@/types'
@@ -39,6 +39,7 @@ type Props = {
   onChange: (items: SaleItem[]) => void
   supplierId: string
   onProductCreated?: () => void
+  defaultCommissionRate?: number
 }
 
 function generateTempId(): string {
@@ -52,7 +53,7 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
-export function SaleItemsEditor({ products, value, onChange, supplierId, onProductCreated }: Props) {
+export function SaleItemsEditor({ products, value, onChange, supplierId, onProductCreated, defaultCommissionRate = 0 }: Props) {
   const isMobile = useIsMobile()
   const [items, setItems] = useState<SaleItem[]>(value)
   
@@ -64,6 +65,22 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
   // Product Dialog state
   const [productDialogOpen, setProductDialogOpen] = useState(false)
   const [productDialogInitialName, setProductDialogInitialName] = useState<string | undefined>()
+  
+  // Valores padrão para "Aplicar a todos"
+  const [bulkTaxRate, setBulkTaxRate] = useState<string>('')
+  const [bulkCommissionRate, setBulkCommissionRate] = useState<string>('')
+  
+  // Pega valores do último item para herança
+  const getLastItemValues = () => {
+    if (items.length === 0) {
+      return { tax_rate: 0, commission_rate: defaultCommissionRate }
+    }
+    const lastItem = items[items.length - 1]
+    return {
+      tax_rate: lastItem.tax_rate || 0,
+      commission_rate: lastItem.commission_rate || defaultCommissionRate
+    }
+  }
 
   useEffect(() => {
     setItems(value)
@@ -76,6 +93,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
 
   // === Item CRUD ===
   function openAddItem() {
+    const inherited = getLastItemValues()
     if (isMobile) {
       // No mobile, abre o picker primeiro
       setEditingItem({
@@ -84,7 +102,8 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
         product_name: '',
         quantity: 1,
         unit_price: 0,
-        tax_rate: 0,
+        tax_rate: inherited.tax_rate,
+        commission_rate: inherited.commission_rate,
       })
       setPickerOpen(true)
     } else {
@@ -212,15 +231,33 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
   }
 
   function addItemDesktop() {
+    const inherited = getLastItemValues()
     const newItem: SaleItem = {
       id: generateTempId(),
       product_id: null,
       product_name: '',
       quantity: 1,
       unit_price: 0,
-      tax_rate: 0,
+      tax_rate: inherited.tax_rate,
+      commission_rate: inherited.commission_rate,
     }
     const updated = [...items, newItem]
+    setItems(updated)
+    onChange(updated)
+  }
+  
+  // Aplicar valores em massa
+  function applyBulkValues() {
+    const taxVal = bulkTaxRate !== '' ? parseFloat(bulkTaxRate) : null
+    const commVal = bulkCommissionRate !== '' ? parseFloat(bulkCommissionRate) : null
+    
+    if (taxVal === null && commVal === null) return
+    
+    const updated = items.map(item => ({
+      ...item,
+      ...(taxVal !== null && { tax_rate: taxVal }),
+      ...(commVal !== null && { commission_rate: commVal }),
+    }))
     setItems(updated)
     onChange(updated)
   }
@@ -235,16 +272,59 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
     <div className="space-y-4">
       {/* === DESKTOP: Tabela (md+) === */}
       <div className="hidden md:block">
+        {/* Header "Aplicar a todos" */}
+        {items.length > 0 && (
+          <div className="flex items-center gap-4 mb-3 p-3 bg-muted/30 rounded-lg border border-dashed">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Aplicar a todos:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Taxa</span>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="—"
+                value={bulkTaxRate}
+                onChange={(e) => setBulkTaxRate(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+                className="w-16 h-8 text-xs text-center"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Comissão</span>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="—"
+                value={bulkCommissionRate}
+                onChange={(e) => setBulkCommissionRate(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+                className="w-16 h-8 text-xs text-center"
+              />
+              <span className="text-xs text-muted-foreground">%</span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={applyBulkValues}
+              disabled={bulkTaxRate === '' && bulkCommissionRate === ''}
+            >
+              <Link2 className="h-3 w-3 mr-1" />
+              Aplicar
+            </Button>
+          </div>
+        )}
+        
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[250px]">Produto</TableHead>
-                <TableHead className="w-[100px]">Qtd</TableHead>
-                <TableHead className="w-[150px]">Preço Unit.</TableHead>
-                <TableHead className="w-[100px]">Impostos (%)</TableHead>
-                <TableHead className="w-[150px] text-right">Total Líq.</TableHead>
-                <TableHead className="w-[60px]"></TableHead>
+                <TableHead className="min-w-[200px]">Produto</TableHead>
+                <TableHead className="w-[80px]">Qtd</TableHead>
+                <TableHead className="w-[120px]">Preço Unit.</TableHead>
+                <TableHead className="w-[80px]">Taxa (%)</TableHead>
+                <TableHead className="w-[80px]">Comis. (%)</TableHead>
+                <TableHead className="w-[120px] text-right">Total Líq.</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -308,7 +388,19 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
                         const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
                         updateItem(item.id, 'tax_rate', val === '' ? '' : parseFloat(val) || 0)
                       }}
-                      className="w-20"
+                      className="w-16"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={item.commission_rate ?? 0}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
+                        updateItem(item.id, 'commission_rate', val === '' ? '' : parseFloat(val) || 0)
+                      }}
+                      className="w-16"
                     />
                   </TableCell>
                   <TableCell className="text-right font-mono">
@@ -329,7 +421,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
               ))}
               {items.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <p className="text-muted-foreground mb-4">Nenhum item adicionado</p>
                     <Button type="button" variant="outline" onClick={addItemDesktop}>
                       <Plus className="h-4 w-4 mr-2" />
@@ -382,10 +474,16 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
                     <span>{item.quantity}x</span>
                     <span>•</span>
                     <span>{formatCurrency(item.unit_price)}</span>
-                    {item.tax_rate > 0 && (
+                    {(item.tax_rate ?? 0) > 0 && (
                       <>
                         <span>•</span>
                         <span className="text-orange-500">-{item.tax_rate}%</span>
+                      </>
+                    )}
+                    {(item.commission_rate ?? 0) > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="text-emerald-600">{item.commission_rate}%</span>
                       </>
                     )}
                   </div>
@@ -535,16 +633,30 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Impostos (%)</Label>
-              <NumberStepper
-                value={editingItem?.tax_rate ?? 0}
-                onChange={(val) => updateEditingField('tax_rate', val)}
-                min={0}
-                max={100}
-                step={0.5}
-                suffix="%"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Impostos (%)</Label>
+                <NumberStepper
+                  value={editingItem?.tax_rate ?? 0}
+                  onChange={(val) => updateEditingField('tax_rate', val)}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  suffix="%"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Comissão (%)</Label>
+                <NumberStepper
+                  value={editingItem?.commission_rate ?? 0}
+                  onChange={(val) => updateEditingField('commission_rate', val)}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  suffix="%"
+                />
+              </div>
             </div>
 
             {/* Preview do total */}

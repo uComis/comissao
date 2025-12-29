@@ -304,6 +304,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        tax_rate: item.tax_rate || 0,
+        commission_rate: item.commission_rate || 0,
       }))
     }
     return []
@@ -499,12 +501,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
         tax_rate: entryMode === 'total' ? (parseFloat(taxRateInput) || 0) : undefined,
         commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
-        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate }) => ({
+        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate, commission_rate }) => ({
           product_id,
           product_name,
           quantity,
           unit_price,
-          tax_rate: tax_rate || 0
+          tax_rate: tax_rate || 0,
+          commission_rate: commission_rate || 0
         })) : [],
       }
 
@@ -692,6 +695,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 value={items}
                 onChange={setItems}
                 supplierId={supplierId}
+                defaultCommissionRate={commissionRate ? parseFloat(commissionRate) : 0}
               />
             )}
           </CardContent>
