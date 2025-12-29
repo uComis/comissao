@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { AuthProvider } from '@/contexts/auth-context'
 import { OrganizationProvider } from '@/contexts/organization-context'
@@ -13,7 +14,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <UserProvider>
           <OrganizationProvider>
-            <AuthErrorWatcher />
+            <Suspense fallback={null}>
+              <AuthErrorWatcher />
+            </Suspense>
             {children}
             <Toaster />
           </OrganizationProvider>

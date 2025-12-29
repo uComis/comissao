@@ -65,13 +65,13 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
           unit_price: formData.unit_price,
         })
 
-        if (result.success && result.data) {
+        if (result.success) {
           toast.success('Produto criado')
           formRef.current?.reset()
           onProductCreated?.(result.data)
           onOpenChange(false)
         } else {
-          toast.error(result.error || 'Erro ao criar produto')
+          toast.error(result.error)
         }
       }
     } finally {

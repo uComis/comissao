@@ -187,7 +187,7 @@ export function SupplierPicker({
         type="button"
         variant="outline"
         size="icon"
-        onClick={onAddClick}
+        onClick={() => onAddClick()}
       >
         <Plus className="h-4 w-4" />
       </Button>
