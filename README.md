@@ -1,52 +1,53 @@
 # uComis
 
-Motor de cálculo de comissões para PMEs. Conecta ao CRM, aplica regras configuráveis, elimina planilhas.
+Auditoria de comissões para vendedores autônomos. Consolida múltiplas "pastas", calcula recebíveis, elimina planilhas.
 
 ## O Problema
 
-O fechamento de comissões em PMEs é um processo caótico:
+O vendedor multi-pastas vive no caos:
 
-- **Financeiro/RH:** Extrai dados do CRM manualmente, joga em planilhas de 47 abas, gasta dias calculando. Erros frequentes.
-- **Vendedor:** Não sabe quanto vai receber até o dia do pagamento. Desconfiança, desmotivação, disputas.
-- **Empresa:** Conforme o time cresce, a planilha vira um monstro inauditável.
+- **5 portais diferentes:** Cada representada tem seu sistema (Mercos, SuasVendas, PDFs por email). Nenhum fala com o outro.
+- **Conferência manual:** Para saber "quanto vou receber?", precisa baixar 5 relatórios, somar, descontar impostos, rastrear parcelas.
+- **Caixa preta:** Erros de cálculo, estornos indevidos e descontos fantasmas são comuns. Sem ferramenta para auditar.
 
 ## A Solução
 
-Um middleware que conecta ao CRM (Pipedrive), lê as vendas automaticamente, aplica as regras de comissão configuradas e entrega o valor exato a pagar.
+Uma plataforma pessoal onde o vendedor cadastra suas pastas (representadas), lança vendas e acompanha recebíveis em um só lugar.
 
-**Elimina a planilha. Elimina o erro humano. Elimina a desconfiança.**
+**Sua receita. Seu controle. Sua auditoria.**
 
 ## Para Quem
 
-- PMEs B2B que já usam CRM estruturado
-- Equipes comerciais acima de 5 vendedores
-- Gestores que perdem dias todo mês fechando comissões
+- Representantes comerciais autônomos (multi-pastas)
+- Consultoras de venda direta (Natura, Avon, etc.)
+- Qualquer vendedor comissionado que quer controle sobre sua receita
 
-## Funcionalidades (MVP)
+## Funcionalidades (Fase Atual)
 
-- Integração com Pipedrive (leitura de vendas)
-- Motor de regras configurável (% fixa, faixas escalonadas)
-- Painel administrativo para o gestor
-- Relatórios de fechamento em PDF/CSV
+- Cadastro de fornecedores pessoais com regras de comissão
+- Lançamento de vendas com itens e condição de pagamento
+- Geração automática de parcelas (30/60/90)
+- Timeline de recebíveis: "quanto vou receber e quando"
+- Dashboard consolidado por fornecedor
 
 ## Roadmap
 
-| Fase        | Foco        | Entrega                                  |
-| ----------- | ----------- | ---------------------------------------- |
-| **1 - MVP** | Gestor      | Calculadora automática, elimina planilha |
-| **2**       | Vendedor    | Acesso individual, extrato de comissões  |
-| **3**       | Engajamento | Gamificação, metas visuais, simuladores  |
-| **4**       | Automação   | Workflows via chat com IA                |
-| **5**       | Fiscal      | Integração com ERPs, dedução de impostos |
+| Fase    | Foco          | Entrega                                   | Status       |
+| ------- | ------------- | ----------------------------------------- | ------------ |
+| **1**   | Vendedor      | Auditoria pessoal, recebíveis, dashboard  | Em andamento |
+| **1.5** | OCR           | Foto do pedido → lançamento automático    | Pendente     |
+| **2**   | Empresa (B2B) | Portal gestor, integração CRM, relatórios | Pendente     |
+| **3**   | Match         | Cruzamento vendedor ↔ empresa             | Pendente     |
+| **4**   | Open Finance  | Conferência automática de depósitos       | Pendente     |
 
 ## Documentação
 
-| Documento                                         | Descrição                                                   |
-| ------------------------------------------------- | ----------------------------------------------------------- |
-| [Visão do Produto](doc/visao.md)                  | Vision Board, problema, solução, ICP, roadmap completo      |
-| [Contexto e Objetivo](doc/contexto_e_objetivo.md) | Decisão estratégica, análise de ideias, MVP 30 dias         |
-| [Modelo de Dados](doc/database.md)                | Diagrama do banco, tabelas, relacionamentos                 |
-| [Arquitetura](doc/arquitetura.md)                 | Stack técnica, estrutura de pastas, padrões, fluxo de dados |
+| Documento                                         | Descrição                                              |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| [Visão do Produto](doc/visao-v2.md)               | Vision Board, problema, solução, ICP, roadmap completo |
+| [Decisão Estratégica](doc/decisao-estrategica.md) | Análise de ideias, escolha do produto, MVP 30 dias     |
+| [Modelo de Dados](doc/database.md)                | Diagrama do banco, tabelas, relacionamentos            |
+| [Arquitetura](doc/arquitetura.md)                 | Stack técnica, estrutura de pastas, padrões            |
 
 ## Tech Stack
 
