@@ -99,13 +99,13 @@ export function Header() {
           <DropdownMenuItem asChild>
             <Link href="/minhaconta">
               <User className="mr-2 h-4 w-4" />
-              <span>Minha Conta</span>
+              <span>Minha conta</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/cobrancas">
               <CreditCard className="mr-2 h-4 w-4" />
-              <span>Faturamento</span>
+              <span>Minha assinatura</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
