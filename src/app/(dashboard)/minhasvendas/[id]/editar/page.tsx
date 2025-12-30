@@ -3,6 +3,7 @@ import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { PersonalSaleForm } from '@/components/sales'
+import { PageHeader } from '@/components/layout'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
@@ -28,12 +29,10 @@ export default async function EditarVendaPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Editar Venda</h1>
-        <p className="text-muted-foreground">
-          Altere os dados da venda
-        </p>
-      </div>
+      <PageHeader 
+        title="Editar Venda" 
+        description="Altere os dados da venda"
+      />
 
       <PersonalSaleForm
         suppliers={suppliers}

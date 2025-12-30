@@ -12,6 +12,7 @@ import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from 
 import { toast } from 'sonner'
 import { ArrowLeft, Loader2, Plus, Package, Trash2, Edit2, Star } from 'lucide-react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
 import type { CommissionRule, Product } from '@/types'
 import {
@@ -217,14 +218,10 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? 'Editar Pasta' : 'Nova Pasta'}
-          </h1>
-          <p className="text-muted-foreground">
-            {isEditing ? 'Atualize os dados do fornecedor' : 'Cadastre uma nova empresa/fábrica que você representa'}
-          </p>
-        </div>
+        <PageHeader 
+          title={isEditing ? 'Editar Pasta' : 'Nova Pasta'}
+          description={isEditing ? 'Atualize os dados do fornecedor' : 'Cadastre uma nova empresa/fábrica que você representa'}
+        />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
