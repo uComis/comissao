@@ -43,7 +43,7 @@ export function ThemeToggle() {
         onClick={toggleTheme}
         className={cn(
           "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          isDark ? "bg-primary" : "bg-muted"
+          isDark ? "bg-primary" : "bg-muted-foreground/40"
         )}
         aria-label="Alternar tema"
       >

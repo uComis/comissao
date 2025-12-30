@@ -45,7 +45,7 @@ export function Header() {
 
   if (!mounted) {
     return (
-      <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 border-b bg-background px-8 md:px-4">
+      <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 bg-background px-8 md:px-4">
         <SidebarTrigger className="hidden md:flex" />
         <div className="flex-1" />
       </header>
@@ -53,7 +53,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 border-b bg-background px-8 md:px-4">
+    <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 bg-background px-8 md:px-4">
       <SidebarTrigger className="hidden md:flex" />
 
       {/* Logo mobile */}
