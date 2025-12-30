@@ -38,7 +38,7 @@ export function BottomNav() {
           >
             <path
               d="M320 20C320 8.95431 311.046 0 300 0H192.4C190.2 0 188.1 0.8 186.4 2.2C179.4 8.2 170.4 12 160 12C149.6 12 140.6 8.2 133.6 2.2C131.9 0.8 129.8 0 127.6 0H20C8.95431 0 0 8.95431 0 20V44C0 55.0457 8.95431 64 20 64H300C311.046 64 320 55.0457 320 44V20Z"
-              className="fill-secondary/90 backdrop-blur-xl"
+              className="fill-neutral-300 dark:fill-secondary/90 backdrop-blur-xl"
             />
           </svg>
         </div>
