@@ -27,9 +27,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { MoreHorizontal, Pencil, Trash2, FileText, Percent } from 'lucide-react'
 import { deletePersonalSupplier, type PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { CommissionRule } from '@/types'
 
 type Props = {
@@ -59,6 +61,7 @@ function getRuleDescription(rule: CommissionRule | null): string {
 
 export function SupplierTable({ suppliers }: Props) {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -87,6 +90,100 @@ export function SupplierTable({ suppliers }: Props) {
     return null
   }
 
+  const ActionMenu = ({ supplier }: { supplier: PersonalSupplierWithRules }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Ações</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleEdit(supplier.id)}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => setDeleteId(supplier.id)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  const DeleteDialog = () => (
+    <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir fornecedor?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação não pode ser desfeita. Todas as vendas e recebíveis associados a este fornecedor também serão excluídos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={deleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {deleting ? 'Excluindo...' : 'Excluir'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+
+  // Mobile: Cards view
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-3">
+          {suppliers.map((supplier) => (
+            <Card
+              key={supplier.id}
+              className="p-4 active:scale-[0.98] transition-transform"
+              onClick={() => handleEdit(supplier.id)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-2">
+                  {/* Nome */}
+                  <div className="font-medium truncate">
+                    {supplier.name}
+                  </div>
+
+                  {/* CNPJ */}
+                  {supplier.cnpj && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                      <span className="font-mono text-xs">{formatCnpj(supplier.cnpj)}</span>
+                    </div>
+                  )}
+
+                  {/* Comissão */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Percent className="h-3.5 w-3.5 shrink-0" />
+                    <span className="text-xs">{getRuleDescription(supplier.default_rule || null)}</span>
+                  </div>
+                </div>
+
+                {/* Menu de ações */}
+                <div className="-mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
+                  <ActionMenu supplier={supplier} />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+        <DeleteDialog />
+      </>
+    )
+  }
+
+  // Desktop: Table view
   return (
     <>
       <div className="rounded-md border">
@@ -108,53 +205,14 @@ export function SupplierTable({ suppliers }: Props) {
                 </TableCell>
                 <TableCell>{getRuleDescription(supplier.default_rule || null)}</TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(supplier.id)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(supplier.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ActionMenu supplier={supplier} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir fornecedor?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Todas as vendas e recebíveis associados a este fornecedor também serão excluídos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={deleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteDialog />
     </>
   )
 }
