@@ -7,9 +7,10 @@ import {
   Wallet, 
   Calendar as CalendarIcon
 } from "lucide-react"
-import { StatCard, DonutCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart, CommissionGoalChart } from "@/components/dashboard"
+import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart, CommissionGoalChart } from "@/components/dashboard"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const clientsData = [
   { name: "Cliente VIP", value: 110000, fill: "#f59e0b" },
@@ -33,13 +34,14 @@ export default function AnalyticsPage() {
         </Button>
       </PageHeader>
 
-      <div className="grid gap-4 min-[1500px]:grid-cols-4 max-w-[600px] min-[1500px]:max-w-none mx-auto min-[1500px]:mx-0">
+      <div className="grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}
-        <div className="grid grid-cols-2 gap-4 min-[1500px]:col-span-2">
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
           <StatCard
             label="Vendas Realizadas"
             value={124}
             icon={Layers}
+            density="regular"
             percentage={8.2}
             percentageLabel="vs. mês anterior"
           />
@@ -47,6 +49,7 @@ export default function AnalyticsPage() {
             label="Vendas Pagas"
             value={89}
             icon={CheckSquare}
+            density="regular"
             percentage={3.4}
             percentageLabel="vs. mês anterior"
           />
@@ -54,6 +57,8 @@ export default function AnalyticsPage() {
             label="Total em Vendas"
             value="R$ 158.400"
             icon={DollarSign}
+            density="regular"
+            valueClassName="whitespace-nowrap"
             percentage={-0.2}
             percentageLabel="vs. mês anterior"
           />
@@ -61,25 +66,68 @@ export default function AnalyticsPage() {
             label="Minha Comissão"
             value="R$ 7.920"
             icon={Wallet}
+            density="regular"
+            valueClassName="whitespace-nowrap"
             percentage={-1.2}
             percentageLabel="vs. mês anterior"
           />
         </div>
 
-        <DonutCard
-          title="Faturamento por Cliente"
-          value="R$ 158.400"
-          data={clientsData}
-        />
+        {/* <1400px: um card com toggle (Cliente | Pasta) */}
+        <div className="lg:col-span-2 min-[1400px]:hidden">
+          <Tabs defaultValue="cliente" className="h-full relative">
+            <div className="absolute right-3 top-3 z-10">
+              <TabsList className="bg-muted/70 border border-border/60 shadow-sm">
+                <TabsTrigger
+                  value="cliente"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                >
+                  Cliente
+                </TabsTrigger>
+                <TabsTrigger
+                  value="pasta"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                >
+                  Pasta
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent value="cliente" className="h-full">
+              <RankingCard
+                title="Faturamento por Cliente"
+                value="R$ 158.400"
+                data={clientsData}
+              />
+            </TabsContent>
+            <TabsContent value="pasta" className="h-full">
+              <RankingCard
+                title="Faturamento por Pasta"
+                value="R$ 158.400"
+                data={foldersData}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
 
-        <DonutCard
-          title="Faturamento por Pasta"
-          value="R$ 158.400"
-          data={foldersData}
-        />
+        {/* >=1400px: dois cards na lateral */}
+        <div className="hidden min-[1400px]:block">
+          <RankingCard
+            title="Faturamento por Cliente"
+            value="R$ 158.400"
+            data={clientsData}
+          />
+        </div>
+        <div className="hidden min-[1400px]:block">
+          <RankingCard
+            title="Faturamento por Pasta"
+            value="R$ 158.400"
+            data={foldersData}
+          />
+        </div>
       </div>
 
-      <div className="grid gap-4 min-[1500px]:grid-cols-4 max-w-[600px] min-[1500px]:max-w-none mx-auto min-[1500px]:mx-0 pb-10">
+      {/* Cards Secundários */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-[1500px]:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10">
         <MonthlyEvolutionChart />
         <MonthlyRhythmChart />
         <PaymentPipelineChart />
