@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-6 z-50 flex justify-center md:hidden pointer-events-none"
+      className="fixed inset-x-0 bottom-2 z-50 flex justify-center md:hidden pointer-events-none"
       aria-label="Navegação inferior"
     >
       <div className="relative flex h-16 w-[92%] max-w-[420px] items-center pointer-events-auto">
