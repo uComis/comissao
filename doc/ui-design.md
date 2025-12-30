@@ -29,3 +29,4 @@ Utilizamos a família de fontes padrão do sistema (Geist Sans / Geist Mono).
 O sistema utiliza componentes baseados em Radix UI + Tailwind CSS.
 Consulte `src/components/ui` para a biblioteca de componentes.
 
+
