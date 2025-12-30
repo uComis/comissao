@@ -7,16 +7,18 @@ import { BottomNav } from '@/components/layout/bottom-nav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <BillingNotificationProvider>
-          <TrialBanner />
-          <Header />
-          <main className="flex-1 p-6 pb-32 md:pb-6">{children}</main>
-          <BottomNav />
-        </BillingNotificationProvider>
-      </SidebarInset>
-    </SidebarProvider>
+    <>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <BillingNotificationProvider>
+            <TrialBanner />
+            <Header />
+            <main className="flex-1 p-6 pb-32 md:pb-6">{children}</main>
+          </BillingNotificationProvider>
+        </SidebarInset>
+      </SidebarProvider>
+      <BottomNav />
+    </>
   )
 }
