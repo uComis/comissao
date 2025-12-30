@@ -35,7 +35,7 @@ export function DonutCard({ title, value, data }: DonutCardProps) {
   return (
     <Card className="border-none shadow-sm h-full overflow-hidden flex flex-col py-3 md:py-6">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0 md:pb-2 px-3 md:px-6">
-        <CardTitle className="text-sm md:text-base font-semibold">
+        <CardTitle className="text-sm md:text-base font-medium text-muted-foreground">
           {title}
         </CardTitle>
       </CardHeader>

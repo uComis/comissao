@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/layout'
 
 interface SubscriptionInfo {
   planName: string
@@ -168,10 +169,10 @@ export default function MinhaContaPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Minha Conta</h1>
-        <p className="text-muted-foreground">Gerencie suas informações</p>
-      </div>
+      <PageHeader 
+        title="Minha Conta" 
+        description="Gerencie suas informações" 
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

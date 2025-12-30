@@ -65,7 +65,7 @@ export function TrialBanner() {
     <>
       <div 
         className={`
-          w-full overflow-hidden transition-all ease-out
+          w-full overflow-hidden transition-all ease-out relative z-10
           ${isClosing ? 'duration-[1000ms]' : 'duration-[2000ms]'}
           ${isAnimated ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'}
         `}
@@ -75,15 +75,9 @@ export function TrialBanner() {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>
               {daysLeft <= 3 
-                ? `Atenção: Seu teste grátis termina em ${daysLeft} dias. Assine agora para manter seu acesso total.` 
-                : `Você está no período de teste full. Restam ${daysLeft} dias.`}
+                ? <>Atenção: Seu teste termina em {daysLeft} dias! Para manter seu acesso, <button onClick={() => setIsPlanModalOpen(true)} className="underline hover:opacity-80 transition-opacity">veja os planos</button>.</> 
+                : <>Você possui {daysLeft} dias de teste full. Para conhecer os planos, <button onClick={() => setIsPlanModalOpen(true)} className="underline hover:opacity-80 transition-opacity">veja os planos</button>.</>}
             </span>
-            <button 
-              onClick={() => setIsPlanModalOpen(true)}
-              className="underline ml-2 hover:opacity-80 transition-opacity whitespace-nowrap"
-            >
-              Ver Planos
-            </button>
           </div>
           <button 
             onClick={() => {

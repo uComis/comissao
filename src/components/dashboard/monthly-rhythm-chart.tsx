@@ -26,7 +26,7 @@ export function MonthlyRhythmChart() {
   return (
     <Card className="border-none shadow-sm h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Ritmo do Mês</CardTitle>
+        <CardTitle className="text-base font-medium text-muted-foreground">Ritmo do Mês</CardTitle>
         <CardDescription>Faturamento diário (Dezembro)</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pt-0">

@@ -39,10 +39,10 @@ export function StatCard({
     )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0 md:pb-2 px-3 md:px-6">
         <CardTitle className={cn(
-          "font-semibold",
-          onClick ? "text-xs uppercase tracking-wider text-muted-foreground" : "text-sm md:text-base"
+          "font-medium text-muted-foreground",
+          onClick ? "text-xs uppercase tracking-wider" : "text-sm md:text-base"
         )}>{label}</CardTitle>
-        <Icon className={cn("h-5 w-5 md:h-6 md:w-6", iconClassName)} />
+        <Icon className={cn("h-5 w-5 md:h-6 md:w-6 text-muted-foreground/50", iconClassName)} />
       </CardHeader>
       <CardContent className="px-3 md:px-6 pt-0 md:pt-0">
         <div className={cn(

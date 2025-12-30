@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { ClientTable } from '@/components/clients/client-table'
 import { ClientDialog } from '@/components/clients/client-dialog'
+import { PageHeader } from '@/components/layout'
 import type { PersonalClient } from '@/types'
 
 type Props = {
@@ -41,19 +42,16 @@ export function ClientesClient({ initialClients }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Meus Clientes</h1>
-          <p className="text-muted-foreground">
-            Gerencie sua carteira de clientes
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader 
+        title="Meus Clientes" 
+        description="Gerencie sua carteira de clientes"
+      >
         <Button onClick={handleNewClient}>
           <Plus className="h-4 w-4 md:mr-2" />
           <span className="hidden md:inline">Novo Cliente</span>
         </Button>
-      </div>
+      </PageHeader>
 
       <ClientTable
         clients={clients}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Rocket, PlusCircle } from 'lucide-react'
 import { getPersonalSales } from '@/app/actions/personal-sales'
 import { PersonalSaleTable } from '@/components/sales'
+import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function SalesContent() {
@@ -34,20 +35,17 @@ async function SalesContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Minhas Vendas</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas vendas e acompanhe suas comissões
-          </p>
-        </div>
+      <PageHeader 
+        title="Minhas Vendas" 
+        description="Gerencie suas vendas e acompanhe suas comissões"
+      >
         <Button asChild>
           <Link href="/minhasvendas/nova">
             <Plus className="h-4 w-4 md:mr-2" />
             <span className="hidden md:inline">Nova Venda</span>
           </Link>
         </Button>
-      </div>
+      </PageHeader>
       <PersonalSaleTable sales={sales} />
     </div>
   )

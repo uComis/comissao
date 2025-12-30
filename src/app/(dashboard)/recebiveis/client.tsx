@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from '@/lib/utils'
 import { markReceivableAsReceived, undoReceivableReceived, type ReceivableRow, type ReceivablesStats } from '@/app/actions/receivables'
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/layout'
 
 type Props = {
   receivables: ReceivableRow[]
@@ -199,15 +200,10 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
     <div className="relative pb-24">
       <div className="space-y-6 max-w-5xl mx-auto">
         {/* Header com Botão de Ação Principal */}
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold tracking-tight text-primary">
-              {isHome ? 'Faturamento' : 'Recebíveis'}
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.'}
-            </p>
-          </div>
+        <PageHeader 
+          title={isHome ? 'Faturamento' : 'Recebíveis'}
+          description={isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.'}
+        >
           {!isEditMode ? (
             <Button 
               onClick={() => setIsEditMode(true)}
@@ -226,7 +222,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               <span className="hidden md:inline">Cancelar Edição</span>
             </Button>
           )}
-        </div>
+        </PageHeader>
 
         {/* Cards de Totais */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">

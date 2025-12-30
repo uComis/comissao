@@ -36,7 +36,7 @@ export function PaymentPipelineChart() {
   return (
     <Card className="border-none shadow-sm h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Status Financeiro</CardTitle>
+        <CardTitle className="text-base font-medium text-muted-foreground">Status Financeiro</CardTitle>
         <CardDescription>Onde está o faturamento</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pt-0">

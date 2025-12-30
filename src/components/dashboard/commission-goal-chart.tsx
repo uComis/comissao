@@ -72,7 +72,7 @@ export function CommissionGoalChart() {
         onClick={() => setIsDialogOpen(true)}
       >
         <CardHeader className="pb-0">
-          <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors">
+          <CardTitle className="text-base font-medium text-muted-foreground group-hover:text-primary transition-colors">
             Meta {capitalizedMonth}
           </CardTitle>
           <CardDescription>

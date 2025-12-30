@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { Check, ExternalLink, Unplug, Users, Loader2, ShoppingCart, Pencil } from 'lucide-react'
+import { PageHeader } from '@/components/layout'
 import type { IntegrationWithType } from '@/types'
 
 function ConfiguracoesContent() {
@@ -255,12 +256,10 @@ function ConfiguracoesContent() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie integrações e configurações da organização
-        </p>
-      </div>
+      <PageHeader 
+        title="Configurações" 
+        description="Gerencie integrações e configurações da organização" 
+      />
 
       {/* Seção CRM */}
       <Card>

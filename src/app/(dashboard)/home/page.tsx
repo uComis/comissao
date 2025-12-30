@@ -8,6 +8,7 @@ import {
   Calendar as CalendarIcon
 } from "lucide-react"
 import { StatCard, DonutCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart, CommissionGoalChart } from "@/components/dashboard"
+import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 
 const clientsData = [
@@ -25,16 +26,12 @@ const foldersData = [
 export default function AnalyticsPage() {
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
-      <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold tracking-tight">Analytics</h1>
-        
-        <div className="flex items-center gap-4">
-          <Button variant="outline" className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            01.12.2025 - 27.12.2025
-          </Button>
-        </div>
-      </div>
+      <PageHeader title="Analytics">
+        <Button variant="outline" className="flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4" />
+          01.12.2025 - 27.12.2025
+        </Button>
+      </PageHeader>
 
       <div className="grid gap-4 min-[1500px]:grid-cols-4 max-w-[600px] min-[1500px]:max-w-none mx-auto min-[1500px]:mx-0">
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}

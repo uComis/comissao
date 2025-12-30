@@ -35,7 +35,7 @@ export function MonthlyEvolutionChart() {
   return (
     <Card className="border-none shadow-sm h-full flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Evolução Mensal</CardTitle>
+        <CardTitle className="text-base font-medium text-muted-foreground">Evolução Mensal</CardTitle>
         <CardDescription>Comparativo Vendas vs. Comissão</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pt-0">
