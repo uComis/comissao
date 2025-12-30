@@ -12,15 +12,15 @@ Definidas semanticamente para suportar Light/Dark mode.
 | **Destructive** | Vermelho (`#ef4444`) | Vermelho (`#7f1d1d`) | Ações destrutivas (excluir), erros críticos |
 | **Background** | Branco (`#ffffff`) | Preto (`#0a0a0a`) | Fundo da página e cards |
 
-### Cores de Status (Semânticas)
+### Cores de Status (Semânticas) / Cores de Ação
 Cores fixas para feedback e estados do sistema.
 
 | Token | Cor | Hex | Uso |
 |-------|-----|-----|-----|
-| **Info** | Azul | `#409eff` | Informações neutras, links, status "Em andamento" |
-| **Warning** | Amarelo/Âmbar | `#f59e0b` | Alertas, atenção, status "Pendente", "Aguardando" |
-| **Success** | Verde | `#67C23A` | Confirmações, sucesso, status "Pago", "Concluído" |
-| **Danger** | Vermelho Suave | `#F56C6C` | Erros, falhas, alertas críticos (Alternativa ao Destructive) |
+| **Info** / **Cor de ação azul** | Azul | `#409eff` | Informações neutras, links, status "Em andamento" |
+| **Warning** / **Cor de ação amarela** | Amarelo/Âmbar | `#f59e0b` | Alertas, atenção, status "Pendente", "Aguardando" |
+| **Success** / **Cor de ação verde** | Verde | `#67C23A` | Confirmações, sucesso, status "Pago", "Concluído" |
+| **Danger** / **Cor de ação vermelha** | Vermelho Suave | `#F56C6C` | Erros, falhas, alertas críticos (Alternativa ao Destructive) |
 
 ## Tipografia
 Utilizamos a família de fontes padrão do sistema (Geist Sans / Geist Mono).
