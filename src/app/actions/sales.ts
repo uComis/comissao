@@ -59,6 +59,7 @@ export async function syncSales(organizationId: string): Promise<ActionResult<Sy
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao sincronizar vendas'
+    console.error('Error in syncSales:', err)
     return { success: false, error: message }
   }
 }
@@ -76,6 +77,7 @@ export async function forceSyncSales(organizationId: string): Promise<ActionResu
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao sincronizar vendas'
+    console.error('Error in forceSyncSales:', err)
     return { success: false, error: message }
   }
 }
@@ -110,6 +112,7 @@ export async function syncAndCalculate(
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao processar vendas'
+    console.error('Error in syncAndCalculate:', err)
     return { success: false, error: message }
   }
 }
@@ -124,6 +127,7 @@ export async function deleteSale(id: string): Promise<ActionResult<void>> {
     revalidatePath('/dashboard')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error in deleteSale:', err)
     return { success: false, error: 'Erro ao excluir venda' }
   }
 }
@@ -142,6 +146,7 @@ export async function deleteSales(ids: string[]): Promise<ActionResult<{ deleted
     revalidatePath('/dashboard')
     return { success: true, data: { deleted } }
   } catch (err) {
+    console.error('Error in deleteSales:', err)
     return { success: false, error: 'Erro ao excluir vendas' }
   }
 }

@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { checkLimit, incrementUsage, decrementUsage } from './billing'
-import type { CommissionRule, CommissionTier } from '@/types'
+import type { CommissionRule } from '@/types'
 
 // Types
 export type PersonalSupplier = {
@@ -284,12 +284,10 @@ export async function updatePersonalSupplierWithRules(
     if (parsed.data.cnpj !== undefined) updateData.cnpj = parsed.data.cnpj || null
     if (parsed.data.default_rule_id !== undefined) updateData.commission_rule_id = parsed.data.default_rule_id
 
-    const { data: updatedSupplier, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('personal_suppliers')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single()
 
     if (updateError) throw updateError
 

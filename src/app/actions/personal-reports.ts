@@ -1,10 +1,50 @@
 'use server'
 
 import { createClient } from '@/lib/supabase-server'
-import { startOfMonth, subMonths, format, parseISO } from 'date-fns'
+import { subMonths, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export async function getPersonalReportsData() {
+export type ReportEvolution = {
+  period: string
+  name: string
+  vendas: number
+  comissao: number
+}
+
+export type ReportSupplier = {
+  name: string
+  vendas: number
+  comissao: number
+}
+
+export type ReportClient = {
+  name: string
+  total: number
+  count: number
+  lastSale: string
+}
+
+export type ReportProduct = {
+  name: string
+  total: number
+  qtd: number
+}
+
+export type ReportFunnel = {
+  name: string
+  value: number
+  color: string
+}
+
+export type ReportsData = {
+  monthlyEvolution: ReportEvolution[]
+  supplierRanking: ReportSupplier[]
+  clientABC: ReportClient[]
+  productMix: ReportProduct[]
+  commissionFunnel: ReportFunnel[]
+}
+
+export async function getPersonalReportsData(): Promise<ReportsData> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -20,7 +60,7 @@ export async function getPersonalReportsData() {
 
   if (evolutionError) throw evolutionError
 
-  const monthlyEvolution = evolutionData.reduce((acc: any[], sale) => {
+  const monthlyEvolution = (evolutionData || []).reduce((acc: ReportEvolution[], sale) => {
     const month = format(parseISO(sale.sale_date), 'yyyy-MM')
     const existing = acc.find(a => a.period === month)
     if (existing) {
@@ -49,7 +89,7 @@ export async function getPersonalReportsData() {
 
   if (supplierError) throw supplierError
 
-  const supplierRanking = supplierData.reduce((acc: any[], sale) => {
+  const supplierRanking = (supplierData || []).reduce((acc: ReportSupplier[], sale) => {
     const supplier = sale.supplier as unknown as { name: string } | null
     const name = supplier?.name || 'Sem Fornecedor'
     const existing = acc.find(a => a.name === name)
@@ -74,7 +114,7 @@ export async function getPersonalReportsData() {
 
   if (clientError) throw clientError
 
-  const clientABC = clientData.reduce((acc: any[], sale) => {
+  const clientABC = (clientData || []).reduce((acc: ReportClient[], sale) => {
     const name = sale.client_name
     const existing = acc.find(a => a.name === name)
     if (existing) {
@@ -102,7 +142,7 @@ export async function getPersonalReportsData() {
 
   if (productError) throw productError
 
-  const productMix = productData.reduce((acc: any[], item) => {
+  const productMix = (productData || []).reduce((acc: ReportProduct[], item) => {
     const name = item.product_name
     const existing = acc.find(a => a.name === name)
     if (existing) {
@@ -115,8 +155,7 @@ export async function getPersonalReportsData() {
   }, []).sort((a, b) => b.total - a.total).slice(0, 10)
 
   // 5. Funil de Comissão (Simplificado)
-  // Venda Total -> Comissão Estimada -> Comissão Recebida
-  const { data: receivedData, error: receivedError } = await supabase
+  const { data: receivedData } = await supabase
     .from('received_payments')
     .select(`
       received_amount,
@@ -124,11 +163,11 @@ export async function getPersonalReportsData() {
     `)
     .eq('personal_sales.user_id', user.id)
 
-  const totalGross = evolutionData.reduce((sum, s) => sum + Number(s.gross_value), 0)
-  const totalEstimated = evolutionData.reduce((sum, s) => sum + Number(s.commission_value), 0)
+  const totalGross = (evolutionData || []).reduce((sum, s) => sum + Number(s.gross_value), 0)
+  const totalEstimated = (evolutionData || []).reduce((sum, s) => sum + Number(s.commission_value), 0)
   const totalReceived = receivedData?.reduce((sum, r) => sum + Number(r.received_amount), 0) || 0
 
-  const commissionFunnel = [
+  const commissionFunnel: ReportFunnel[] = [
     { name: 'Venda Total', value: totalGross, color: 'var(--chart-1)' },
     { name: 'Comissão Estimada', value: totalEstimated, color: 'var(--chart-2)' },
     { name: 'Comissão Recebida', value: totalReceived, color: 'var(--chart-3)' },

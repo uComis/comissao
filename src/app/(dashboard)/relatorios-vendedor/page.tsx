@@ -1,7 +1,7 @@
 import PersonalReportsClient from './client'
 
 export const metadata = {
-  title: 'Relatórios | uComiss',
+  title: 'Relatórios | uComis',
   description: 'Análise de performance e resultados do vendedor.',
 }
 

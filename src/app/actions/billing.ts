@@ -1,8 +1,9 @@
 'use server'
 
-import { createClient } from '@/lib/supabase-server'
+import { createClient, createAdminClient } from '@/lib/supabase-server'
 import { AsaasService } from '@/lib/clients/asaas'
 import { getProfile } from './profiles'
+import { revalidatePath } from 'next/cache'
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
 
@@ -27,6 +28,7 @@ export interface Subscription {
   asaas_customer_id: string | null
   asaas_subscription_id: string | null
   cancel_at_period_end: boolean
+  notified_plan_id?: string | null
 }
 
 export interface UsageStats {
@@ -168,13 +170,26 @@ export async function setupTrialSubscription(userId: string) {
 
 /**
  * Helper para verificar limites antes de uma ação.
+ * Se o usuário não tiver assinatura/usage, cria automaticamente (defensive).
  */
 export async function checkLimit(
   userId: string, 
   feature: 'sales' | 'suppliers' | 'users'
 ): Promise<{ allowed: boolean; error?: string }> {
-  const subscription = await getSubscription(userId)
-  const usage = await getUsageStats(userId)
+  let subscription = await getSubscription(userId)
+  let usage = await getUsageStats(userId)
+
+  // Defensive: se usuário antigo não tem subscription/usage, criar automaticamente
+  if (!subscription || !usage) {
+    try {
+      await setupTrialSubscription(userId)
+      subscription = await getSubscription(userId)
+      usage = await getUsageStats(userId)
+    } catch (err) {
+      console.error('Erro ao criar subscription automática:', err)
+      return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }
+    }
+  }
 
   if (!subscription || !usage) {
     return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }
@@ -249,7 +264,7 @@ export async function decrementUsage(
 }
 
 export type CreateSubscriptionResult = 
-  | { success: true; subscriptionId: string; invoiceUrl: string }
+  | { success: true; subscriptionId: string; invoiceUrl: string; invoiceId?: string }
   | { success: false; error: string; message: string }
 
 /**
@@ -300,14 +315,12 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       .maybeSingle()
 
     if (existingSub?.asaas_customer_id) {
-      // Verifica se o cliente ainda existe e é válido no Asaas
       const existingCustomer = await AsaasService.getCustomer(existingSub.asaas_customer_id)
       if (existingCustomer && !existingCustomer.deleted) {
         asaasCustomerId = existingCustomer.id
       }
     }
 
-    // 3.2 Se não achou pelo ID válido, tenta pelo CPF/CNPJ
     if (!asaasCustomerId) {
       const customerByCpf = await AsaasService.findCustomerByCpfCnpj(profile.document)
       if (customerByCpf && !customerByCpf.deleted) {
@@ -315,7 +328,6 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       }
     }
 
-    // 3.3 Se não achou pelo CPF, tenta pelo Email
     if (!asaasCustomerId && user.email) {
       const customerByEmail = await AsaasService.findCustomerByEmail(user.email)
       if (customerByEmail && !customerByEmail.deleted) {
@@ -323,7 +335,6 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       }
     }
 
-    // 3.4 Se achou alguém, atualiza os dados para garantir consistência
     if (asaasCustomerId) {
       try {
         await AsaasService.updateCustomer(asaasCustomerId, customerData)
@@ -331,85 +342,96 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
         console.warn('Erro ao atualizar dados do cliente no Asaas (não crítico):', err)
       }
     } else {
-      // 3.5 Se não achou ninguém, cria novo
       const newCustomer = await AsaasService.createCustomer(customerData)
       asaasCustomerId = newCustomer.id
     }
 
-    // 4. Criar assinatura no Asaas
-    // Vamos usar a primeira parcela para amanhã para dar tempo do checkout
+    // --- LÓGICA DE REUSO (UX SENIOR) ---
+    // 4. Verificar se já existe uma assinatura PENDING para este plano
+    const { data: currentSub } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('plan_id', planId)
+      .in('status', ['unpaid', 'past_due'])
+      .maybeSingle()
+
+    if (currentSub?.asaas_subscription_id) {
+      // Busca as cobranças dessa assinatura para ver se tem uma PENDING
+      const payments = await AsaasService.getSubscriptionPayments(currentSub.asaas_subscription_id)
+      const pendingPayment = payments.data.find(p => p.status === 'PENDING')
+      
+      if (pendingPayment) {
+        console.log('Reutilizando assinatura/fatura pendente existente...')
+        return {
+          success: true,
+          subscriptionId: currentSub.asaas_subscription_id,
+          invoiceUrl: pendingPayment.invoiceUrl,
+          invoiceId: pendingPayment.id
+        }
+      }
+    }
+
+    // 5. Se não tem para reusar, limpa as "lixo" antes de criar nova
+    const { data: previousSubs } = await supabase
+      .from('subscriptions')
+      .select('id, asaas_subscription_id')
+      .eq('user_id', user.id)
+      .in('status', ['unpaid', 'past_due'])
+
+    if (previousSubs && previousSubs.length > 0) {
+      for (const sub of previousSubs) {
+        if (sub.asaas_subscription_id) {
+          try {
+            await AsaasService.cancelSubscription(sub.asaas_subscription_id)
+          } catch (err) {
+            console.error(`Erro ao cancelar lixo ${sub.asaas_subscription_id}:`, err)
+          }
+        }
+      }
+      await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled' })
+        .eq('user_id', user.id)
+        .in('status', ['unpaid', 'past_due'])
+    }
+
+    // 6. Criar nova assinatura no Asaas
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
 
     const asaasSub = await AsaasService.createSubscription({
       customer: asaasCustomerId!,
-      billingType: 'UNDEFINED', // Permite que o usuário escolha (Cartão, Boleto ou PIX) no checkout do Asaas
+      billingType: 'UNDEFINED',
       value: plan.price,
       nextDueDate: tomorrow.toISOString().split('T')[0],
       cycle: plan.interval === 'month' ? 'MONTHLY' : 'ANNUALLY',
-      description: `Assinatura Plano ${plan.name} - Comissao.io`,
+      description: `Assinatura Plano ${plan.name} - uComis`,
       externalReference: user.id
-    }) as { id: string; invoiceUrl?: string; lastInvoiceUrl?: string }
+    })
 
-    // 5. Buscar a fatura gerada para obter o link de pagamento
-    // Como a assinatura foi criada com billingType UNDEFINED, precisamos pegar o link da cobrança gerada
+    // 7. Buscar link de pagamento
     let invoiceUrl = asaasSub.invoiceUrl || asaasSub.lastInvoiceUrl
+    let invoiceId: string | undefined
 
     if (!invoiceUrl) {
-      try {
-        const payments = await AsaasService.getSubscriptionPayments(asaasSub.id)
-        if (payments.data && payments.data.length > 0) {
-          // Pega a primeira fatura pendente
-          const pendingPayment = payments.data.find(p => p.status === 'PENDING') || payments.data[0]
-          invoiceUrl = pendingPayment.invoiceUrl
-        }
-      } catch (err) {
-        console.error('Erro ao buscar fatura da assinatura:', err)
-      }
+      const payments = await AsaasService.getSubscriptionPayments(asaasSub.id)
+      const pendingPayment = payments.data.find(p => p.status === 'PENDING') || payments.data[0]
+      invoiceUrl = pendingPayment?.invoiceUrl
+      invoiceId = pendingPayment?.id
     }
 
     if (!invoiceUrl) {
-      throw new Error('Assinatura criada, mas não foi possível gerar o link de pagamento.')
+      throw new Error('Assinatura criada, mas sem link de pagamento.')
     }
 
-    // 6. Limpeza de assinaturas anteriores (Opção C - Substituição Automática)
-    // Busca qualquer assinatura anterior que não esteja cancelada (unpaid, trialing, active, past_due)
-    const { data: previousSubs } = await supabase
-      .from('subscriptions')
-      .select('id, asaas_subscription_id')
-      .eq('user_id', user.id)
-      .in('status', ['unpaid', 'trialing', 'active', 'past_due'])
-
-    if (previousSubs && previousSubs.length > 0) {
-      console.log(`Cancelando ${previousSubs.length} assinaturas anteriores para limpar o fluxo...`)
-      
-      for (const sub of previousSubs) {
-        // 1. Cancelar no Asaas se tiver ID vinculado
-        if (sub.asaas_subscription_id) {
-          try {
-            await AsaasService.cancelSubscription(sub.asaas_subscription_id)
-          } catch (err) {
-            console.error(`Erro ao cancelar assinatura antiga ${sub.asaas_subscription_id} no Asaas:`, err)
-            // Não travamos o fluxo, apenas logamos
-          }
-        }
-      }
-
-      // 2. Marcar todas como canceladas no banco de uma vez
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'canceled' })
-        .eq('user_id', user.id)
-        .in('status', ['unpaid', 'trialing', 'active', 'past_due'])
-    }
-    
-    // 7. Salvar a nova assinatura no banco
+    // 8. Salvar no banco
     const { error: subError } = await supabase
       .from('subscriptions')
       .insert({
         user_id: user.id,
         plan_id: plan.id,
-        status: 'unpaid', // Fica unpaid até o webhook confirmar o pagamento
+        status: 'unpaid',
         asaas_customer_id: asaasCustomerId,
         asaas_subscription_id: asaasSub.id,
         plan_snapshot: {
@@ -425,13 +447,12 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
 
     if (subError) throw subError
 
-    const retorno: CreateSubscriptionResult = { 
+    return { 
       success: true, 
       subscriptionId: asaasSub.id,
-      invoiceUrl: invoiceUrl // URL garantida agora
+      invoiceUrl: invoiceUrl,
+      invoiceId: invoiceId
     }
-
-    return retorno;
   } catch (error: unknown) {
     console.error('Erro ao criar assinatura:', error)
     const message = error instanceof Error ? error.message : 'Falha ao processar assinatura no Asaas'
@@ -447,5 +468,73 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
 
     return { success: false, error: 'API_ERROR', message }
   }
+}
+
+/**
+ * Busca todas as cobranças do usuário no Asaas.
+ */
+export async function getInvoicesAction() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  // 1. Buscar asaas_customer_id mais recente
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('asaas_customer_id')
+    .eq('user_id', user.id)
+    .not('asaas_customer_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (!subscription?.asaas_customer_id) return []
+
+  try {
+    // 2. Buscar TODAS as faturas do cliente para ter um histórico completo
+    const payments = await AsaasService.getCustomerPayments(subscription.asaas_customer_id)
+    
+    // 3. Filtrar apenas o que não foi removido/deletado e ordenar por vencimento desc
+    return payments.data
+      .filter(p => !p.deleted)
+      .map(p => ({
+        id: p.id,
+        status: p.status,
+        value: p.value,
+        dueDate: p.dueDate,
+        invoiceUrl: p.invoiceUrl,
+        description: p.description || 'Assinatura uComis'
+      }))
+      .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime())
+  } catch (error) {
+    console.error('Erro ao buscar faturas:', error)
+    return []
+  }
+}
+
+/**
+ * Marca o plano atual como notificado para evitar parabéns duplicados.
+ */
+export async function markPlanAsNotifiedAction() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  const subscription = await getSubscription(user.id)
+  if (!subscription) return
+
+  // Usamos admin client para garantir que o update de metadados ocorra sem travas de RLS
+  const adminSupabase = createAdminClient()
+  const { error } = await adminSupabase
+    .from('subscriptions')
+    .update({ notified_plan_id: subscription.plan_id })
+    .eq('id', subscription.id)
+
+  if (error) {
+    console.error('Erro ao marcar plano como notificado:', error)
+    throw new Error('Falha ao atualizar status de notificação')
+  }
+
+  revalidatePath('/')
 }
 

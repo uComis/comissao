@@ -61,6 +61,8 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     return acc
   }, 0)
 
+  const [hasEverSubscribed, setHasEverSubscribed] = useState(false)
+
   useEffect(() => {
     if (open && user) {
       async function loadData() {
@@ -71,6 +73,8 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
           ])
           setPlans(plansData)
           setCurrentPlanId(subData?.plan_id || null)
+          // Se tem assinatura ativa/past_due, já assinou alguma vez
+          setHasEverSubscribed(!!subData)
         } catch (error) {
           console.error('Error loading plans:', error)
         } finally {
@@ -81,7 +85,10 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     }
   }, [open, user])
 
-  const filteredPlans = plans.filter(p => p.interval === billingInterval)
+  // Filtra por intervalo e esconde FREE se já assinou algum plano
+  const filteredPlans = plans
+    .filter(p => p.interval === billingInterval)
+    .filter(p => hasEverSubscribed ? p.plan_group !== 'free' : true)
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -123,9 +130,14 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
       const result = await createSubscriptionAction(planId)
       
       if (result.success) {
-        toast.success('Fatura gerada! Abra a nova aba para pagar.')
-        window.open(result.invoiceUrl, '_blank')
-        onOpenChange(false) // Fecha o modal para mostrar o app de volta
+        toast.success('Fatura gerada! Redirecionando para central de cobranças...')
+        
+        // Redireciona para a página de cobranças com os parâmetros para abrir o bridge modal
+        const params = new URLSearchParams()
+        if (result.invoiceId) params.append('invoice_id', result.invoiceId)
+        if (result.invoiceUrl) params.append('url', result.invoiceUrl)
+        
+        window.location.href = `/cobrancas?${params.toString()}`
       } else {
         if (result.error === 'NEEDS_DOCUMENT') {
           setPendingPlanId(planId)

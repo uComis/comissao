@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Starter Stack',
-  description: 'Template para projetos SaaS com Next.js, Supabase e shadcn/ui',
+  title: 'uComis',
+  description: 'Auditoria de comissões para vendedores',
 }
 
 export default function RootLayout({

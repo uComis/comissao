@@ -9,6 +9,8 @@ export type PersonalSaleItem = {
   tax_rate: number
   tax_amount: number
   net_value: number
+  commission_rate: number
+  commission_value: number
   created_at: string
 }
 
@@ -52,6 +54,7 @@ export type CreatePersonalSaleItemInput = {
   quantity: number
   unit_price: number
   tax_rate?: number
+  commission_rate?: number
 }
 
 export type CreatePersonalSaleInput = {

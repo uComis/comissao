@@ -1,6 +1,7 @@
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { PersonalSaleForm } from '@/components/sales'
+import { PageHeader } from '@/components/layout'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 export default async function NovaVendaPage() {
@@ -15,12 +16,10 @@ export default async function NovaVendaPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Nova Venda</h1>
-        <p className="text-muted-foreground">
-          Registre uma nova venda e calcule a comissão automaticamente
-        </p>
-      </div>
+      <PageHeader 
+        title="Nova Venda" 
+        description="Registre uma nova venda e calcule a comissão automaticamente"
+      />
 
       <PersonalSaleForm 
         suppliers={suppliers} 

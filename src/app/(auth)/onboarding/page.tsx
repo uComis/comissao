@@ -1,10 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase'
 import { setupTrialSubscription } from '@/app/actions/billing'
 import { toast } from 'sonner'
@@ -14,8 +13,9 @@ export default function OnboardingPage() {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState<'personal' | 'organization' | null>(null)
+  const isOrganizationEnabled = process.env.NEXT_PUBLIC_ENABLE_ORGANIZATION === 'true'
 
-  const handleSelectMode = async (mode: 'personal' | 'organization') => {
+  const handleSelectMode = useCallback(async (mode: 'personal' | 'organization') => {
     if (!user) return
 
     setLoading(mode)
@@ -80,13 +80,35 @@ export default function OnboardingPage() {
       toast.error('Erro inesperado')
       setLoading(null)
     }
+  }, [user, router])
+
+  useEffect(() => {
+    // Se houver erro na URL ou no fragmento, não redireciona automaticamente 
+    // para garantir que o erro seja processado e exibido
+    const hasError = window.location.search.includes('error') || window.location.hash.includes('error')
+    
+    // Se o modo organização estiver desabilitado, seleciona 'personal' automaticamente
+    if (!isOrganizationEnabled && user && !loading && !hasError) {
+      handleSelectMode('personal')
+    }
+  }, [isOrganizationEnabled, user, handleSelectMode, loading])
+
+  if (!isOrganizationEnabled) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground text-center">Configurando sua conta...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Como deseja usar o uComiss?</CardTitle>
+          <CardTitle className="text-2xl">Como deseja usar o uComis?</CardTitle>
           <CardDescription>
             Escolha o modo que melhor se adapta ao seu perfil
           </CardDescription>

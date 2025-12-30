@@ -85,23 +85,25 @@ export function ComboboxCreatable({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[280px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
             value={search}
             onValueChange={setSearch}
+            className="h-12"
           />
-          <CommandList>
+          <CommandList className="max-h-[300px]">
             {filteredOptions.length === 0 && !showCreateOption && (
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
+              <CommandEmpty className="py-6">{emptyMessage}</CommandEmpty>
             )}
-            <CommandGroup>
+            <CommandGroup className="p-2">
               {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
                   value={option.value}
                   onSelect={() => handleSelect(option.value, option.label)}
+                  className="py-3 px-3 rounded-md"
                 >
                   <Check
                     className={cn(
@@ -113,7 +115,7 @@ export function ComboboxCreatable({
                 </CommandItem>
               ))}
               {showCreateOption && (
-                <CommandItem onSelect={handleCreateNew}>
+                <CommandItem onSelect={handleCreateNew} className="py-3 px-3 rounded-md">
                   <span className="text-muted-foreground mr-2">Usar:</span>
                   <span className="font-medium">{search}</span>
                 </CommandItem>

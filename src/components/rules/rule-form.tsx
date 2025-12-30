@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,33 +48,15 @@ export const RuleForm = forwardRef<RuleFormRef, Props>(function RuleForm(
   const [tiers, setTiers] = useState<CommissionTier[]>([{ ...emptyTier }])
   const [isDefault, setIsDefault] = useState(false)
 
-  useEffect(() => {
-    if (rule) {
-      setName(rule.name)
-      setType(rule.type)
-      setPercentage(rule.percentage?.toString() || '')
-      setTiers(rule.tiers && rule.tiers.length > 0 ? rule.tiers : [{ ...emptyTier }])
-      setIsDefault(rule.is_default)
-    } else {
-      reset()
-    }
-  }, [rule])
-
-  useEffect(() => {
-    if (onChange) {
-      onChange(getData())
-    }
-  }, [name, type, percentage, tiers, isDefault])
-
-  function reset() {
+  const reset = useCallback(() => {
     setName('')
     setType('fixed')
     setPercentage('')
     setTiers([{ ...emptyTier }])
     setIsDefault(false)
-  }
+  }, [])
 
-  function getData(): RuleFormData {
+  const getData = useCallback((): RuleFormData => {
     return {
       name,
       type,
@@ -82,7 +64,28 @@ export const RuleForm = forwardRef<RuleFormRef, Props>(function RuleForm(
       tiers: type === 'tiered' ? tiers : null,
       is_default: isDefault,
     }
-  }
+  }, [name, type, percentage, tiers, isDefault])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (rule) {
+        setName(rule.name)
+        setType(rule.type)
+        setPercentage(rule.percentage?.toString() || '')
+        setTiers(rule.tiers && rule.tiers.length > 0 ? rule.tiers : [{ ...emptyTier }])
+        setIsDefault(rule.is_default)
+      } else {
+        reset()
+      }
+    }, 0)
+    return () => clearTimeout(timeout)
+  }, [rule, reset])
+
+  useEffect(() => {
+    if (onChange) {
+      onChange(getData())
+    }
+  }, [onChange, getData])
 
   function validate(): boolean {
     if (showName && !name.trim()) return false

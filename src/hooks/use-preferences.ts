@@ -36,13 +36,13 @@ function savePreferences(prefs: Preferences): void {
 }
 
 export function usePreferences() {
-  const [preferences, setPreferencesState] = useState<Preferences>(defaults)
+  const [preferences, setPreferencesState] = useState<Preferences>(() => getStoredPreferences())
   const [loaded, setLoaded] = useState(false)
 
-  // Carrega do localStorage no mount
+  // Marca como carregado no mount
   useEffect(() => {
-    setPreferencesState(getStoredPreferences())
-    setLoaded(true)
+    const timeout = setTimeout(() => setLoaded(true), 0)
+    return () => clearTimeout(timeout)
   }, [])
 
   // Atualiza uma preferência específica

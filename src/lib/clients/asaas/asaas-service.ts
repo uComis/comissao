@@ -78,6 +78,7 @@ export interface AsaasPayment {
   status: string;
   invoiceUrl: string;
   invoiceNumber: string;
+  description?: string;
   externalReference?: string;
   deleted: boolean;
 }
@@ -177,7 +178,8 @@ export class AsaasService {
       return await this.request<AsaasCustomer>(`/customers/${customerId}`, {
         method: 'GET',
       });
-    } catch (error) {
+    } catch (err) {
+      console.error(`Error fetching customer ${customerId}:`, err);
       return null;
     }
   }
@@ -208,6 +210,33 @@ export class AsaasService {
    */
   static async getSubscriptionPayments(subscriptionId: string): Promise<AsaasListResponse<AsaasPayment>> {
     return this.request<AsaasListResponse<AsaasPayment>>(`/payments?subscription=${subscriptionId}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Busca todas as cobranças de um cliente.
+   */
+  static async getCustomerPayments(customerId: string): Promise<AsaasListResponse<AsaasPayment>> {
+    return this.request<AsaasListResponse<AsaasPayment>>(`/payments?customer=${customerId}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Busca cobranças pendentes de um cliente.
+   */
+  static async getCustomerPendingPayments(customerId: string): Promise<AsaasListResponse<AsaasPayment>> {
+    return this.request<AsaasListResponse<AsaasPayment>>(`/payments?customer=${customerId}&status=PENDING`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Busca uma cobrança pelo ID.
+   */
+  static async getPayment(paymentId: string): Promise<AsaasPayment> {
+    return this.request<AsaasPayment>(`/payments/${paymentId}`, {
       method: 'GET',
     });
   }

@@ -13,6 +13,7 @@ import {
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { ReceivablesCard } from '@/components/sales'
+import { PageHeader } from '@/components/layout'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -72,26 +73,23 @@ export default async function VendaDetalhePage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/minhasvendas">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Detalhes da Venda</h1>
-            <p className="text-muted-foreground">
-              {sale.client_name} - {formatDate(sale.sale_date)}
-            </p>
-          </div>
-        </div>
-        <Button asChild>
-          <Link href={`/minhasvendas/${id}/editar`}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Editar
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/minhasvendas">
+            <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
+        <PageHeader 
+          title="Detalhes da Venda" 
+          description={`${sale.client_name} - ${formatDate(sale.sale_date)}`}
+        >
+          <Button asChild>
+            <Link href={`/minhasvendas/${id}/editar`}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar
+            </Link>
+          </Button>
+        </PageHeader>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

@@ -8,19 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Plus, Eye, Save, Wand2 } from 'lucide-react'
+import { NumberStepper } from '@/components/ui/number-stepper'
+import { Eye, Save, Wand2, X, Pencil } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
-import { ClientCombobox, ClientDialog } from '@/components/clients'
-import { SupplierDialog } from '@/components/suppliers'
+import { ClientPicker, ClientDialog } from '@/components/clients'
+import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { addCommissionRule } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
@@ -107,6 +101,44 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const [quickCondition, setQuickCondition] = useState('')
   const [isUpdatingFromQuick, setIsUpdatingFromQuick] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [irregularPatternWarning, setIrregularPatternWarning] = useState<string | null>(null)
+
+  // Opções de autocomplete para condições de pagamento
+  const paymentConditionSuggestions = [
+    { label: 'À vista', value: '0' },
+    { label: '30/60/90', value: '30/60/90', description: 'Entrada 30, intervalo 30' },
+    { label: '28/56/84', value: '28/56/84', description: 'Ciclo 28 dias' },
+    { label: '30/45/60/75/90', value: '30/45/60/75/90', description: 'Entrada 30, intervalo 15' },
+    { label: '15/45/75/105', value: '15/45/75/105', description: 'Entrada 15, intervalo 30' },
+    { label: '15/30/45/60', value: '15/30/45/60', description: 'Entrada 15, intervalo 15' },
+    { label: '20/50/80/110', value: '20/50/80/110', description: 'Entrada 20, intervalo 30' },
+    { label: '45/75/105', value: '45/75/105', description: 'Entrada 45, intervalo 30' },
+    { label: '60/90/120', value: '60/90/120', description: 'Entrada 60, intervalo 30' },
+  ]
+
+  // Função para detectar padrão irregular
+  const detectIrregularPattern = (parts: number[]): { isIrregular: boolean; intervals: number[] } => {
+    if (parts.length < 3) return { isIrregular: false, intervals: [] }
+    
+    const intervals: number[] = []
+    for (let i = 1; i < parts.length; i++) {
+      intervals.push(parts[i] - parts[i - 1])
+    }
+    
+    // Verifica se todos os intervalos são iguais
+    const firstInterval = intervals[0]
+    const isIrregular = intervals.some(int => int !== firstInterval)
+    
+    return { isIrregular, intervals }
+  }
+
+  // Filtra sugestões baseado no input
+  const filteredSuggestions = paymentConditionSuggestions.filter(suggestion =>
+    suggestion.value.startsWith(quickCondition) || 
+    suggestion.label.toLowerCase().includes(quickCondition.toLowerCase()) ||
+    quickCondition === ''
+  )
 
   const getSafeNumber = (val: string | number, min: number = 0) => {
     if (val === '' || val === undefined || val === null) return min
@@ -150,6 +182,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   const handleQuickConditionBlur = () => {
+    setShowSuggestions(false)
     setIsUpdatingFromQuick(true)
     
     const normalized = quickCondition.replace(/[\s,-]+/g, '/')
@@ -164,6 +197,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (parts.length > 0) {
       const first = parts[0]
       const count = parts.length
+      
+      // Detectar padrão irregular ANTES de normalizar
+      const { isIrregular, intervals } = detectIrregularPattern(parts)
+      
+      if (isIrregular && parts.length >= 3) {
+        // Mostra alerta com os intervalos detectados
+        const uniqueIntervals = [...new Set(intervals)]
+        setIrregularPatternWarning(
+          `Padrão irregular. Condições comuns seguem intervalos fixos como 30/60/90. Intervalos detectados: ${uniqueIntervals.join(', ')} dias.`
+        )
+      } else {
+        setIrregularPatternWarning(null)
+      }
       
       let detectedInterval = getSafeNumber(interval, 30)
 
@@ -184,6 +230,29 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
     
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
+  }
+
+  const handleSelectSuggestion = (value: string) => {
+    if (value === '0') {
+      setPaymentType('vista')
+      setShowSuggestions(false)
+      return
+    }
+    setQuickCondition(value)
+    setShowSuggestions(false)
+    setIrregularPatternWarning(null)
+    // Dispara o processamento após um pequeno delay
+    setTimeout(() => {
+      const parts = value.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+      if (parts.length > 0) {
+        const first = parts[0]
+        const detectedInterval = parts.length > 1 ? parts[1] - parts[0] : 30
+        setInstallments(parts.length)
+        setFirstInstallmentDays(first)
+        setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
+        setInterval(detectedInterval > 0 ? detectedInterval : 30)
+      }
+    }, 0)
   }
 
   useMemo(() => {
@@ -226,6 +295,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [showSaveRuleDialog, setShowSaveRuleDialog] = useState(false)
   const [newRuleName, setNewRuleName] = useState('')
   const [savingRule, setSavingRule] = useState(false)
+  
+  // Estado para modo de edição quando há comissões diferentes nos itens
+  const [isEqualizingCommission, setIsEqualizingCommission] = useState(false)
+  const [equalizingValue, setEqualizingValue] = useState<number>(0)
 
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (sale?.items && sale.items.length > 0) {
@@ -235,6 +308,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         product_name: item.product_name,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        tax_rate: item.tax_rate || 0,
+        commission_rate: item.commission_rate || 0,
       }))
     }
     return []
@@ -245,8 +320,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => (i + 1) * getSafeNumber(interval, 30)).join('/')
 
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
+  const [clientInitialName, setClientInitialName] = useState('')
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  const [supplierInitialName, setSupplierInitialName] = useState('')
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
 
   const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
@@ -359,6 +436,86 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return null
   }, [commissionRate])
 
+  // Análise das comissões dos itens
+  const itemsCommissionAnalysis = useMemo(() => {
+    if (entryMode !== 'items' || items.length === 0) {
+      return { hasItems: false, allSame: true, uniqueRates: [], avgRate: 0, totalCommission: 0 }
+    }
+    
+    const rates = items.map(i => i.commission_rate || 0)
+    const uniqueRates = [...new Set(rates)]
+    const allSame = uniqueRates.length === 1
+    
+    // Calcula comissão total baseada nos itens
+    const totalCommission = items.reduce((sum, item) => {
+      const gross = item.quantity * item.unit_price
+      const tax = gross * ((item.tax_rate || 0) / 100)
+      const net = gross - tax
+      return sum + (net * ((item.commission_rate || 0) / 100))
+    }, 0)
+    
+    // Taxa média ponderada
+    const avgRate = totalValue > 0 ? (totalCommission / totalValue) * 100 : 0
+    
+    return {
+      hasItems: true,
+      allSame,
+      uniqueRates,
+      avgRate: Math.round(avgRate * 100) / 100,
+      totalCommission
+    }
+  }, [items, entryMode, totalValue])
+
+  // Sincroniza o campo global com os itens quando todos têm mesma comissão
+  useMemo(() => {
+    if (entryMode === 'items' && items.length > 0 && itemsCommissionAnalysis.allSame) {
+      const itemRate = items[0].commission_rate || 0
+      if (parseFloat(commissionRate || '0') !== itemRate) {
+        setCommissionRate(itemRate.toString())
+      }
+    }
+  }, [items, entryMode, itemsCommissionAnalysis.allSame])
+
+  // Handler para mudança de comissão que propaga para itens se necessário
+  const handleGlobalCommissionChange = (value: string) => {
+    const newRate = parseFloat(value) || 0
+    
+    if (entryMode === 'items' && items.length > 0) {
+      // Propaga para todos os itens
+      const updatedItems = items.map(item => ({
+        ...item,
+        commission_rate: newRate
+      }))
+      setItems(updatedItems)
+    }
+    
+    setCommissionRate(value)
+    if (selectedRuleId !== 'custom') {
+      setSelectedRuleId('custom')
+    }
+  }
+  
+  // Handler para quando está no modo "igualar" e edita o valor
+  const handleEqualizingCommissionChange = (newValue: number) => {
+    // Arredonda para múltiplo de 0.5 mais próximo
+    const rounded = Math.round(newValue * 2) / 2
+    setEqualizingValue(rounded)
+    handleGlobalCommissionChange(rounded.toString())
+    setIsEqualizingCommission(false)
+    toast.success(`Comissão de ${rounded}% aplicada a todos os itens!`)
+  }
+  
+  // Inicia o modo de igualar
+  const startEqualizingMode = () => {
+    setEqualizingValue(itemsCommissionAnalysis.avgRate)
+    setIsEqualizingCommission(true)
+  }
+  
+  // Cancela o modo de igualar
+  const cancelEqualizingMode = () => {
+    setIsEqualizingCommission(false)
+  }
+
   const installmentDates = useMemo(() => {
     if (paymentType !== 'parcelado') return null
     
@@ -428,12 +585,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
         tax_rate: entryMode === 'total' ? (parseFloat(taxRateInput) || 0) : undefined,
         commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
-        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate }) => ({
+        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate, commission_rate }) => ({
           product_id,
           product_name,
           quantity,
           unit_price,
-          tax_rate: tax_rate || 0
+          tax_rate: tax_rate || 0,
+          commission_rate: commission_rate || 0
         })) : [],
       }
 
@@ -477,7 +635,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   function handleSupplierCreated(supplier: PersonalSupplierWithRules) {
     setSuppliersList((prev) => [...prev, supplier])
-    setSupplierId(supplier.id)
+    // Timeout garante que o Select seja renderizado com a nova lista antes de selecionar
+    setTimeout(() => {
+      setSupplierId(supplier.id)
+    }, 0)
   }
 
   return (
@@ -492,49 +653,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardContent className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 space-y-2">
               <Label htmlFor="supplier">Fornecedor *</Label>
-              <div className="flex gap-2">
-                <Select value={supplierId} onValueChange={handleSupplierChange}>
-                  <SelectTrigger id="supplier" className="flex-1">
-                    <SelectValue placeholder="Selecione o fornecedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliersList.map((supplier) => (
-                      <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setSupplierDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <SupplierPicker
+                suppliers={suppliersList}
+                value={supplierId}
+                onChange={handleSupplierChange}
+                onAddClick={(name) => {
+                  setSupplierInitialName(name || '')
+                  setSupplierDialogOpen(true)
+                }}
+                placeholder="Selecione o fornecedor"
+              />
             </div>
 
             <div className="flex-1 space-y-2">
               <Label>Cliente *</Label>
-              <div className="flex gap-2">
-                <ClientCombobox
-                  value={clientId}
-                  onChange={handleClientChange}
-                  placeholder="Selecionar cliente..."
-                  className="flex-1"
-                  refreshTrigger={clientRefreshTrigger}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setClientDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <ClientPicker
+                value={clientId}
+                onChange={handleClientChange}
+                onAddClick={(name) => {
+                  setClientInitialName(name || '')
+                  setClientDialogOpen(true)
+                }}
+                placeholder="Selecionar cliente..."
+                refreshTrigger={clientRefreshTrigger}
+              />
             </div>
           </CardContent>
         </Card>
@@ -542,9 +684,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         {/* Bloco 2: O Que (Itens + Comissão Global) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>
-              {entryMode === 'total' ? 'Qual o valor da venda?' : 'O que foi vendido?'}
-            </CardTitle>
+            <CardTitle>{entryMode === 'total' ? 'Informe o total da venda' : 'Informe os itens da venda'}</CardTitle>
             <RadioGroup
               value={entryMode}
               onValueChange={(v) => setEntryMode(v as 'total' | 'items')}
@@ -558,7 +698,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     entryMode === 'total' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                   }`}
                 >
-                  Valor Total
+                  Total
                 </Label>
               </div>
               <div className="flex items-center">
@@ -569,7 +709,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     entryMode === 'items' ? 'bg-background shadow-sm' : 'text-muted-foreground'
                   }`}
                 >
-                  Detalhar Itens
+                  Itens
                 </Label>
               </div>
             </RadioGroup>
@@ -638,6 +778,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 products={selectedProducts}
                 value={items}
                 onChange={setItems}
+                supplierId={supplierId}
+                defaultCommissionRate={commissionRate ? parseFloat(commissionRate) : 0}
               />
             )}
           </CardContent>
@@ -647,68 +789,136 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             <CardFooter className="flex flex-col items-center border-t bg-muted/20 py-8 space-y-6">
                 
                 {/* 1. Header da Comissão */}
-                <div className="flex flex-col items-center space-y-1">
+                <div className="relative w-full flex justify-center">
                     <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Minha Comissão
                     </Label>
+                    {/* Botão X para cancelar modo de igualar */}
+                    {isEqualizingCommission && (
+                      <button
+                        type="button"
+                        onClick={cancelEqualizingMode}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Manter comissões personalizadas"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                 </div>
 
-                {/* 2. Input Hero + Botão Mágico */}
-                <div className="flex items-center gap-2">
-                     <div className="relative w-40">
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max="100"
-                        placeholder="0.00"
-                        value={commissionRate}
-                        onChange={(e) => handleCommissionRateChange(e.target.value)}
-                        className="pr-8 h-14 text-3xl font-bold text-center border-2 shadow-sm focus-visible:ring-0 focus-visible:border-primary"
+                {/* 2. Input ou Texto baseado no estado */}
+                <div className="flex flex-col items-center gap-4">
+                    {/* Caso: Comissões diferentes nos itens E não está editando */}
+                    {entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && !isEqualizingCommission ? (
+                      /* Valor + ícone de editar */
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="text-4xl font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
+                          onClick={startEqualizingMode}
+                        >
+                          {itemsCommissionAnalysis.avgRate.toFixed(1).replace('.', ',')}%
+                        </button>
+                        <button
+                          type="button"
+                          onClick={startEqualizingMode}
+                          className="p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                          title="Editar comissão"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && isEqualizingCommission ? (
+                      /* Caso: Modo de edição para igualar */
+                      <NumberStepper
+                        value={equalizingValue}
+                        onChange={handleEqualizingCommissionChange}
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        suffix="%"
+                        size="lg"
+                        className="w-52"
                       />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">%</span>
-                    </div>
+                    ) : (
+                      /* Caso: Normal (modo total OU itens com comissão igual) */
+                      <div className="flex items-center gap-2">
+                        <NumberStepper
+                          value={commissionRate ? parseFloat(commissionRate) : 0}
+                          onChange={(val) => handleGlobalCommissionChange(String(val))}
+                          min={0}
+                          max={100}
+                          step={0.5}
+                          suffix="%"
+                          size="lg"
+                          className="w-52"
+                        />
 
-                    {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
-                                    <Wand2 className="h-6 w-6" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {selectedSupplier.commission_rules.map(rule => (
-                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
-                                        <span>{rule.name}</span>
-                                        <span className="font-bold text-muted-foreground">
-                                            {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
-                                        </span>
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
+                                        <Wand2 className="h-6 w-6" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {selectedSupplier.commission_rules.map(rule => (
+                                        <DropdownMenuItem key={rule.id} onClick={() => {
+                                          applyRule(rule.id)
+                                          // Também propaga para os itens
+                                          if (entryMode === 'items' && items.length > 0) {
+                                            const ruleRate = rule.type === 'fixed' ? rule.percentage : rule.tiers?.[0]?.percentage
+                                            if (ruleRate) {
+                                              const updatedItems = items.map(item => ({
+                                                ...item,
+                                                commission_rate: ruleRate
+                                              }))
+                                              setItems(updatedItems)
+                                            }
+                                          }
+                                        }} className="flex justify-between items-center cursor-pointer">
+                                            <span>{rule.name}</span>
+                                            <span className="font-bold text-muted-foreground">
+                                                {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
+                                            </span>
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                      </div>
                     )}
                 </div>
 
                 {/* 3. Feedback Visual de Valor */}
                 <div className="flex flex-col items-center gap-2">
-                    {totalValue > 0 && commissionPercentage !== null && commissionPercentage > 0 ? (
+                    {(() => {
+                      // Calcula o valor a receber baseado no modo
+                      let commissionToShow = 0
+                      if (entryMode === 'items' && itemsCommissionAnalysis.hasItems) {
+                        commissionToShow = itemsCommissionAnalysis.totalCommission
+                      } else if (totalValue > 0 && commissionPercentage !== null) {
+                        commissionToShow = totalValue * (commissionPercentage / 100)
+                      }
+                      
+                      return commissionToShow > 0 ? (
                         <div className="bg-emerald-50 text-emerald-900 px-6 py-3 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm animate-in zoom-in-95 duration-300">
                             <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">A Receber</span>
                             <span className="text-2xl font-bold tracking-tight">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue * (commissionPercentage / 100))}
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionToShow)}
                             </span>
                         </div>
-                    ) : (
+                      ) : (
                         <div className="h-12 flex items-center text-muted-foreground/50 text-sm italic">
                             Preencha valor e taxa para calcular
                         </div>
-                    )}
+                      )
+                    })()}
                     
                     {/* Atalho para Salvar Nova Regra */}
-                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && (
+                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && entryMode === 'total' && (
                          <Button
                             type="button"
                             variant="ghost"
@@ -789,7 +999,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             {paymentType === 'parcelado' && (
             <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
                 
-                {/* 1. O Comando (Input Rápido) */}
+                {/* 1. O Comando (Input Rápido com Autocomplete) */}
                 <div className="space-y-3">
                     <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
                         Digite os prazos (ex: 30/60/90)
@@ -800,13 +1010,66 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             placeholder="30/60/90"
                             value={quickCondition}
                             onChange={(e) => {
-                            setQuickCondition(e.target.value)
-                            setIsUpdatingFromQuick(true)
+                              setQuickCondition(e.target.value)
+                              setIsUpdatingFromQuick(true)
+                              setIrregularPatternWarning(null)
                             }}
-                            onBlur={handleQuickConditionBlur}
-                            className="h-14 text-xl font-medium text-center border-2 border-primary/20 focus-visible:border-primary focus-visible:ring-0 shadow-sm"
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={(e) => {
+                              // Delay para permitir clique nas sugestões
+                              setTimeout(() => {
+                                setShowSuggestions(false)
+                                handleQuickConditionBlur()
+                              }, 150)
+                            }}
+                            className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                              irregularPatternWarning 
+                                ? 'border-amber-400 focus-visible:border-amber-500' 
+                                : 'border-primary/20 focus-visible:border-primary'
+                            }`}
                         />
+                        
+                        {/* Autocomplete Dropdown */}
+                        {showSuggestions && filteredSuggestions.length > 0 && (
+                          <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                            {filteredSuggestions.map((suggestion, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  handleSelectSuggestion(suggestion.value)
+                                }}
+                              >
+                                <span className="font-medium">{suggestion.label}</span>
+                                {suggestion.description && (
+                                  <span className="text-xs text-muted-foreground">{suggestion.description}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                     </div>
+                    
+                    {/* Alerta de Padrão Irregular */}
+                    {irregularPatternWarning && (
+                      <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
+                          <button
+                            type="button"
+                            className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
+                            onClick={() => setIrregularPatternWarning(null)}
+                          >
+                            Entendi, continuar assim
+                          </button>
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 {/* 2. A Conexão */}
@@ -819,44 +1082,43 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 {/* 3. A Mecânica (Box Técnico) */}
                 <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="installments" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         Qtd.
                         </Label>
-                        <Input
-                        id="installments"
-                        type="number"
-                        min={1}
-                        className="h-9 bg-background text-center"
-                        value={installments}
-                        onChange={(e) => setInstallments(e.target.value)}
-                        onBlur={(e) => setInstallments(Math.max(1, parseInt(e.target.value) || 1))}
+                        <NumberStepper
+                          value={typeof installments === 'number' ? installments : parseInt(String(installments)) || 1}
+                          onChange={(val) => setInstallments(val)}
+                          min={1}
+                          max={24}
+                          step={1}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="interval" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         Intervalo
                         </Label>
-                        <Input
-                        id="interval"
-                        type="number"
-                        min={1}
-                        className="h-9 bg-background text-center"
-                        value={interval}
-                        onChange={(e) => setInterval(e.target.value)}
-                        onBlur={(e) => setInterval(Math.max(1, parseInt(e.target.value) || 1))}
+                        <NumberStepper
+                          value={typeof interval === 'number' ? interval : parseInt(String(interval)) || 30}
+                          onChange={(val) => setInterval(val)}
+                          min={1}
+                          step={5}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="first_days" className="text-[10px] uppercase text-muted-foreground font-bold">
+                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
                         1ª em (dias)
                         </Label>
-                        <Input
-                        id="first_days"
-                        type="number"
-                        min={0}
-                        className="h-9 bg-background text-center"
-                        value={firstInstallmentDays}
-                        onChange={(e) => handleFirstInstallmentDaysChange(e.target.value)}
+                        <NumberStepper
+                          value={typeof firstInstallmentDays === 'number' ? firstInstallmentDays : parseInt(String(firstInstallmentDays)) || 30}
+                          onChange={(val) => {
+                            setFirstInstallmentDays(val)
+                            setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                          }}
+                          min={0}
+                          step={5}
+                          size="sm"
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -969,12 +1231,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}
         onSuccess={handleClientCreated}
+        initialName={clientInitialName}
       />
 
       <SupplierDialog
         open={supplierDialogOpen}
         onOpenChange={setSupplierDialogOpen}
         onSuccess={handleSupplierCreated}
+        initialName={supplierInitialName}
       />
 
       <InstallmentsSheet

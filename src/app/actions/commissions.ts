@@ -77,6 +77,7 @@ export async function calculateCommissionsForPeriod(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao calcular comissões'
+    console.error('Error in calculateCommissionsForPeriod:', err)
     return { success: false, error: message }
   }
 }
@@ -139,6 +140,7 @@ export async function closePeriod(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao fechar período'
+    console.error('Error in closePeriod:', err)
     return { success: false, error: message }
   }
 }
@@ -159,6 +161,7 @@ export async function recalculateSellerCommissions(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao recalcular comissões'
+    console.error('Error in recalculateSellerCommissions:', err)
     return { success: false, error: message }
   }
 }
@@ -180,6 +183,7 @@ export async function recalculateRuleCommissions(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao recalcular comissões'
+    console.error('Error in recalculateRuleCommissions:', err)
     return { success: false, error: message }
   }
 }
@@ -214,6 +218,7 @@ export async function deleteCommission(id: string): Promise<ActionResult<void>> 
     revalidatePath('/dashboard')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error in deleteCommission:', err)
     return { success: false, error: 'Erro ao excluir comissão' }
   }
 }
@@ -238,6 +243,7 @@ export async function reverseCommissions(
     return { success: true, data: { reversed } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao estornar comissões'
+    console.error('Error in reverseCommissions:', err)
     return { success: false, error: message }
   }
 }
@@ -255,6 +261,7 @@ export async function deleteCommissionsByPeriod(
     revalidatePath('/dashboard')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error in deleteCommissionsByPeriod:', err)
     return { success: false, error: 'Erro ao excluir comissões do período' }
   }
 }

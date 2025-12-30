@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Sparkles, Loader2 } from 'lucide-react'
+import { AlertTriangle, Sparkles } from 'lucide-react'
 import { PlanSelectionDialog } from './plan-selection-dialog'
 import { getBillingUsage } from '@/app/actions/billing'
 
@@ -37,13 +37,7 @@ export function UsageWidget() {
     loadUsage()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="mx-2 mb-4 p-3 rounded-lg border bg-card shadow-sm flex items-center justify-center h-20">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+  if (loading) return null
 
   if (!usage) return null
   
@@ -53,7 +47,7 @@ export function UsageWidget() {
   if (usage.plan === 'ULTRA') return null // Ultra não tem limites visíveis assim
 
   return (
-    <div className="mx-2 mb-4 p-3 rounded-lg border bg-card shadow-sm space-y-3">
+    <div className="mx-2 mb-[clamp(0.5rem,1vh,1rem)] p-[clamp(0.5rem,1.5vh,0.75rem)] rounded-lg border bg-card shadow-sm space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Uso do Plano {usage.plan}

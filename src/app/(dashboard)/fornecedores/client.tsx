@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Building2 } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
+import { PageHeader } from '@/components/layout'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
@@ -26,16 +27,15 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Minhas Pastas</h1>
-          <p className="text-muted-foreground">Empresas que você representa</p>
-        </div>
+      <PageHeader 
+        title="Minhas Pastas" 
+        description="Empresas que você representa"
+      >
         <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Adicionar</span>
         </Button>
-      </div>
+      </PageHeader>
 
       {hasSuppliers ? (
         <SupplierTable suppliers={suppliers} />

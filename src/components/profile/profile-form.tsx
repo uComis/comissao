@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getProfile, updateProfile, Profile } from '@/app/actions/profiles'
+import { getProfile, updateProfile } from '@/app/actions/profiles'
 import { toast } from 'sonner'
 import { Loader2, Save } from 'lucide-react'
 import { useUser } from '@/contexts/user-context'
@@ -79,8 +79,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       toast.success('Perfil atualizado com sucesso!')
       await refresh()
       onSuccess?.()
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao atualizar perfil')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil'
+      toast.error(message)
     } finally {
       setSaving(false)
     }

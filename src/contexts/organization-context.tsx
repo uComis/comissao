@@ -50,43 +50,12 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         .maybeSingle()
 
       if (error) {
-        console.error('Error fetching organization:', error)
+        console.error('Error fetching organization:', error.message || error)
         setOrganization(null)
         return
       }
 
-      if (!data) {
-        const orgName = user.user_metadata?.full_name 
-          || user.user_metadata?.name 
-          || user.email?.split('@')[0] 
-          || 'Minha Organização'
-        
-        const { data: newOrg, error: createError } = await supabase
-          .from('organizations')
-          .upsert({ 
-            name: orgName, 
-            owner_id: user.id,
-            email: user.email 
-          }, { onConflict: 'owner_id', ignoreDuplicates: true })
-          .select()
-          .maybeSingle()
-
-        if (createError) {
-          console.error('Error creating organization:', createError)
-          setOrganization(null)
-        } else if (newOrg) {
-          setOrganization(newOrg)
-        } else {
-          const { data: existingOrg } = await supabase
-            .from('organizations')
-            .select('*')
-            .eq('owner_id', user.id)
-            .maybeSingle()
-          setOrganization(existingOrg)
-        }
-      } else {
-        setOrganization(data)
-      }
+      setOrganization(data || null)
     } finally {
       setLoading(false)
       isFetching.current = false

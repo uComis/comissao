@@ -14,6 +14,7 @@ const saleItemSchema = z.object({
   quantity: z.number().positive('Quantidade deve ser maior que zero'),
   unit_price: z.number().min(0, 'Preço não pode ser negativo'),
   tax_rate: z.number().min(0).max(100).optional(),
+  commission_rate: z.number().min(0).max(100).optional(),
 })
 
 const createSaleSchema = z.object({
@@ -152,17 +153,21 @@ export async function createPersonalSale(
 
     const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
 
-    // Calcular totais
+    // Calcular totais (incluindo comissão por item)
     const itemsWithTotal = items.map(item => {
       const total_price = item.quantity * item.unit_price
       const tax_amount = total_price * ((item.tax_rate || 0) / 100)
       const net_value = total_price - tax_amount
+      const commission_rate = item.commission_rate || 0
+      const commission_value = net_value * (commission_rate / 100)
       
       return {
         ...item,
         total_price,
         tax_amount,
-        net_value
+        net_value,
+        commission_rate,
+        commission_value
       }
     })
 
@@ -170,52 +175,56 @@ export async function createPersonalSale(
     let finalNetValue = 0
     let finalTaxAmount = 0
     let finalTaxRate = 0
+    let commissionValue = 0
+    let commissionRate = 0
 
     if (itemsWithTotal.length > 0) {
       finalGrossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
       finalNetValue = itemsWithTotal.reduce((sum, item) => sum + item.net_value, 0)
       finalTaxAmount = itemsWithTotal.reduce((sum, item) => sum + item.tax_amount, 0)
       finalTaxRate = finalGrossValue > 0 ? (finalTaxAmount / finalGrossValue) * 100 : 0
+      
+      // Comissão total = soma das comissões dos itens
+      commissionValue = itemsWithTotal.reduce((sum, item) => sum + item.commission_value, 0)
+      // Taxa média ponderada de comissão
+      commissionRate = finalNetValue > 0 ? (commissionValue / finalNetValue) * 100 : 0
     } else {
       finalGrossValue = gross_value || 0
       finalTaxRate = tax_rate || 0
       finalTaxAmount = finalGrossValue * (finalTaxRate / 100)
       finalNetValue = finalGrossValue - finalTaxAmount
-    }
-
-    let commissionValue = 0
-    let commissionRate = 0
-
-    // Se o usuário informou a comissão manualmente, usa ela
-    if (manual_commission_rate !== undefined) {
-      commissionRate = manual_commission_rate
-      commissionValue = (finalNetValue * commissionRate) / 100
-    } else {
-      // Buscar regra de comissão do fornecedor (fallback)
-      const { data: supplier, error: supplierError } = await supabase
-        .from('personal_suppliers')
-        .select('commission_rule_id')
-        .eq('id', supplier_id)
-        .single()
-
-      if (!supplierError && supplier.commission_rule_id) {
-        const { data: rule, error: ruleError } = await supabase
-          .from('commission_rules')
-          .select('type, percentage, tiers')
-          .eq('id', supplier.commission_rule_id)
+      
+      // Se o usuário informou a comissão manualmente, usa ela
+      if (manual_commission_rate !== undefined) {
+        commissionRate = manual_commission_rate
+        commissionValue = (finalNetValue * commissionRate) / 100
+      } else {
+        // Buscar regra de comissão do fornecedor (fallback)
+        const { data: supplier, error: supplierError } = await supabase
+          .from('personal_suppliers')
+          .select('commission_rule_id')
+          .eq('id', supplier_id)
           .single()
 
-        if (!ruleError && rule) {
-          const result = commissionEngine.calculate({
-            netValue: finalNetValue,
-            rule: {
-              type: rule.type as 'fixed' | 'tiered',
-              percentage: rule.percentage,
-              tiers: rule.tiers,
-            },
-          })
-          commissionValue = result.amount
-          commissionRate = result.percentageApplied
+        if (!supplierError && supplier.commission_rule_id) {
+          const { data: rule, error: ruleError } = await supabase
+            .from('commission_rules')
+            .select('type, percentage, tiers')
+            .eq('id', supplier.commission_rule_id)
+            .single()
+
+          if (!ruleError && rule) {
+            const result = commissionEngine.calculate({
+              netValue: finalNetValue,
+              rule: {
+                type: rule.type as 'fixed' | 'tiered',
+                percentage: rule.percentage,
+                tiers: rule.tiers,
+              },
+            })
+            commissionValue = result.amount
+            commissionRate = result.percentageApplied
+          }
         }
       }
     }
@@ -259,6 +268,11 @@ export async function createPersonalSale(
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total_price,
+        tax_rate: item.tax_rate || 0,
+        tax_amount: item.tax_amount,
+        net_value: item.net_value,
+        commission_rate: item.commission_rate || 0,
+        commission_value: item.commission_value || 0,
       }))
 
       const { data, error: itemsError } = await supabase
@@ -326,17 +340,21 @@ export async function updatePersonalSale(
 
     const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
 
-    // Calcular totais
+    // Calcular totais (incluindo comissão por item)
     const itemsWithTotal = items.map(item => {
       const total_price = item.quantity * item.unit_price
       const tax_amount = total_price * ((item.tax_rate || 0) / 100)
       const net_value = total_price - tax_amount
+      const commission_rate = item.commission_rate || 0
+      const commission_value = net_value * (commission_rate / 100)
       
       return {
         ...item,
         total_price,
         tax_amount,
-        net_value
+        net_value,
+        commission_rate,
+        commission_value
       }
     })
 
@@ -346,52 +364,56 @@ export async function updatePersonalSale(
     let finalNetValue = 0
     let finalTaxAmount = 0
     let finalTaxRate = 0
+    let commissionValue = 0
+    let commissionRate = 0
 
     if (itemsWithTotal.length > 0) {
       finalGrossValue = itemsWithTotal.reduce((sum, item) => sum + item.total_price, 0)
       finalNetValue = itemsWithTotal.reduce((sum, item) => sum + item.net_value, 0)
       finalTaxAmount = itemsWithTotal.reduce((sum, item) => sum + item.tax_amount, 0)
       finalTaxRate = finalGrossValue > 0 ? (finalTaxAmount / finalGrossValue) * 100 : 0
+      
+      // Comissão total = soma das comissões dos itens
+      commissionValue = itemsWithTotal.reduce((sum, item) => sum + item.commission_value, 0)
+      // Taxa média ponderada de comissão
+      commissionRate = finalNetValue > 0 ? (commissionValue / finalNetValue) * 100 : 0
     } else {
       finalGrossValue = gross_value || 0
       finalTaxRate = tax_rate || 0
       finalTaxAmount = finalGrossValue * (finalTaxRate / 100)
       finalNetValue = finalGrossValue - finalTaxAmount
-    }
-
-    let commissionValue = 0
-    let commissionRate = 0
-
-    // Se o usuário informou a comissão manualmente, usa ela sobre o LÍQUIDO
-    if (manual_commission_rate !== undefined) {
-      commissionRate = manual_commission_rate
-      commissionValue = (finalNetValue * commissionRate) / 100
-    } else {
-      // Buscar regra de comissão do fornecedor (fallback)
-      const { data: supplier, error: supplierError } = await supabase
-        .from('personal_suppliers')
-        .select('commission_rule_id')
-        .eq('id', supplier_id)
-        .single()
-
-      if (!supplierError && supplier.commission_rule_id) {
-        const { data: rule, error: ruleError } = await supabase
-          .from('commission_rules')
-          .select('type, percentage, tiers')
-          .eq('id', supplier.commission_rule_id)
+      
+      // Se o usuário informou a comissão manualmente, usa ela sobre o LÍQUIDO
+      if (manual_commission_rate !== undefined) {
+        commissionRate = manual_commission_rate
+        commissionValue = (finalNetValue * commissionRate) / 100
+      } else {
+        // Buscar regra de comissão do fornecedor (fallback)
+        const { data: supplier, error: supplierError } = await supabase
+          .from('personal_suppliers')
+          .select('commission_rule_id')
+          .eq('id', supplier_id)
           .single()
 
-        if (!ruleError && rule) {
-          const result = commissionEngine.calculate({
-            netValue: finalNetValue,
-            rule: {
-              type: rule.type as 'fixed' | 'tiered',
-              percentage: rule.percentage,
-              tiers: rule.tiers,
-            },
-          })
-          commissionValue = result.amount
-          commissionRate = result.percentageApplied
+        if (!supplierError && supplier.commission_rule_id) {
+          const { data: rule, error: ruleError } = await supabase
+            .from('commission_rules')
+            .select('type, percentage, tiers')
+            .eq('id', supplier.commission_rule_id)
+            .single()
+
+          if (!ruleError && rule) {
+            const result = commissionEngine.calculate({
+              netValue: finalNetValue,
+              rule: {
+                type: rule.type as 'fixed' | 'tiered',
+                percentage: rule.percentage,
+                tiers: rule.tiers,
+              },
+            })
+            commissionValue = result.amount
+            commissionRate = result.percentageApplied
+          }
         }
       }
     }
@@ -445,7 +467,9 @@ export async function updatePersonalSale(
         total_price: item.total_price,
         tax_rate: item.tax_rate || 0,
         tax_amount: item.tax_amount,
-        net_value: item.net_value
+        net_value: item.net_value,
+        commission_rate: item.commission_rate || 0,
+        commission_value: item.commission_value || 0,
       }))
 
       const { data, error: itemsError } = await supabase

@@ -14,21 +14,21 @@ type AuthContextType = {
   signUpWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   resetPassword: (email: string) => Promise<{ error: string | null }>
+  linkIdentity: (provider: 'google', redirectTo?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const isConfigured = isSupabaseConfigured()
   const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(!!supabase)
 
   useEffect(() => {
     if (!supabase) {
-      setLoading(false)
       return
     }
 
@@ -124,6 +124,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: null }
   }
 
+  const linkIdentity = async (provider: 'google', redirectTo?: string) => {
+    if (!supabase) return
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
+    if (redirectTo) {
+      callbackUrl.searchParams.set('next', redirectTo)
+    }
+
+    const { error } = await supabase.auth.linkIdentity({
+      provider,
+      options: {
+        redirectTo: callbackUrl.toString(),
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
+    })
+
+    if (error) {
+      throw error
+    }
+  }
+
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
@@ -141,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUpWithPassword,
         signInWithPassword,
         resetPassword,
+        linkIdentity,
         signOut,
       }}
     >

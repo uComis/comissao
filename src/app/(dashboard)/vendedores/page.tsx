@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { Plus, Users, Download, Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/layout'
 import type { SellerWithRule, IntegrationWithType } from '@/types'
 
 export default function VendedoresPage() {
@@ -91,30 +92,25 @@ export default function VendedoresPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Vendedores</h1>
-          <p className="text-muted-foreground">
-            Gerencie os vendedores da sua organização
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {integration && (
-            <Button variant="outline" onClick={handleImportSellers} disabled={importing}>
-              {importing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              {importing ? 'Importando...' : 'Importar'}
-            </Button>
-          )}
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Vendedor
+      <PageHeader 
+        title="Vendedores" 
+        description="Gerencie os vendedores da sua organização"
+      >
+        {integration && (
+          <Button variant="outline" onClick={handleImportSellers} disabled={importing}>
+            {importing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {importing ? 'Importando...' : 'Importar'}
           </Button>
-        </div>
-      </div>
+        )}
+        <Button onClick={() => setDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Vendedor
+        </Button>
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

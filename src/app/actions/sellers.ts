@@ -110,6 +110,7 @@ export async function updateSeller(
     revalidatePath('/vendedores')
     return { success: true, data: seller }
   } catch (err) {
+    console.error('Error in updateSeller:', err)
     return { success: false, error: 'Erro ao atualizar vendedor' }
   }
 }
@@ -154,6 +155,7 @@ export async function reactivateSeller(id: string): Promise<ActionResult<Seller>
     revalidatePath('/vendedores')
     return { success: true, data: seller }
   } catch (err) {
+    console.error('Error in reactivateSeller:', err)
     return { success: false, error: 'Erro ao reativar vendedor' }
   }
 }
@@ -177,6 +179,7 @@ export async function setSellerRule(
     revalidatePath('/regras')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error in setSellerRule:', err)
     return { success: false, error: 'Erro ao definir regra do vendedor' }
   }
 }

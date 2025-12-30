@@ -25,6 +25,7 @@ export async function disconnectIntegration(
     revalidatePath('/configuracoes')
     return { success: true, data: undefined }
   } catch (err) {
+    console.error('Error in disconnectIntegration:', err)
     return { success: false, error: 'Erro ao desconectar integração' }
   }
 }
@@ -38,6 +39,7 @@ export async function syncPipedriveDeals(
     return { success: true, data: result }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao sincronizar deals'
+    console.error('Error in syncPipedriveDeals:', err)
     return { success: false, error: message }
   }
 }
@@ -46,6 +48,7 @@ export async function getPipedriveUsers(organizationId: string) {
   try {
     return await pipedriveSyncService.getUsers(organizationId)
   } catch (err) {
+    console.error('Error in getPipedriveUsers:', err)
     return []
   }
 }
@@ -57,6 +60,7 @@ export async function getPipedriveDeals(
   try {
     return await pipedriveSyncService.getDeals(organizationId, status)
   } catch (err) {
+    console.error('Error in getPipedriveDeals:', err)
     return []
   }
 }
@@ -114,6 +118,7 @@ export async function importPipedriveSellers(
     return { success: true, data: { imported, updated, skipped } }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro ao importar vendedores'
+    console.error('Error in importPipedriveSellers:', err)
     return { success: false, error: message }
   }
 }

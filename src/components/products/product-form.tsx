@@ -20,11 +20,12 @@ export type ProductFormRef = {
 type Props = {
   product?: Product | null
   showSku?: boolean
+  initialName?: string
 }
 
 export const ProductForm = forwardRef<ProductFormRef, Props>(
-  function ProductForm({ product, showSku = true }, ref) {
-    const [name, setName] = useState(product?.name || '')
+  function ProductForm({ product, showSku = true, initialName }, ref) {
+    const [name, setName] = useState(product?.name || initialName || '')
     const [sku, setSku] = useState(product?.sku || '')
     const [unitPrice, setUnitPrice] = useState(
       product?.unit_price != null ? String(product.unit_price) : ''

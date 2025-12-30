@@ -78,8 +78,9 @@ export function ProfileCompletionDialog({
       })
       toast.success('Perfil atualizado com sucesso!')
       onSuccess()
-    } catch (error: any) {
-      toast.error(error.message || 'Erro ao atualizar perfil')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil'
+      toast.error(message)
     } finally {
       setLoading(false)
     }
