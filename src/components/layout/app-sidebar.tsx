@@ -14,10 +14,11 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, LayoutDashboard, Wallet } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, LayoutDashboard, Wallet, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
+import { useUser } from '@/contexts/user-context'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
@@ -86,9 +87,11 @@ const personalMenuSections: MenuSection[] = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
+  const { profile } = useUser()
   const { resolvedTheme } = useTheme()
   const [userMode, setUserMode] = useState<UserMode>(null)
   const [mounted, setMounted] = useState(false)
+  const isSuperAdmin = profile?.is_super_admin === true
 
   useEffect(() => {
     // eslint-disable-next-line
@@ -165,6 +168,28 @@ export function AppSidebar() {
             </SidebarGroup>
           </div>
         ))}
+        
+        {/* Seção Admin - só visível para super admin */}
+        {isSuperAdmin && (
+          <>
+            <SidebarSeparator className="my-1 opacity-30" />
+            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+              <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Admin</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.startsWith('/admin/usuarios')}>
+                      <Link href="/admin/usuarios">
+                        <Shield />
+                        <span>Usuários</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <UsageWidget />

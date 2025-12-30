@@ -1,0 +1,258 @@
+'use server'
+
+import { createClient, createAdminClient } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
+
+/**
+ * Server Actions para administração (super admin only)
+ */
+
+type AdminUser = {
+  id: string
+  email: string
+  full_name: string | null
+  avatar_url: string | null
+  is_super_admin: boolean
+  created_at: string
+  last_sign_in_at: string | null
+  plan_id: string | null
+  plan_name: string | null
+  subscription_status: string | null
+  suppliers_count: number
+  sales_count: number
+}
+
+type ActionResult<T> = { success: true; data: T } | { success: false; error: string }
+
+/**
+ * Verifica se o usuário atual é super admin
+ */
+async function requireSuperAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) {
+    throw new Error('Não autenticado')
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.is_super_admin) {
+    throw new Error('Acesso negado: requer super admin')
+  }
+
+  return user
+}
+
+/**
+ * Lista todos os usuários do sistema (super admin only)
+ */
+export async function listAllUsers(
+  page: number = 1,
+  pageSize: number = 20,
+  search?: string
+): Promise<ActionResult<{ users: AdminUser[]; total: number }>> {
+  try {
+    await requireSuperAdmin()
+    
+    const adminClient = createAdminClient()
+    const offset = (page - 1) * pageSize
+
+    // Query base para buscar usuários com dados agregados
+    let query = adminClient
+      .from('profiles')
+      .select(`
+        id,
+        user_id,
+        full_name,
+        avatar_url,
+        is_super_admin,
+        created_at
+      `, { count: 'exact' })
+
+    // Se tem busca, filtrar por nome
+    if (search) {
+      query = query.ilike('full_name', `%${search}%`)
+    }
+
+    // Paginação
+    query = query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1)
+
+    const { data: profiles, count, error } = await query
+
+    if (error) throw error
+
+    // Buscar dados adicionais para cada usuário
+    const users: AdminUser[] = []
+    
+    for (const profile of profiles || []) {
+      // Buscar email do usuário
+      const { data: userData } = await adminClient.auth.admin.getUserById(profile.user_id)
+      
+      // Buscar subscription
+      const { data: subscription } = await adminClient
+        .from('subscriptions')
+        .select('plan_id, status, plans(name)')
+        .eq('user_id', profile.user_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      // Buscar contagem de fornecedores
+      const { count: suppliersCount } = await adminClient
+        .from('personal_suppliers')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.user_id)
+
+      // Buscar contagem de vendas
+      const { count: salesCount } = await adminClient
+        .from('personal_sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', profile.user_id)
+
+      users.push({
+        id: profile.user_id,
+        email: userData.user?.email || '',
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+        is_super_admin: profile.is_super_admin || false,
+        created_at: profile.created_at,
+        last_sign_in_at: userData.user?.last_sign_in_at || null,
+        plan_id: subscription?.plan_id || null,
+        plan_name: (subscription?.plans as { name: string } | null)?.name || null,
+        subscription_status: subscription?.status || null,
+        suppliers_count: suppliersCount || 0,
+        sales_count: salesCount || 0,
+      })
+    }
+
+    return { 
+      success: true, 
+      data: { 
+        users, 
+        total: count || 0 
+      } 
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao listar usuários',
+    }
+  }
+}
+
+/**
+ * Busca detalhes de um usuário específico (super admin only)
+ */
+export async function getUserDetails(userId: string): Promise<ActionResult<AdminUser>> {
+  try {
+    await requireSuperAdmin()
+    
+    const adminClient = createAdminClient()
+
+    // Buscar perfil
+    const { data: profile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (profileError) throw profileError
+
+    // Buscar email do usuário
+    const { data: userData } = await adminClient.auth.admin.getUserById(userId)
+    
+    // Buscar subscription
+    const { data: subscription } = await adminClient
+      .from('subscriptions')
+      .select('plan_id, status, plans(name)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // Buscar contagem de fornecedores
+    const { count: suppliersCount } = await adminClient
+      .from('personal_suppliers')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    // Buscar contagem de vendas
+    const { count: salesCount } = await adminClient
+      .from('personal_sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    return {
+      success: true,
+      data: {
+        id: userId,
+        email: userData.user?.email || '',
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+        is_super_admin: profile.is_super_admin || false,
+        created_at: profile.created_at,
+        last_sign_in_at: userData.user?.last_sign_in_at || null,
+        plan_id: subscription?.plan_id || null,
+        plan_name: (subscription?.plans as { name: string } | null)?.name || null,
+        subscription_status: subscription?.status || null,
+        suppliers_count: suppliersCount || 0,
+        sales_count: salesCount || 0,
+      },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar usuário',
+    }
+  }
+}
+
+/**
+ * Faz login como outro usuário (impersonation) - super admin only
+ * Gera um magic link e redireciona
+ */
+export async function loginAsUser(userId: string): Promise<ActionResult<{ url: string }>> {
+  try {
+    await requireSuperAdmin()
+    
+    const adminClient = createAdminClient()
+
+    // Buscar email do usuário alvo
+    const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId)
+    
+    if (userError || !userData.user?.email) {
+      throw new Error('Usuário não encontrado')
+    }
+
+    // Gerar magic link para o usuário
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: userData.user.email,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/home`,
+      },
+    })
+
+    if (linkError || !linkData.properties?.action_link) {
+      throw new Error('Erro ao gerar link de acesso')
+    }
+
+    return {
+      success: true,
+      data: { url: linkData.properties.action_link },
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao fazer login como usuário',
+    }
+  }
+}
+
