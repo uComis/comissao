@@ -62,6 +62,17 @@ export async function listAllUsers(
     const adminClient = createAdminClient()
     const offset = (page - 1) * pageSize
 
+    // Se tem busca, primeiro encontrar user_ids que correspondem ao email
+    let emailMatchedUserIds: string[] = []
+    if (search) {
+      const { data: emailMatches } = await adminClient
+        .from('user_emails')
+        .select('user_id')
+        .ilike('email', `%${search}%`)
+      
+      emailMatchedUserIds = emailMatches?.map(e => e.user_id) || []
+    }
+
     // Query base para buscar usuários com dados agregados
     let query = adminClient
       .from('profiles')
@@ -74,9 +85,15 @@ export async function listAllUsers(
         created_at
       `, { count: 'exact' })
 
-    // Se tem busca, filtrar por nome
+    // Se tem busca, filtrar por nome OU por user_id (email match)
     if (search) {
-      query = query.ilike('full_name', `%${search}%`)
+      if (emailMatchedUserIds.length > 0) {
+        // Buscar por nome OU por user_ids que deram match no email
+        query = query.or(`full_name.ilike.%${search}%,user_id.in.(${emailMatchedUserIds.join(',')})`)
+      } else {
+        // Só buscar por nome
+        query = query.ilike('full_name', `%${search}%`)
+      }
     }
 
     // Paginação

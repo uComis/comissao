@@ -30,7 +30,26 @@ export default function OnboardingPage() {
       // 1. Criar assinatura trial e usage_stats primeiro (Server Action)
       await setupTrialSubscription(user.id)
 
-      // 2. Salvar preferência do usuário
+      // 2. Criar perfil do usuário (se não existir)
+      const userName = user.user_metadata?.full_name 
+        || user.user_metadata?.name 
+        || user.email?.split('@')[0] 
+        || 'Usuário'
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          full_name: userName,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        // Não bloqueia o fluxo, apenas loga
+      }
+
+      // 3. Salvar preferência do usuário
       const { error: prefError } = await supabase
         .from('user_preferences')
         .upsert({
