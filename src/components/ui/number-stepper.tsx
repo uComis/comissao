@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,7 @@ type Props = {
   suffix?: string
   className?: string
   size?: 'sm' | 'md' | 'lg'
+  decimals?: number
 }
 
 export function NumberStepper({
@@ -23,25 +25,61 @@ export function NumberStepper({
   suffix,
   className,
   size = 'md',
+  decimals = 0,
 }: Props) {
+  // Internal display value (formatted string)
+  const [displayValue, setDisplayValue] = useState(() => formatNumber(value, decimals))
+
+  // Sync display value when external value changes
+  useEffect(() => {
+    setDisplayValue(formatNumber(value, decimals))
+  }, [value, decimals])
+
+  function formatNumber(num: number, dec: number): string {
+    // Format with Brazilian locale (comma as decimal separator)
+    return num.toLocaleString('pt-BR', {
+      minimumFractionDigits: dec,
+      maximumFractionDigits: dec,
+    })
+  }
+
+  function parseNumber(str: string): number {
+    // Remove thousand separators (.) and convert comma to dot
+    const normalized = str.replace(/\./g, '').replace(',', '.')
+    return parseFloat(normalized) || 0
+  }
+
   function decrement() {
     const newVal = Math.max(min, value - step)
-    onChange(Number(newVal.toFixed(2)))
+    const rounded = Number(newVal.toFixed(decimals))
+    onChange(rounded)
   }
 
   function increment() {
     const newVal = max !== undefined ? Math.min(max, value + step) : value + step
-    onChange(Number(newVal.toFixed(2)))
+    const rounded = Number(newVal.toFixed(decimals))
+    onChange(rounded)
   }
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.')
-    const num = parseFloat(val)
-    if (!isNaN(num)) {
-      const clamped = max !== undefined ? Math.min(max, Math.max(min, num)) : Math.max(min, num)
-      onChange(Number(clamped.toFixed(2)))
-    } else if (val === '') {
-      onChange(min)
+    // Remove invalid chars and convert dot to comma (Brazilian format)
+    const raw = e.target.value
+      .replace(/[^0-9.,]/g, '')  // Keep only numbers, dots, commas
+      .replace(/\./g, ',')        // Replace dot with comma
+    setDisplayValue(raw)
+  }
+
+  function handleBlur() {
+    const num = parseNumber(displayValue)
+    const clamped = max !== undefined ? Math.min(max, Math.max(min, num)) : Math.max(min, num)
+    const rounded = Number(clamped.toFixed(decimals))
+    onChange(rounded)
+    setDisplayValue(formatNumber(rounded, decimals))
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      handleBlur()
     }
   }
 
@@ -86,8 +124,10 @@ export function NumberStepper({
         <input
           type="text"
           inputMode="decimal"
-          value={value}
+          value={displayValue}
           onChange={handleInputChange}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           className={cn('w-full h-full text-center bg-transparent outline-none', s.text)}
         />
         {suffix && <span className="text-muted-foreground mr-2">{suffix}</span>}

@@ -833,6 +833,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         min={0}
                         max={100}
                         step={0.5}
+                        decimals={2}
                         suffix="%"
                         size="lg"
                         className="w-52"
@@ -846,6 +847,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                           min={0}
                           max={100}
                           step={0.5}
+                          decimals={2}
                           suffix="%"
                           size="lg"
                           className="w-52"
