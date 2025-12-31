@@ -314,8 +314,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
           </div>
         )}
         
-        <div className="rounded-md border">
-          <Table>
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[200px]">Produto</TableHead>
@@ -431,8 +430,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
                 </TableRow>
               )}
             </TableBody>
-          </Table>
-        </div>
+        </Table>
 
         <div className="flex items-center justify-between mt-4">
           <Button type="button" variant="outline" onClick={addItemDesktop}>

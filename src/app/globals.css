@@ -131,6 +131,24 @@
   }
 }
 
+/* Inputs/controles no header de página - fundo sólido para contraste */
+.page-header-actions input,
+.page-header-actions select,
+.page-header-actions [data-slot="select-trigger"],
+.page-header-actions button[role="combobox"],
+.page-header-actions .datepicker-trigger {
+  background-color: #ffffff !important;
+  border-color: var(--border);
+}
+
+.dark .page-header-actions input,
+.dark .page-header-actions select,
+.dark .page-header-actions [data-slot="select-trigger"],
+.dark .page-header-actions button[role="combobox"],
+.dark .page-header-actions .datepicker-trigger {
+  background-color: #2a2a2a !important;
+}
+
 /* Estilos de impressão */
 @media print {
   @page {

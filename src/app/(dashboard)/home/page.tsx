@@ -28,7 +28,7 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
       <PageHeader title="Analytics">
-        <Button variant="outline" className="flex items-center gap-2">
+        <Button variant="outline" className="datepicker-trigger flex items-center gap-2">
           <CalendarIcon className="h-4 w-4" />
           01.12.2025 - 27.12.2025
         </Button>

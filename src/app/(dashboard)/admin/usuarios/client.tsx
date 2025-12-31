@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -30,8 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { PageHeader } from '@/components/layout'
 import { Search, MoreHorizontal, LogIn, Eye, Loader2 } from 'lucide-react'
 import { listAllUsers, loginAsUser } from '@/app/actions/admin'
 import { usePreferences } from '@/hooks/use-preferences'
@@ -62,15 +62,32 @@ export function UsersClient() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [impersonateUser, setImpersonateUser] = useState<AdminUser | null>(null)
   const [impersonating, setImpersonating] = useState(false)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
   
   const pageSize = preferences.adminUsersPageSize
 
+  // Debounce da pesquisa
+  useEffect(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search)
+      setPage(1)
+    }, 300)
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current)
+      }
+    }
+  }, [search])
+
   const fetchUsers = useCallback(async () => {
     setLoading(true)
-    const result = await listAllUsers(page, pageSize, search || undefined)
+    const result = await listAllUsers(page, pageSize, debouncedSearch || undefined)
     if (result.success) {
       setUsers(result.data.users)
       setTotal(result.data.total)
@@ -78,17 +95,11 @@ export function UsersClient() {
       toast.error(result.error)
     }
     setLoading(false)
-  }, [page, pageSize, search])
+  }, [page, pageSize, debouncedSearch])
 
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    setPage(1)
-    setSearch(searchInput)
-  }
 
   const handleImpersonate = async () => {
     if (!impersonateUser) return
@@ -130,142 +141,134 @@ export function UsersClient() {
   }
 
   return (
-    <>
-      <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle>Usuários</CardTitle>
-            <CardDescription>Gerencie os usuários do sistema</CardDescription>
-          </div>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <Input
-              placeholder="Buscar por nome..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-64"
-            />
-            <Button type="submit" variant="secondary" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
-          </form>
+    <div className="space-y-6">
+      <PageHeader
+        title="Usuários"
+        description="Gerencie os usuários do sistema"
+      >
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-64 pl-9"
+          />
         </div>
-      </CardHeader>
-      <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : users.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhum usuário encontrado
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Plano</TableHead>
-                    <TableHead className="text-center">Pastas</TableHead>
-                    <TableHead className="text-center">Vendas</TableHead>
-                    <TableHead>Último Acesso</TableHead>
-                    <TableHead className="w-[70px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9">
-                            <AvatarImage src={user.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs">
-                              {getInitials(user.full_name, user.email)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium flex items-center gap-2">
-                              {user.full_name || 'Sem nome'}
-                              {user.is_super_admin && (
-                                <Badge variant="outline" className="text-xs">Admin</Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {user.email}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {getStatusBadge(user.subscription_status)}
-                          {user.plan_name && (
-                            <div className="text-xs text-muted-foreground">
-                              {user.plan_name}
-                            </div>
+      </PageHeader>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : users.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          Nenhum usuário encontrado
+        </div>
+      ) : (
+        <>
+          <Table>
+              <TableHeader>
+              <TableRow>
+                <TableHead>Usuário</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead className="text-center">Pastas</TableHead>
+                <TableHead className="text-center">Vendas</TableHead>
+                <TableHead>Último Acesso</TableHead>
+                <TableHead className="w-[70px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.avatar_url || undefined} />
+                        <AvatarFallback className="text-xs">
+                          {getInitials(user.full_name, user.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {user.full_name || 'Sem nome'}
+                          {user.is_super_admin && (
+                            <Badge variant="outline" className="text-xs">Admin</Badge>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {user.suppliers_count}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {user.sales_count}
-                      </TableCell>
-                      <TableCell>
-                        {user.last_sign_in_at ? (
-                          <span className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(user.last_sign_in_at), {
-                              addSuffix: true,
-                              locale: ptBR,
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Nunca</span>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      {getStatusBadge(user.subscription_status)}
+                      {user.plan_name && (
+                        <div className="text-xs text-muted-foreground">
+                          {user.plan_name}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {user.suppliers_count}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {user.sales_count}
+                  </TableCell>
+                  <TableCell>
+                    {user.last_sign_in_at ? (
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(user.last_sign_in_at), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Nunca</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => router.push(`/admin/usuarios/${user.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </DropdownMenuItem>
+                        {!user.is_super_admin && (
+                          <DropdownMenuItem
+                            onClick={() => setImpersonateUser(user)}
+                          >
+                            <LogIn className="h-4 w-4 mr-2" />
+                            Logar como
+                          </DropdownMenuItem>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/admin/usuarios/${user.id}`)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </DropdownMenuItem>
-                            {!user.is_super_admin && (
-                              <DropdownMenuItem
-                                onClick={() => setImpersonateUser(user)}
-                              >
-                                <LogIn className="h-4 w-4 mr-2" />
-                                Logar como
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
-              <DataTablePagination
-                page={page}
-                pageSize={pageSize}
-                total={total}
-                onPageChange={setPage}
-                onPageSizeChange={(size) => setPreference('adminUsersPageSize', size)}
-              />
-            </>
-          )}
-        </CardContent>
-      </Card>
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => setPreference('adminUsersPageSize', size)}
+          />
+        </>
+      )}
 
       {/* Dialog de confirmação de impersonation */}
       <AlertDialog open={!!impersonateUser} onOpenChange={() => setImpersonateUser(null)}>
@@ -297,7 +300,7 @@ export function UsersClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   )
 }
 

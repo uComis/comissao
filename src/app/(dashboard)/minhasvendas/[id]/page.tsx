@@ -169,8 +169,7 @@ export default async function VendaDetalhePage({ params }: Props) {
           <CardTitle>Itens da Venda</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
@@ -193,8 +192,7 @@ export default async function VendaDetalhePage({ params }: Props) {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          </div>
+          </Table>
         </CardContent>
       </Card>
     </div>

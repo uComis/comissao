@@ -188,8 +188,7 @@ export function PersonalSaleTable({ sales }: Props) {
   // Desktop: Table view
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
+      <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
@@ -224,8 +223,7 @@ export function PersonalSaleTable({ sales }: Props) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </div>
+      </Table>
       <DeleteDialog />
     </>
   )

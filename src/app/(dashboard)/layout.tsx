@@ -14,7 +14,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <BillingNotificationProvider>
             <TrialBanner />
             <Header />
-            <main className="flex-1 p-6 pb-32 md:pb-6">{children}</main>
+            <main className="flex-1 p-6 pb-32 md:pb-6">
+              <div className="max-w-[1500px] mx-auto">{children}</div>
+            </main>
           </BillingNotificationProvider>
         </SidebarInset>
       </SidebarProvider>

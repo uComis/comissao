@@ -92,8 +92,7 @@ export function ProductTable({ products, supplierId, showSku = true }: Props) {
 
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
+      <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
@@ -157,8 +156,7 @@ export function ProductTable({ products, supplierId, showSku = true }: Props) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </div>
+      </Table>
 
       {/* Dialog de edição */}
       <ProductDialog

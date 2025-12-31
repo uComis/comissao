@@ -239,8 +239,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
   // Desktop: Table view
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
+      <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
@@ -298,8 +297,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
-      </div>
+      </Table>
       <DeleteDialog />
     </>
   )
