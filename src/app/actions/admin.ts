@@ -216,7 +216,7 @@ export async function getUserDetails(userId: string): Promise<ActionResult<Admin
 
 /**
  * Faz login como outro usuário (impersonation) - super admin only
- * Gera um magic link e redireciona
+ * Gera um magic link e redireciona para callback com token_hash
  */
 export async function loginAsUser(userId: string): Promise<ActionResult<{ url: string }>> {
   try {
@@ -227,6 +227,10 @@ export async function loginAsUser(userId: string): Promise<ActionResult<{ url: s
     // Buscar email do usuário alvo
     const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(userId)
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.ts:loginAsUser:getUserById',message:'Resultado getUserById',data:{userId,userEmail:userData?.user?.email,userError:userError?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,E'})}).catch(()=>{});
+    // #endregion
+    
     if (userError || !userData.user?.email) {
       throw new Error('Usuário não encontrado')
     }
@@ -235,18 +239,27 @@ export async function loginAsUser(userId: string): Promise<ActionResult<{ url: s
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email: userData.user.email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/home`,
-      },
     })
 
-    if (linkError || !linkData.properties?.action_link) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin.ts:loginAsUser:generateLink',message:'Magic link gerado',data:{linkError:linkError?.message,hashedToken:linkData?.properties?.hashed_token ? 'present' : 'absent',email:linkData?.properties?.email_otp ? 'has_otp' : 'no_otp'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+
+    if (linkError || !linkData.properties?.hashed_token) {
       throw new Error('Erro ao gerar link de acesso')
     }
 
+    // Construir URL do nosso callback com o token_hash
+    // O callback usará verifyOtp para estabelecer a sessão
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const callbackUrl = new URL(`${baseUrl}/auth/callback`)
+    callbackUrl.searchParams.set('token_hash', linkData.properties.hashed_token)
+    callbackUrl.searchParams.set('type', 'magiclink')
+    callbackUrl.searchParams.set('next', '/home')
+
     return {
       success: true,
-      data: { url: linkData.properties.action_link },
+      data: { url: callbackUrl.toString() },
     }
   } catch (error) {
     return {

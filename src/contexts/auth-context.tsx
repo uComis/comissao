@@ -37,6 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const {
         data: { session },
       } = await supabase.auth.getSession()
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-context.tsx:getSession',message:'getSession resultado',data:{hasSession:!!session,userId:session?.user?.id,userEmail:session?.user?.email,pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setUser(session?.user ?? null)
       setLoading(false)
     }
@@ -47,6 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-context.tsx:onAuthStateChange',message:'Auth state mudou',data:{event:_event,hasSession:!!session,userId:session?.user?.id,pathname:window.location.pathname},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       setUser(session?.user ?? null)
       setLoading(false)
     })

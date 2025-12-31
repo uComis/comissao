@@ -22,6 +22,10 @@ export async function middleware(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const pathname = request.nextUrl.pathname
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:entry',message:'Middleware iniciado',data:{pathname,cookies:request.cookies.getAll().map(c=>c.name)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
+  // #endregion
+
   const isAuthPage = pathname.startsWith('/login')
   const isOnboardingPage = pathname.startsWith('/onboarding')
   const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some(route => pathname.startsWith(route))
@@ -57,8 +61,15 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:getUser',message:'Resultado getUser',data:{hasUser:!!user,userId:user?.id,userEmail:user?.email,pathname,isPublicAuthRoute},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
+  // #endregion
+
   // Se não está logado e tenta acessar página protegida
   if (!user && !isPublicAuthRoute) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:redirectToLogin',message:'Redirecionando para login - sem usuario',data:{pathname},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
