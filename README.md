@@ -16,7 +16,7 @@ Uma plataforma pessoal onde o vendedor cadastra suas pastas (representadas), lan
 
 **Sua receita. Seu controle. Sua auditoria.**
 
-## Para Quem
+## Para Quem:
 
 - Representantes comerciais autônomos (multi-pastas)
 - Consultoras de venda direta (Natura, Avon, etc.)

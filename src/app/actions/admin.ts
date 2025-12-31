@@ -251,7 +251,10 @@ export async function loginAsUser(userId: string): Promise<ActionResult<{ url: s
 
     // Construir URL do nosso callback com o token_hash
     // O callback usará verifyOtp para estabelecer a sessão
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL não configurada')
+    }
     const callbackUrl = new URL(`${baseUrl}/auth/callback`)
     callbackUrl.searchParams.set('token_hash', linkData.properties.hashed_token)
     callbackUrl.searchParams.set('type', 'magiclink')
