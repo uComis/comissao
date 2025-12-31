@@ -733,13 +733,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             <span className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-medium">R$</span>
                             <Input
                                 id="gross_value"
-                                type="number"
-                                step="0.01"
-                                min="0"
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="0,00"
                                 className="pl-16 h-20 text-4xl font-bold text-center shadow-lg border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
                                 value={grossValueInput}
-                                onChange={(e) => setGrossValueInput(e.target.value)}
+                                onChange={(e) => setGrossValueInput(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
                             />
                         </div>
                     </div>
@@ -750,13 +749,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             <span className="text-sm font-medium text-muted-foreground">Descontar Impostos:</span>
                             <div className="relative w-24">
                                 <Input
-                                    type="number"
-                                    step="0.1"
-                                    min="0"
-                                    max="100"
+                                    type="text"
+                                    inputMode="decimal"
                                     className="pr-7 h-9 text-right font-medium"
                                     value={taxRateInput}
-                                    onChange={(e) => setTaxRateInput(e.target.value)}
+                                    onChange={(e) => setTaxRateInput(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                             </div>
