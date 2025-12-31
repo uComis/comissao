@@ -42,5 +42,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Cursor IDE
+.cursor/
+
 # temp (contexto local de desenvolvimento)
 /temp/
