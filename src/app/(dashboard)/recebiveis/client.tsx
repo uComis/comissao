@@ -20,6 +20,12 @@ import {
   CalendarCheck,
   DollarSign
 } from 'lucide-react'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 import { StatCard } from '@/components/dashboard/stat-card'
 import {
   Dialog,
@@ -67,24 +73,6 @@ function getMonthYear(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date)
 }
 
-function InstallmentDots({ current, total, status }: { current: number, total: number, status: string }) {
-  return (
-    <div className="flex gap-1 mt-1">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={cn(
-            "h-1.5 w-1.5 rounded-full transition-colors",
-            i + 1 < current ? "bg-green-500" : 
-            i + 1 === current ? (status === 'overdue' ? "bg-destructive animate-pulse" : "bg-primary") : 
-            "bg-muted"
-          )}
-        />
-      ))}
-    </div>
-  )
-}
-
 export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   const [loading, setLoading] = useState(false)
   const [showReceived, setShowReceived] = useState(false)
@@ -99,12 +87,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   const [receivedAtDate, setReceivedAtDate] = useState(new Date().toISOString().split('T')[0])
 
   const today = new Date().toISOString().split('T')[0]
-
-  const toggleMonth = (month: string) => {
-    setExpandedMonths(prev => 
-      prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month]
-    )
-  }
 
   const filteredReceivables = useMemo(() => {
     return receivables.filter(r => {
@@ -287,17 +269,22 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
         {/* Lista de Pendentes */}
         {!isEmpty && Object.keys(groupedByMonth).length > 0 && (
-          <div className="space-y-4">
+          <Accordion 
+            type="multiple" 
+            value={filterStatus !== 'all' || searchTerm ? Object.keys(groupedByMonth) : expandedMonths}
+            onValueChange={setExpandedMonths}
+            className="space-y-4"
+          >
             {Object.entries(groupedByMonth).map(([month, items]) => {
-              const isExpanded = expandedMonths.includes(month) || filterStatus !== 'all' || searchTerm
               const monthTotal = items.reduce((acc, curr) => acc + (curr.expected_commission || 0), 0)
               
               return (
-                <div key={month} className="border rounded-xl overflow-hidden shadow-sm">
-                  <button 
-                    onClick={() => toggleMonth(month)}
-                    className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted/50 transition-colors"
-                  >
+                <AccordionItem 
+                  key={month} 
+                  value={month}
+                  className="border rounded-xl overflow-hidden shadow-sm"
+                >
+                  <AccordionTrigger className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted/50 transition-colors hover:no-underline [&>svg]:hidden">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-start">
                         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{month}</h3>
@@ -309,13 +296,13 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                         <div className="text-xs font-bold uppercase text-muted-foreground/60 leading-tight">Total Mês</div>
                         <div className="text-lg font-bold text-primary">{formatCurrency(monthTotal)}</div>
                       </div>
-                      {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
+                      <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
                     </div>
-                  </button>
+                  </AccordionTrigger>
                   
-                  {isExpanded && (
-                    <div className="p-3 bg-muted/20 border-t max-h-[450px] overflow-y-auto custom-scrollbar">
-                      <div className="grid gap-3">
+                  <AccordionContent className="p-0">
+                    <div className="p-2 md:p-2 bg-muted/20 border-t max-h-[450px] overflow-y-auto custom-scrollbar">
+                      <div className="grid gap-2 md:gap-1.5">
                         {items.map((receivable) => {
                           const isOverdue = receivable.status === 'overdue'
                           const isToday = receivable.due_date === today
@@ -327,57 +314,141 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                               key={key} 
                               onClick={() => isEditMode && toggleSelection(key)}
                               className={cn(
-                                "group transition-all duration-200 border-l-4 overflow-hidden",
+                                "group transition-all duration-200 border-l-4 overflow-hidden relative",
                                 isEditMode ? "cursor-pointer hover:border-l-primary/50" : "hover:shadow-md",
-                                isSelected ? "border-l-primary bg-primary/5 shadow-inner" : 
-                                isOverdue ? "border-l-destructive bg-destructive/5" : 
-                                isToday ? "border-l-orange-500 bg-orange-500/5 shadow-sm" : 
+                                isSelected ? "border-l-primary shadow-inner" : 
+                                isOverdue ? "border-l-destructive" : 
+                                isToday ? "border-l-orange-500 shadow-sm" : 
                                 "border-l-transparent"
                               )}
                             >
                               <CardContent className="p-0">
-                                <div className="flex items-center gap-4 p-4">
+                                {/* Desktop Layout - Fixed columns for alignment */}
+                                <div className="hidden md:flex items-center gap-0 p-2 px-3">
+                                  {/* Checkbox */}
                                   {isEditMode && (
                                     <div 
-                                      className="flex flex-col items-center justify-center pr-2"
+                                      className="flex items-center justify-center w-8 shrink-0"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <Checkbox
                                         checked={isSelected}
                                         onCheckedChange={() => toggleSelection(key)}
-                                        className="h-6 w-6 border-2"
+                                        className="h-5 w-5 border-2"
                                       />
                                     </div>
                                   )}
 
-                                  <div className="flex flex-col items-center justify-center min-w-[60px] border-r pr-4 border-border/50">
+                                  {/* Date - fixed width, stacked */}
+                                  <div className="w-[50px] shrink-0 flex flex-col items-center justify-center pr-3 border-r border-border/50">
                                     <span className={cn("text-lg font-bold leading-none", isOverdue ? "text-destructive" : isToday ? "text-orange-600" : "text-foreground")}>
                                       {formatDate(receivable.due_date).split('/')[0]}
                                     </span>
-                                    <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5">
                                       {new Date(receivable.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
                                     </span>
                                   </div>
 
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                      <h4 className="font-semibold text-base truncate">{receivable.client_name || 'Cliente Final'}</h4>
-                                      {isOverdue && <Badge variant="destructive" className="h-4 text-[10px] font-bold px-1.5 uppercase">Atrasado</Badge>}
-                                    </div>
-                                    <div className="flex flex-col gap-0.5">
-                                      <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                        <span className="font-medium text-foreground/80">{receivable.supplier_name || 'Direto'}</span>
-                                        <span className="text-muted-foreground/30">•</span>
-                                        <span className="text-xs">Parcela {receivable.installment_number} de {receivable.total_installments}</span>
-                                      </div>
-                                      <InstallmentDots current={receivable.installment_number} total={receivable.total_installments} status={receivable.status} />
+                                  {/* Client + Supplier - stacked */}
+                                  <div className="flex-1 min-w-0 px-3 flex flex-col justify-center">
+                                    <h4 className="font-semibold text-sm truncate">{receivable.client_name || 'Cliente Final'}</h4>
+                                    <span className="text-xs text-muted-foreground truncate">{receivable.supplier_name || 'Direto'}</span>
+                                  </div>
+
+                                  {/* Badge - absolute top right */}
+                                  {isOverdue && (
+                                    <Badge variant="destructive" className="absolute top-1.5 right-1.5 h-5 text-[10px] font-bold px-2 uppercase">Atrasado</Badge>
+                                  )}
+
+                                  {/* Installments + Progress bar - stacked */}
+                                  <div className="w-[120px] shrink-0 px-3 flex flex-col justify-center border-l border-border/30">
+                                    <span className="text-xs text-muted-foreground font-mono text-center">{receivable.installment_number}/{receivable.total_installments}</span>
+                                    <div className="h-1.5 w-full rounded-full bg-gray-300 dark:bg-muted/60 overflow-hidden mt-1">
+                                      <div
+                                        className={cn(
+                                          "h-full rounded-full",
+                                          isOverdue ? "bg-destructive" : "bg-green-500"
+                                        )}
+                                        style={{ width: `${(receivable.installment_number / receivable.total_installments) * 100}%` }}
+                                      />
                                     </div>
                                   </div>
 
-                                  <div className="text-right">
-                                    <div className="text-xs font-bold uppercase text-muted-foreground/60 leading-tight">Comissão</div>
-                                    <div className={cn("text-xl font-black font-mono tracking-tight", isOverdue ? "text-destructive" : "text-green-600")}>
+                                  {/* Value - fixed width, right aligned, pushed to edge */}
+                                  <div className="w-[130px] shrink-0 text-right pl-3 pr-1 border-l border-border/30">
+                                    <span className={cn("text-base font-bold font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
                                       {formatCurrency(receivable.expected_commission || 0)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Mobile Layout */}
+                                <div className="md:hidden p-3">
+                                  <div className="flex items-start gap-3">
+                                    {isEditMode && (
+                                      <div 
+                                        className="flex items-center justify-center pt-0.5"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <Checkbox
+                                          checked={isSelected}
+                                          onCheckedChange={() => toggleSelection(key)}
+                                          className="h-6 w-6 border-2"
+                                        />
+                                      </div>
+                                    )}
+
+                                    <div className="flex-1 min-w-0">
+                                      {/* Header: Date centered + Badge top right */}
+                                      <div className="relative mb-2">
+                                        {/* Date centered */}
+                                        <div className="flex justify-center">
+                                          <div className={cn(
+                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold",
+                                            isOverdue ? "bg-destructive/15 text-destructive" : 
+                                            isToday ? "bg-orange-500/15 text-orange-600" : 
+                                            "bg-muted text-muted-foreground"
+                                          )}>
+                                            <span className="text-base font-black">{formatDate(receivable.due_date).split('/')[0]}</span>
+                                            <span className="uppercase text-[10px]">{new Date(receivable.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                          </div>
+                                        </div>
+                                        {/* Badge top right */}
+                                        {isOverdue && (
+                                          <Badge variant="destructive" className="absolute top-0 right-0 h-5 text-[10px] font-bold px-2 uppercase">
+                                            Atrasado
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      {/* Client name centered */}
+                                      <h4 className="font-semibold text-sm text-center truncate mb-2">{receivable.client_name || 'Cliente Final'}</h4>
+
+                                      {/* Info row with progress bar */}
+                                      <div className="mb-3">
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                                          <span className="truncate">{receivable.supplier_name || 'Direto'}</span>
+                                          <span className="shrink-0 font-medium">{receivable.installment_number}/{receivable.total_installments}</span>
+                                        </div>
+                                        {/* Progress bar */}
+                                        <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                                          <div
+                                            className={cn(
+                                              "h-full rounded-full transition-all",
+                                              isOverdue ? "bg-destructive" : "bg-green-500"
+                                            )}
+                                            style={{ width: `${(receivable.installment_number / receivable.total_installments) * 100}%` }}
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Commission footer - highlighted */}
+                                      <div className="flex items-center justify-between py-2.5 px-3 -mx-3 bg-muted/30 border-t border-border/50 rounded-b-lg">
+                                        <span className="text-sm font-medium text-muted-foreground">Comissão</span>
+                                        <span className={cn("text-xl font-black font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
+                                          {formatCurrency(receivable.expected_commission || 0)}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -387,11 +458,11 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                         })}
                       </div>
                     </div>
-                  )}
-                </div>
+                  </AccordionContent>
+                </AccordionItem>
               )
             })}
-          </div>
+          </Accordion>
         )}
 
         {/* Histórico de Recebidos */}
