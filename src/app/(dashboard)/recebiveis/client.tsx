@@ -293,10 +293,10 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               const monthTotal = items.reduce((acc, curr) => acc + (curr.expected_commission || 0), 0)
               
               return (
-                <div key={month} className="space-y-2 border rounded-xl overflow-hidden bg-background shadow-sm">
+                <div key={month} className="border rounded-xl overflow-hidden shadow-sm">
                   <button 
                     onClick={() => toggleMonth(month)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-start">
