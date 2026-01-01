@@ -230,6 +230,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             label="Total Projetado"
             value={formatCurrency(stats.totalPending + stats.totalReceived)}
             icon={DollarSign}
+            subtitle={`${stats.countPending + stats.countOverdue + stats.countReceived} parcelas`}
             onClick={() => setFilterStatus('all')}
             active={filterStatus === 'all'}
           />
@@ -240,8 +241,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             subtitle={`${stats.countPending} parcelas`}
             onClick={() => setFilterStatus('pending')}
             active={filterStatus === 'pending'}
-            valueClassName="text-blue-600"
-            iconClassName="text-blue-500"
           />
           <StatCard
             label="Atrasados"
@@ -250,8 +249,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             subtitle={`${stats.countOverdue} parcelas`}
             onClick={() => setFilterStatus('overdue')}
             active={filterStatus === 'overdue'}
-            valueClassName={stats.totalOverdue > 0 ? "text-destructive" : "text-muted-foreground"}
-            iconClassName={stats.totalOverdue > 0 ? "text-destructive animate-bounce" : "text-muted-foreground"}
           />
           <StatCard
             label="Recebidos"
@@ -260,8 +257,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             subtitle={`${stats.countReceived} parcelas`}
             onClick={() => setFilterStatus('received')}
             active={filterStatus === 'received'}
-            valueClassName="text-green-600"
-            iconClassName="text-green-600"
           />
         </div>
 
