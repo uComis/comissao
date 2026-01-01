@@ -79,17 +79,19 @@ export default async function VendaDetalhePage({ params }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <PageHeader 
-          title="Detalhes da Venda" 
-          description={`${sale.client_name} - ${formatDate(sale.sale_date)}`}
-        >
-          <Button asChild>
-            <Link href={`/minhasvendas/${id}/editar`}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
-            </Link>
-          </Button>
-        </PageHeader>
+        <div className="flex-1">
+          <PageHeader 
+            title="Detalhes da Venda" 
+            description={`${sale.client_name} - ${formatDate(sale.sale_date)}`}
+          >
+            <Button asChild>
+              <Link href={`/minhasvendas/${id}/editar`}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </Link>
+            </Button>
+          </PageHeader>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
