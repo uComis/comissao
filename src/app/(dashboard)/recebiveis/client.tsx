@@ -277,6 +277,12 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
           >
             {Object.entries(groupedByMonth).map(([month, items]) => {
               const monthTotal = items.reduce((acc, curr) => acc + (curr.expected_commission || 0), 0)
+              const hasOverdue = items.some(item => item.status === 'overdue')
+              
+              // Check if this month is current month
+              const currentMonthYear = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date())
+              const isCurrentMonth = month.toLowerCase() === currentMonthYear.toLowerCase()
+              const isPastMonth = !isCurrentMonth && items.some(item => item.due_date < today)
               
               return (
                 <AccordionItem 
@@ -286,6 +292,15 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                 >
                   <AccordionTrigger className="w-full flex items-center justify-between p-4 bg-white dark:bg-card hover:bg-muted/50 transition-colors hover:no-underline [&>svg]:hidden rounded-t-lg [[data-state=open]_&]:rounded-b-none">
                     <div className="flex items-center gap-4">
+                      {hasOverdue && (
+                        <span 
+                          className={cn(
+                            "w-3 h-3 rounded-full shrink-0 animate-pulse",
+                            isPastMonth ? "bg-red-500" : "bg-orange-500"
+                          )}
+                          title={isPastMonth ? "Parcelas vencidas" : "Atenção: parcelas vencendo"}
+                        />
+                      )}
                       <div className="flex flex-col items-start">
                         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{month}</h3>
                         <div className="text-xs text-muted-foreground">{items.length} parcelas</div>
