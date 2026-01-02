@@ -273,7 +273,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             type="multiple" 
             value={filterStatus !== 'all' || searchTerm ? Object.keys(groupedByMonth) : expandedMonths}
             onValueChange={setExpandedMonths}
-            className="space-y-4"
+            className="space-y-2"
           >
             {Object.entries(groupedByMonth).map(([month, items]) => {
               const monthTotal = items.reduce((acc, curr) => acc + (curr.expected_commission || 0), 0)
@@ -282,9 +282,9 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                 <AccordionItem 
                   key={month} 
                   value={month}
-                  className="border rounded-xl overflow-hidden shadow-sm"
+                  className="border rounded-lg overflow-hidden shadow-sm transition-shadow duration-300 ease-out data-[state=open]:shadow-lg data-[state=open]:shadow-black/15"
                 >
-                  <AccordionTrigger className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted/50 transition-colors hover:no-underline [&>svg]:hidden">
+                  <AccordionTrigger className="w-full flex items-center justify-between p-4 bg-white dark:bg-card hover:bg-muted/50 transition-colors hover:no-underline [&>svg]:hidden rounded-t-lg [[data-state=open]_&]:rounded-b-none">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-start">
                         <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{month}</h3>
@@ -301,7 +301,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                   </AccordionTrigger>
                   
                   <AccordionContent className="p-0">
-                    <div className="p-2 md:p-2 bg-muted/20 border-t max-h-[450px] overflow-y-auto custom-scrollbar">
+                    <div className="py-[30px] px-[20px] bg-muted/20 border-t max-h-[450px] overflow-y-auto custom-scrollbar">
                       <div className="grid gap-2 md:gap-1.5">
                         {items.map((receivable) => {
                           const isOverdue = receivable.status === 'overdue'
