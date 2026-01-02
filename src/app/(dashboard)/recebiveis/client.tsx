@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +17,7 @@ import {
   FilterX,
   X,
   CheckCircle,
-  CalendarCheck,
+  Check,
   DollarSign
 } from 'lucide-react'
 import {
@@ -85,6 +85,31 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [receivedAtDate, setReceivedAtDate] = useState(new Date().toISOString().split('T')[0])
+  
+  // Floating button visibility
+  const actionButtonRef = useRef<HTMLDivElement>(null)
+  const [showFloatingButton, setShowFloatingButton] = useState(false)
+  
+  useEffect(() => {
+    // Find the scroll container (SidebarInset)
+    const scrollContainer = document.querySelector('[data-slot="sidebar-inset"]')
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFloatingButton(!entry.isIntersecting)
+      },
+      { 
+        root: scrollContainer,
+        threshold: 0 
+      }
+    )
+    
+    if (actionButtonRef.current) {
+      observer.observe(actionButtonRef.current)
+    }
+    
+    return () => observer.disconnect()
+  }, [])
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -179,31 +204,22 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   const isEmpty = receivables.length === 0
 
   return (
-    <div className="relative pb-24">
+    <div className="relative">
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Header com Botão de Ação Principal */}
+        {/* Header com Search */}
         <PageHeader 
           title={isHome ? 'Faturamento' : 'Recebíveis'}
           description={isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.'}
         >
-          {!isEditMode ? (
-            <Button 
-              onClick={() => setIsEditMode(true)}
-              className="bg-primary hover:bg-primary/90 shadow-lg group"
-            >
-              <CalendarCheck className="h-4 w-4 transition-transform group-hover:scale-110 md:mr-2" />
-              <span className="hidden md:inline">Registrar Recebimentos</span>
-            </Button>
-          ) : (
-            <Button 
-              variant="outline"
-              onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              <X className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Cancelar Edição</span>
-            </Button>
-          )}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar cliente ou fornecedor..." 
+              className="pl-9 bg-background border-border shadow-sm focus-visible:ring-1"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </PageHeader>
 
         {/* Cards de Totais */}
@@ -242,27 +258,35 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
           />
         </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-muted/30 p-4 rounded-xl border border-border shadow-inner">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar cliente ou fornecedor..." 
-              className="pl-9 bg-background border-none shadow-sm focus-visible:ring-1"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
+        {/* Action Button - Above Accordions */}
+        <div ref={actionButtonRef} className="flex items-center justify-end">
           {(filterStatus !== 'all' || searchTerm) && (
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => { setFilterStatus('all'); setSearchTerm('') }}
-              className="text-muted-foreground hover:text-primary"
+              className="text-muted-foreground hover:text-primary mr-auto"
             >
               <FilterX className="h-4 w-4 mr-2" />
               Limpar Filtros
+            </Button>
+          )}
+          {!isEditMode ? (
+            <Button 
+              onClick={() => setIsEditMode(true)}
+              className="bg-info hover:bg-info/90 text-white shadow-lg group"
+            >
+              <Check className="h-4 w-4 transition-transform group-hover:scale-110 mr-2" />
+              Conciliar
+            </Button>
+          ) : (
+            <Button 
+              variant="outline"
+              onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancelar
             </Button>
           )}
         </div>
@@ -542,6 +566,33 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Action Button - fixed but offset for sidebar on desktop */}
+      {showFloatingButton && !isEditMode && (
+        <div className="fixed top-4 z-[60] flex justify-center animate-in fade-in slide-in-from-top-4 duration-300 left-0 right-0 md:left-[var(--sidebar-width)] md:right-0">
+          <Button 
+            onClick={() => setIsEditMode(true)}
+            className="bg-info hover:bg-info/90 text-white shadow-2xl"
+          >
+            <Check className="h-4 w-4 mr-0.5" />
+            Conciliar
+          </Button>
+        </div>
+      )}
+
+      {/* Floating Cancel Button - fixed but offset for sidebar on desktop */}
+      {showFloatingButton && isEditMode && selectedIds.length === 0 && (
+        <div className="fixed top-4 z-[60] flex justify-center animate-in fade-in slide-in-from-top-4 duration-300 left-0 right-0 md:left-[var(--sidebar-width)] md:right-0">
+          <Button 
+            variant="outline"
+            onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
+            className="border-destructive text-destructive hover:bg-destructive/10 shadow-2xl bg-background"
+          >
+            <X className="h-4 w-4 mr-0.5" />
+            Cancelar
+          </Button>
         </div>
       )}
 
