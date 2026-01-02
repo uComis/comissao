@@ -329,7 +329,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                               key={key} 
                               onClick={() => isEditMode && toggleSelection(key)}
                               className={cn(
-                                "group transition-all duration-200 border-l-4 overflow-hidden relative",
+                                "group transition-all duration-200 border-l-4 overflow-hidden relative py-1.5 md:py-6",
                                 isEditMode ? "cursor-pointer hover:border-l-primary/50" : "hover:shadow-md",
                                 isSelected ? "border-l-primary shadow-inner" : 
                                 isOverdue ? "border-l-destructive" : 
@@ -398,8 +398,8 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                                 </div>
 
                                 {/* Mobile Layout */}
-                                <div className="md:hidden p-3">
-                                  <div className="flex items-start gap-3">
+                                <div className="md:hidden px-3 py-2">
+                                  <div className="flex items-start gap-2">
                                     {isEditMode && (
                                       <div 
                                         className="flex items-center justify-center pt-0.5"
@@ -408,45 +408,41 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                                         <Checkbox
                                           checked={isSelected}
                                           onCheckedChange={() => toggleSelection(key)}
-                                          className="h-6 w-6 border-2"
+                                          className="h-5 w-5 border-2"
                                         />
                                       </div>
                                     )}
 
                                     <div className="flex-1 min-w-0">
-                                      {/* Header: Date centered + Badge top right */}
-                                      <div className="relative mb-2">
-                                        {/* Date centered */}
-                                        <div className="flex justify-center">
-                                          <div className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold",
-                                            isOverdue ? "bg-destructive/15 text-destructive" : 
-                                            isToday ? "bg-orange-500/15 text-orange-600" : 
-                                            "bg-muted text-muted-foreground"
-                                          )}>
-                                            <span className="text-base font-black">{formatDate(receivable.due_date).split('/')[0]}</span>
-                                            <span className="uppercase text-[10px]">{new Date(receivable.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                                          </div>
+                                      {/* Row 1: Date LEFT + Commission RIGHT */}
+                                      <div className="flex items-center justify-between mb-1">
+                                        <div className={cn(
+                                          "flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold",
+                                          isOverdue ? "bg-destructive/15 text-destructive" : 
+                                          isToday ? "bg-orange-500/15 text-orange-600" : 
+                                          "bg-muted text-muted-foreground"
+                                        )}>
+                                          <span className="font-black">{formatDate(receivable.due_date).split('/')[0]}</span>
+                                          <span className="uppercase text-[10px]">{new Date(receivable.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
+                                          {isOverdue && <span className="text-[10px] ml-1">• ATRASADO</span>}
                                         </div>
-                                        {/* Badge top right */}
-                                        {isOverdue && (
-                                          <Badge variant="destructive" className="absolute top-0 right-0 h-5 text-[10px] font-bold px-2 uppercase">
-                                            Atrasado
-                                          </Badge>
-                                        )}
+                                        <span className={cn("text-base font-bold font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
+                                          {formatCurrency(receivable.expected_commission || 0)}
+                                        </span>
                                       </div>
 
-                                      {/* Client name centered */}
-                                      <h4 className="font-semibold text-sm text-center truncate mb-2">{receivable.client_name || 'Cliente Final'}</h4>
-
-                                      {/* Info row with progress bar */}
-                                      <div className="mb-3">
-                                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                                          <span className="truncate">{receivable.supplier_name || 'Direto'}</span>
-                                          <span className="shrink-0 font-medium">{receivable.installment_number}/{receivable.total_installments}</span>
+                                      {/* Row 2: Client + Installments */}
+                                      <div className="flex items-start justify-between mb-[5px]">
+                                        <div className="min-w-0">
+                                          <h4 className="font-semibold text-sm truncate leading-tight">{receivable.client_name || 'Cliente Final'}</h4>
+                                          <span className="text-xs text-muted-foreground truncate block">{receivable.supplier_name || 'Direto'}</span>
                                         </div>
-                                        {/* Progress bar */}
-                                        <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                                        <span className="text-[10px] text-muted-foreground shrink-0">{receivable.installment_number} de {receivable.total_installments} parcelas</span>
+                                      </div>
+
+                                      {/* Row 3: Progress bar full width (hidden if single installment) */}
+                                      {receivable.total_installments > 1 && (
+                                        <div className="h-1.5 rounded-full bg-muted/60 overflow-hidden" style={{ marginTop: '10px' }}>
                                           <div
                                             className={cn(
                                               "h-full rounded-full transition-all",
@@ -455,15 +451,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                                             style={{ width: `${(receivable.installment_number / receivable.total_installments) * 100}%` }}
                                           />
                                         </div>
-                                      </div>
-
-                                      {/* Commission footer - highlighted */}
-                                      <div className="flex items-center justify-between py-2.5 px-3 -mx-3 bg-muted/30 border-t border-border/50 rounded-b-lg">
-                                        <span className="text-sm font-medium text-muted-foreground">Comissão</span>
-                                        <span className={cn("text-xl font-black font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
-                                          {formatCurrency(receivable.expected_commission || 0)}
-                                        </span>
-                                      </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
