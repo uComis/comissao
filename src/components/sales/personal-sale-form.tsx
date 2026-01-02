@@ -317,7 +317,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const paymentCondition = paymentType === 'vista'
     ? ''
-    : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => (i + 1) * getSafeNumber(interval, 30)).join('/')
+    : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => {
+        const firstDays = getSafeNumber(firstInstallmentDays, 30)
+        const gap = getSafeNumber(interval, 30)
+        return firstDays + (i * gap)
+      }).join('/')
 
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [clientInitialName, setClientInitialName] = useState('')
