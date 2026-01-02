@@ -60,7 +60,23 @@ export async function getReceivables(): Promise<ReceivableRow[]> {
     .order('due_date', { ascending: true })
 
   if (error) throw error
-  return data || []
+
+  // Buscar notes das vendas
+  const saleIds = [...new Set((data || []).map(r => r.personal_sale_id))]
+  
+  if (saleIds.length === 0) return data || []
+
+  const { data: salesNotes } = await supabase
+    .from('personal_sales')
+    .select('id, notes')
+    .in('id', saleIds)
+
+  const notesMap = new Map(salesNotes?.map(s => [s.id, s.notes]) || [])
+
+  return (data || []).map(row => ({
+    ...row,
+    notes: notesMap.get(row.personal_sale_id) || row.notes
+  }))
 }
 
 export async function getReceivablesStats(): Promise<ReceivablesStats> {
