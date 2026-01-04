@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +27,7 @@ type Props = {
   options: ComboboxOption[]
   value: string
   onChange: (value: string, label: string) => void
+  onAddClick?: (initialName?: string) => void
   placeholder?: string
   searchPlaceholder?: string
   emptyMessage?: string
@@ -37,6 +38,7 @@ export function ComboboxCreatable({
   options,
   value,
   onChange,
+  onAddClick,
   placeholder = 'Selecione...',
   searchPlaceholder = 'Pesquisar...',
   emptyMessage = 'Nenhum resultado.',
@@ -70,6 +72,13 @@ export function ComboboxCreatable({
     setSearch('')
   }
 
+  function handleAddClick() {
+    const initialName = search.trim() || undefined
+    setOpen(false)
+    setSearch('')
+    onAddClick?.(initialName)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -94,10 +103,24 @@ export function ComboboxCreatable({
             className="h-12"
           />
           <CommandList className="max-h-[300px]">
-            {filteredOptions.length === 0 && !showCreateOption && (
+            {filteredOptions.length === 0 && !showCreateOption && !onAddClick && (
               <CommandEmpty className="py-6">{emptyMessage}</CommandEmpty>
             )}
             <CommandGroup className="p-2">
+              {/* Botão Cadastrar - sempre visível quando onAddClick está disponível */}
+              {onAddClick && (
+                <CommandItem
+                  onSelect={handleAddClick}
+                  className="py-3 px-3 rounded-md text-primary"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {search.trim() ? (
+                    <span>Cadastrar &quot;{search}&quot;</span>
+                  ) : (
+                    <span className="font-medium">Novo Produto</span>
+                  )}
+                </CommandItem>
+              )}
               {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}

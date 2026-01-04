@@ -336,6 +336,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
                       onChange={(productId, productName) => 
                         handleProductChange(item.id, productId, productName)
                       }
+                      onAddClick={handleAddProductClick}
                       placeholder="Pesquisar ou digitar..."
                       searchPlaceholder="Pesquisar produto..."
                       emptyMessage="Nenhum produto encontrado"
