@@ -82,8 +82,8 @@
   --sidebar-ring: oklch(0.708 0 0);
   --info: #409eff;
   --warning: #f59e0b;
-  --success: #67C23A;
-  --danger: #F56C6C;
+  --success: #67c23a;
+  --danger: #f56c6c;
 }
 
 .dark {
@@ -124,7 +124,8 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body {
+  html,
+  body {
     @apply bg-background text-foreground;
     height: 100%;
     overflow: hidden;
@@ -134,8 +135,8 @@
 /* Inputs/controles no header de página - fundo sólido para contraste */
 .page-header-actions input,
 .page-header-actions select,
-.page-header-actions [data-slot="select-trigger"],
-.page-header-actions button[role="combobox"],
+.page-header-actions [data-slot='select-trigger'],
+.page-header-actions button[role='combobox'],
 .page-header-actions .datepicker-trigger {
   background-color: #ffffff !important;
   border-color: var(--border);
@@ -143,8 +144,8 @@
 
 .dark .page-header-actions input,
 .dark .page-header-actions select,
-.dark .page-header-actions [data-slot="select-trigger"],
-.dark .page-header-actions button[role="combobox"],
+.dark .page-header-actions [data-slot='select-trigger'],
+.dark .page-header-actions button[role='combobox'],
 .dark .page-header-actions .datepicker-trigger {
   background-color: #2a2a2a !important;
 }
@@ -184,5 +185,14 @@
   /* Esconde elementos marcados como print:hidden */
   .print\:hidden {
     display: none !important;
+  }
+}
+
+@keyframes grow {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
   }
 }

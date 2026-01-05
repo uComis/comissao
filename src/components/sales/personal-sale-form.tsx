@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { PercentInput } from '@/components/ui/percent-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
-import { Eye, Save, Wand2, X, Pencil } from 'lucide-react'
+import { Eye, Save, Wand2, X, Pencil, Trash2 } from 'lucide-react'
 import { SaleItemsEditor } from './sale-items-editor'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
@@ -285,13 +286,47 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [entryMode, setEntryMode] = useState<'total' | 'items'>(
     sale?.items && sale.items.length > 0 ? 'items' : 'total'
   )
-  const [grossValueInput, setGrossValueInput] = useState(sale?.gross_value?.toString() || '')
-  const [taxRateInput, setTaxRateInput] = useState(sale?.tax_rate?.toString() || '')
+  
+  // Estado para múltiplos valores
+  type ValueEntry = {
+    id: string
+    grossValue: string
+    taxRate: string
+    commissionRate: string
+  }
+  
+  const [valueEntries, setValueEntries] = useState<ValueEntry[]>([
+    {
+      id: crypto.randomUUID(),
+      grossValue: sale?.gross_value?.toString() || '',
+      taxRate: sale?.tax_rate?.toString() || '',
+      commissionRate: sale?.commission_rate?.toString() || ''
+    }
+  ])
+  
+  // Mantém compatibilidade com código existente (usa primeiro entry)
+  const grossValueInput = valueEntries[0]?.grossValue || ''
+  const setGrossValueInput = (val: string) => {
+    setValueEntries(prev => prev.map((entry, idx) => 
+      idx === 0 ? { ...entry, grossValue: val } : entry
+    ))
+  }
+  
+  const taxRateInput = valueEntries[0]?.taxRate || ''
+  const setTaxRateInput = (val: string) => {
+    setValueEntries(prev => prev.map((entry, idx) => 
+      idx === 0 ? { ...entry, taxRate: val } : entry
+    ))
+  }
   
   const [selectedRuleId, setSelectedRuleId] = useState<string>('custom')
-  const [commissionRate, setCommissionRate] = useState<string>(
-    sale?.commission_rate?.toString() || ''
-  )
+  const commissionRate = valueEntries[0]?.commissionRate || ''
+  const setCommissionRate = (val: string) => {
+    setValueEntries(prev => prev.map((entry, idx) => 
+      idx === 0 ? { ...entry, commissionRate: val } : entry
+    ))
+  }
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [showSaveRuleDialog, setShowSaveRuleDialog] = useState(false)
   const [newRuleName, setNewRuleName] = useState('')
   const [savingRule, setSavingRule] = useState(false)
@@ -334,16 +369,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const totalValue = useMemo(() => {
     if (entryMode === 'total') {
-      const gross = parseFloat(grossValueInput) || 0
-      const taxRate = parseFloat(taxRateInput) || 0
-      return gross * (1 - (taxRate / 100))
+      // Soma todos os entries
+      return valueEntries.reduce((sum, entry) => {
+        const gross = parseFloat(entry.grossValue) || 0
+        const taxRate = parseFloat(entry.taxRate) || 0
+        return sum + (gross * (1 - (taxRate / 100)))
+      }, 0)
     }
     return items.reduce((sum, item) => {
         const gross = item.quantity * item.unit_price
         const tax = gross * ((item.tax_rate || 0) / 100)
         return sum + (gross - tax)
     }, 0)
-  }, [items, entryMode, grossValueInput, taxRateInput])
+  }, [items, entryMode, valueEntries])
 
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
@@ -614,6 +652,41 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
   }
 
+  function handleAddValueEntry() {
+    setValueEntries(prev => [...prev, {
+      id: crypto.randomUUID(),
+      grossValue: '',
+      taxRate: '',
+      commissionRate: ''
+    }])
+  }
+
+  function handleRemoveValueEntry(id: string) {
+    if (valueEntries.length === 1) {
+      toast.error('Deve haver pelo menos um valor')
+      return
+    }
+    
+    // Inicia animação de saída
+    setRemovingIds(prev => new Set(prev).add(id))
+    
+    // Remove de fato após a animação
+    setTimeout(() => {
+      setValueEntries(prev => prev.filter(entry => entry.id !== id))
+      setRemovingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }, 300)
+  }
+
+  function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string) {
+    setValueEntries(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, [field]: value } : entry
+    ))
+  }
+
   function handleCancel() {
     router.push('/minhasvendas')
   }
@@ -719,60 +792,126 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             </RadioGroup>
           </CardHeader>
           <CardContent>
-            {!supplierId ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">
-                  Selecione um fornecedor acima para liberar a lista de produtos.
-                </p>
-              </div>
-            ) : entryMode === 'total' ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-6">
+            {entryMode === 'total' ? (
+              <div className="flex flex-col gap-6">
                 
-                {/* Bloco de Valor Total */}
-                <div className="flex flex-col items-center w-full max-w-2xl gap-8">
-                    {/* Linha 1: Valor Total (Hero) */}
-                    <div className="flex flex-col items-center space-y-3 w-full">
-                        <Label htmlFor="gross_value" className="text-muted-foreground text-sm uppercase tracking-wide font-bold">Valor Total da Venda</Label>
-                        <div className="relative w-full max-w-lg">
-                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-medium">R$</span>
-                            <Input
-                                id="gross_value"
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0,00"
-                                className="pl-16 h-20 text-4xl font-bold text-center shadow-lg border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
-                                value={grossValueInput}
-                                onChange={(e) => setGrossValueInput(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
-                            />
-                        </div>
-                    </div>
+                {/* Corpo: Inputs Centralizados */}
+                <div className="flex flex-col items-center gap-4 py-6">
+                    
+                    {/* Múltiplas Linhas de Valores */}
+                    <div className="flex flex-col gap-3 w-full max-w-2xl">
+                        {valueEntries.map((entry, index) => (
+                            <div 
+                                key={entry.id}
+                                className="grid transition-[grid-template-rows] duration-300 ease-in-out [grid-template-rows:1fr] data-[new=true]:animate-[grow_0.3s_ease-in-out] data-[removing=true]:[grid-template-rows:0fr]"
+                                data-entry-id={entry.id}
+                                data-new={index > 0 && entry.grossValue === ''}
+                                data-removing={removingIds.has(entry.id)}
+                            >
+                                <div className="overflow-hidden">
+                                    <div className="flex justify-center py-2 relative group animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200"
+                                         data-removing={removingIds.has(entry.id)}
+                                    >
+                                        <div className="flex flex-wrap items-end gap-4 relative">
+                                            {/* 1. Valor Total */}
+                                            <div className="flex flex-col gap-2">
+                                                <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
+                                                <div className="relative w-40">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
+                                                    <Input
+                                                        id={`gross_value_${entry.id}`}
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        placeholder="0,00"
+                                                        className="pl-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
+                                                        value={entry.grossValue}
+                                                        onChange={(e) => handleUpdateValueEntry(entry.id, 'grossValue', e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+                                                    />
+                                                </div>
+                                            </div>
 
-                    {/* Linha 2: Impostos e Resultado (Secundário) */}
-                    <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg border border-border/50">
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">Descontar Impostos:</span>
-                            <div className="relative w-24">
-                                <Input
-                                    type="text"
-                                    inputMode="decimal"
-                                    className="pr-7 h-9 text-right font-medium"
-                                    value={taxRateInput}
-                                    onChange={(e) => setTaxRateInput(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                                            {/* 2. Impostos - Borda Laranja */}
+                                            <div className="flex flex-col gap-2">
+                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
+                                                <PercentInput
+                                                    value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
+                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
+                                                    min={0}
+                                                    max={100}
+                                                    step={0.5}
+                                                    decimals={2}
+                                                    className="w-28 [&>input]:border-l-4 [&>input]:border-l-[#f59e0b]"
+                                                />
+                                            </div>
+
+                                            {/* 3. Comissão - Borda Verde */}
+                                            <div className="flex flex-col gap-2">
+                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
+                                                <div className="flex items-center gap-2">
+                                                    <PercentInput
+                                                        value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
+                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
+                                                        min={0}
+                                                        max={100}
+                                                        step={0.5}
+                                                        decimals={2}
+                                                        className="w-28 [&>input]:border-l-4 [&>input]:border-l-[#67C23A]"
+                                                    />
+
+                                                    {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
+                                                                    <Wand2 className="h-5 w-5" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-56">
+                                                                <DropdownMenuLabel>Regras Salvas</DropdownMenuLabel>
+                                                                <DropdownMenuSeparator />
+                                                                {selectedSupplier.commission_rules.map(rule => (
+                                                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
+                                                                        <span>{rule.name}</span>
+                                                                        <span className="font-bold text-muted-foreground">
+                                                                            {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
+                                                                        </span>
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Botão Remover - Discreto e Colado nos inputs */}
+                                            {valueEntries.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveValueEntry(entry.id)}
+                                                    className="absolute -right-7 bottom-3.5 p-1 text-destructive/40 hover:text-destructive transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                    title="Remover valor"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <div className="h-4 w-px bg-border mx-2"></div>
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">Base de Cálculo:</span>
-                            <span className="text-lg font-bold text-foreground">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
-                            </span>
-                        </div>
+                        ))}
                     </div>
+
+                    {/* Botão Adicionar Valor - com transição suave */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                        onClick={handleAddValueEntry}
+                    >
+                        + Adicionar valor
+                    </Button>
                 </div>
+
               </div>
             ) : (
               <SaleItemsEditor
@@ -785,16 +924,85 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             )}
           </CardContent>
           
-          {/* Rodapé Universal de Comissão */}
-          {supplierId && (
+          {/* Rodapé com Totais - Apenas no modo Total */}
+          {entryMode === 'total' && (
+            <CardFooter className="flex flex-col gap-4 pt-6">
+              {/* Linha Separadora com Ícone de Conexão */}
+              <div className="relative w-full">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <div className="bg-background px-3">
+                    <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid de Totais */}
+              <div className="grid grid-cols-3 gap-4 w-full">
+                {/* Total Geral */}
+                <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      valueEntries.reduce((sum, entry) => sum + (parseFloat(entry.grossValue) || 0), 0)
+                    )}
+                  </span>
+                </div>
+
+                {/* Base de Cálculo */}
+                <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Base de Cálculo</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+                  </span>
+                </div>
+
+                {/* Comissão */}
+                <div className="flex flex-col items-center gap-1 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Comissão</span>
+                  <span className="text-lg font-bold text-emerald-900">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      valueEntries.reduce((sum, entry) => {
+                        const gross = parseFloat(entry.grossValue) || 0
+                        const taxRate = parseFloat(entry.taxRate) || 0
+                        const commRate = parseFloat(entry.commissionRate) || 0
+                        const base = gross * (1 - (taxRate / 100))
+                        return sum + (base * (commRate / 100))
+                      }, 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Atalho para Salvar Regra */}
+              {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 self-center"
+                  onClick={() => setShowSaveRuleDialog(true)}
+                >
+                  <Save className="h-3 w-3 mr-1" />
+                  Salvar como regra
+                </Button>
+              )}
+            </CardFooter>
+          )}
+          
+          {/* Rodapé de Comissão Removido (integrado acima no entryMode === 'total') */}
+          {supplierId && entryMode === 'items' && (
             <CardFooter className="flex flex-col items-center border-t bg-muted/20 py-8 space-y-6">
                 
-                {/* 1. Header da Comissão */}
+                {/* Header da Comissão (Apenas para modo Itens) */}
                 <div className="relative w-full flex justify-center">
                     <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        Minha Comissão
+                        Comissão dos Itens
                     </Label>
-                    {/* Botão X para cancelar modo de igualar */}
                     {isEqualizingCommission && (
                       <button
                         type="button"
@@ -807,11 +1015,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     )}
                 </div>
 
-                {/* 2. Input ou Texto baseado no estado */}
                 <div className="flex flex-col items-center gap-4">
-                    {/* Caso: Comissões diferentes nos itens E não está editando */}
-                    {entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && !isEqualizingCommission ? (
-                      /* Valor + ícone de editar */
+                    {itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && !isEqualizingCommission ? (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
@@ -829,83 +1034,24 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                           <Pencil className="h-4 w-4" />
                         </button>
                       </div>
-                    ) : entryMode === 'items' && itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && isEqualizingCommission ? (
-                      /* Caso: Modo de edição para igualar */
-                      <NumberStepper
-                        value={equalizingValue}
-                        onChange={handleEqualizingCommissionChange}
-                        min={0}
-                        max={100}
-                        step={0.5}
-                        decimals={2}
-                        suffix="%"
-                        size="lg"
-                        className="w-52"
-                      />
                     ) : (
-                      /* Caso: Normal (modo total OU itens com comissão igual) */
                       <div className="flex items-center gap-2">
-                        <NumberStepper
-                          value={commissionRate ? parseFloat(commissionRate) : 0}
-                          onChange={(val) => handleGlobalCommissionChange(String(val))}
+                        <PercentInput
+                          value={isEqualizingCommission ? equalizingValue : (commissionRate ? parseFloat(commissionRate) : 0)}
+                          onChange={(val) => isEqualizingCommission ? handleEqualizingCommissionChange(val) : handleGlobalCommissionChange(String(val))}
                           min={0}
                           max={100}
                           step={0.5}
                           decimals={2}
-                          suffix="%"
-                          size="lg"
-                          className="w-52"
+                          className="w-40"
                         />
-
-                        {selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="icon" className="h-14 w-14 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all" title="Aplicar Regra Salva">
-                                        <Wand2 className="h-6 w-6" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuLabel>Aplicar Regra Salva</DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    {selectedSupplier.commission_rules.map(rule => (
-                                        <DropdownMenuItem key={rule.id} onClick={() => {
-                                          applyRule(rule.id)
-                                          // Também propaga para os itens
-                                          if (entryMode === 'items' && items.length > 0) {
-                                            const ruleRate = rule.type === 'fixed' ? rule.percentage : rule.tiers?.[0]?.percentage
-                                            if (ruleRate) {
-                                              const updatedItems = items.map(item => ({
-                                                ...item,
-                                                commission_rate: ruleRate
-                                              }))
-                                              setItems(updatedItems)
-                                            }
-                                          }
-                                        }} className="flex justify-between items-center cursor-pointer">
-                                            <span>{rule.name}</span>
-                                            <span className="font-bold text-muted-foreground">
-                                                {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
-                                            </span>
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
                       </div>
                     )}
                 </div>
 
-                {/* 3. Feedback Visual de Valor */}
                 <div className="flex flex-col items-center gap-2">
                     {(() => {
-                      // Calcula o valor a receber baseado no modo
-                      let commissionToShow = 0
-                      if (entryMode === 'items' && itemsCommissionAnalysis.hasItems) {
-                        commissionToShow = itemsCommissionAnalysis.totalCommission
-                      } else if (totalValue > 0 && commissionPercentage !== null) {
-                        commissionToShow = totalValue * (commissionPercentage / 100)
-                      }
-                      
+                      const commissionToShow = itemsCommissionAnalysis.totalCommission;
                       return commissionToShow > 0 ? (
                         <div className="bg-emerald-50 text-emerald-900 px-6 py-3 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm animate-in zoom-in-95 duration-300">
                             <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">A Receber</span>
@@ -915,26 +1061,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         </div>
                       ) : (
                         <div className="h-12 flex items-center text-muted-foreground/50 text-sm italic">
-                            Preencha valor e taxa para calcular
+                            Adicione itens para calcular comissão
                         </div>
                       )
                     })()}
-                    
-                    {/* Atalho para Salvar Nova Regra */}
-                    {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && entryMode === 'total' && (
-                         <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 mt-1"
-                            onClick={() => setShowSaveRuleDialog(true)}
-                        >
-                            <Save className="h-3 w-3 mr-1" />
-                            Salvar esta taxa como regra
-                        </Button>
-                    )}
                 </div>
-
             </CardFooter>
           )}
         </Card>
