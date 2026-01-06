@@ -84,8 +84,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [supplierId, setSupplierId] = useState(sale?.supplier_id || '')
   const [clientId, setClientId] = useState<string | null>(sale?.client_id || null)
   const [clientName, setClientName] = useState(sale?.client_name || '')
-  const [saleDate, setSaleDate] = useState(sale?.sale_date || new Date().toISOString().split('T')[0])
-  const [firstInstallmentDate, setFirstInstallmentDate] = useState(sale?.first_installment_date || '')
+  const today = new Date().toISOString().split('T')[0]
+  const [saleDate, setSaleDate] = useState(sale?.sale_date || today)
+  const [firstInstallmentDate, setFirstInstallmentDate] = useState(
+    sale?.first_installment_date || (initialPayment.type === 'vista' ? (sale?.sale_date || today) : '')
+  )
   
   const calculateDateFromDays = (days: number, baseDateStr: string) => {
     const date = new Date(baseDateStr + 'T12:00:00')
@@ -108,6 +111,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const [quickCondition, setQuickCondition] = useState('')
   const [isUpdatingFromQuick, setIsUpdatingFromQuick] = useState(false)
+  const [hasChangedSteppers, setHasChangedSteppers] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [irregularPatternWarning, setIrregularPatternWarning] = useState<string | null>(null)
 
@@ -153,24 +157,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return isNaN(num) ? min : num
   }
   
-  useMemo(() => {
-    if (paymentType === 'parcelado' && !firstInstallmentDate) {
-      const safeInterval = getSafeNumber(interval, 30)
-      setFirstInstallmentDate(calculateDateFromDays(safeInterval, saleDate))
-      setFirstInstallmentDays(safeInterval)
-    } else if (paymentType === 'parcelado' && firstInstallmentDate && saleDate) {
-      const days = calculateDaysFromDate(firstInstallmentDate, saleDate)
-      setFirstInstallmentDays(days)
-    }
-  }, [paymentType, saleDate, firstInstallmentDate, interval])
 
-  const handleFirstInstallmentDaysChange = (val: string) => {
-    setFirstInstallmentDays(val)
-    const days = parseInt(val)
-    if (!isNaN(days)) {
-      setFirstInstallmentDate(calculateDateFromDays(days, saleDate))
-    }
-  }
 
   const handleFirstDateChange = (date: string) => {
     setFirstInstallmentDate(date)
@@ -270,6 +257,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return
     }
 
+    // Se for venda nova e o usuário ainda não mexeu nos steppers, deixa o quickCondition vazio
+    if (!sale && !hasChangedSteppers && !quickCondition) {
+      return
+    }
+
     if (paymentType === 'parcelado') {
       const safeInstallments = getSafeNumber(installments, 1)
       const safeInterval = getSafeNumber(interval, 30)
@@ -289,7 +281,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           setQuickCondition(parts.join('/'))
       }
     }
-  }, [installments, interval, firstInstallmentDays, paymentType, isUpdatingFromQuick])
+  }, [installments, interval, firstInstallmentDays, paymentType, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition])
 
   const [notes, setNotes] = useState(sale?.notes || '')
   const [valueEntries, setValueEntries] = useState<ValueEntry[]>(() => {
@@ -605,8 +597,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardHeader>
             <CardTitle>Dados Iniciais</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
+          <CardContent>
+            <div className="space-y-2 mt-[10px] mb-[20px]">
               <Label htmlFor="supplier" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Fornecedor (pasta) *</Label>
               <SupplierPicker
                 suppliers={suppliersList}
@@ -620,7 +612,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 mt-[40px] mb-[20px]">
               <Label className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Cliente *</Label>
               <ClientPicker
                 value={clientId}
@@ -875,7 +867,23 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
              <div className="flex justify-center py-4">
                 <RadioGroup
                 value={paymentType}
-                onValueChange={(v) => setPaymentType(v as 'vista' | 'parcelado')}
+                onValueChange={(v) => {
+                  const newType = v as 'vista' | 'parcelado'
+                  setPaymentType(newType)
+                  
+                  if (newType === 'parcelado') {
+                    // Se os dias estiverem <= 0 (provavelmente vindo de à vista), usa o padrão de 30
+                    let days = getSafeNumber(firstInstallmentDays, 30)
+                    if (days <= 0) days = 30
+                    
+                    setFirstInstallmentDays(days)
+                    setFirstInstallmentDate(calculateDateFromDays(days, saleDate))
+                  } else {
+                    // Quando volta para vista, reseta para a data da venda (hoje)
+                    setFirstInstallmentDate(saleDate)
+                    setFirstInstallmentDays(0)
+                  }
+                }}
                 className="flex gap-2 bg-muted p-1 rounded-full"
                 >
                 <div className="flex items-center">
@@ -915,12 +923,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         {/* 1. O Comando (Input Rápido com Autocomplete) */}
                         <div className="space-y-3">
                             <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
-                                Digite os prazos (ex: 30/60/90)
+                                Digite os prazos
                             </Label>
                             <div className="relative max-w-md mx-auto">
                                 <Input
                                     id="quick_condition"
-                                    placeholder="30/60/90"
+                                    placeholder="ex: 30/60/90"
                                     value={quickCondition}
                                     onChange={(e) => {
                                       setQuickCondition(e.target.value)
@@ -1000,7 +1008,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                 </Label>
                                 <NumberStepper
                                   value={Number(installments) || 1}
-                                  onChange={(val) => setInstallments(val)}
+                                  onChange={(val) => {
+                                    setInstallments(val)
+                                    setHasChangedSteppers(true)
+                                  }}
                                   min={1}
                                   max={24}
                                   step={1}
@@ -1013,7 +1024,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                 </Label>
                                 <NumberStepper
                                   value={Number(interval) || 30}
-                                  onChange={(val) => setInterval(val)}
+                                  onChange={(val) => {
+                                    setInterval(val)
+                                    setHasChangedSteppers(true)
+                                  }}
                                   min={1}
                                   step={5}
                                   size="sm"
@@ -1028,6 +1042,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                   onChange={(val) => {
                                     setFirstInstallmentDays(val)
                                     setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                                    setHasChangedSteppers(true)
                                   }}
                                   min={0}
                                   step={5}
