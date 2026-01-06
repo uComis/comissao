@@ -102,10 +102,10 @@ export function PercentInput({
         %
       </span>
 
-      {/* Botões verticais - aparecem no hover/focus e sobrepõem o % */}
+      {/* Botões verticais - mais visíveis por padrão e destacados no hover */}
       <div
         className={cn(
-          'absolute right-0 top-0 bottom-0 flex flex-col opacity-0 group-hover:opacity-100 transition-opacity bg-background rounded-r-xl',
+          'absolute right-0 top-0 bottom-0 flex flex-col opacity-40 group-hover:opacity-100 transition-opacity bg-background rounded-r-xl border-l',
           isFocused && 'opacity-100'
         )}
       >
@@ -113,7 +113,7 @@ export function PercentInput({
           type="button"
           onClick={increment}
           disabled={value >= max}
-          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl border-l"
+          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl"
         >
           <ChevronUp className="h-3 w-3" />
         </button>
@@ -121,7 +121,7 @@ export function PercentInput({
           type="button"
           onClick={decrement}
           disabled={value <= min}
-          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-br-xl border-l border-t"
+          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-br-xl border-t"
         >
           <ChevronDown className="h-3 w-3" />
         </button>
