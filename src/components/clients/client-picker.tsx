@@ -112,6 +112,7 @@ export function ClientPicker({
           <SheetContent 
             side="right" 
             className="w-full sm:max-w-full h-full flex flex-col p-0"
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <SheetHeader className="border-b px-4 py-3">
               <SheetTitle>Selecionar Cliente</SheetTitle>
@@ -126,7 +127,6 @@ export function ClientPicker({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 h-12"
-                  autoFocus
                 />
               </div>
             </div>

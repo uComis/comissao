@@ -1150,7 +1150,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       </form>
 
       <Dialog open={productSearchOpen.open} onOpenChange={(open) => setProductSearchOpen({ open, entryId: productSearchOpen.entryId })}>
-        <DialogContent className="max-w-md w-full p-0 gap-0 overflow-hidden rounded-3xl">
+        <DialogContent 
+          className="max-w-md w-full p-0 gap-0 overflow-hidden rounded-3xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>Selecionar Item</DialogTitle>
             <div className="relative mt-4">
@@ -1160,7 +1163,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 value={productSearchQuery}
                 onChange={(e) => setProductSearchQuery(e.target.value)}
                 className="pl-9 h-12 border-2 rounded-xl"
-                autoFocus
               />
             </div>
           </DialogHeader>
