@@ -649,107 +649,113 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                 data-removing={removingIds.has(entry.id)}
                             >
                                 <div className="overflow-hidden">
-                                    <div className="flex justify-center py-2 relative group animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200"
+                                    <div className={cn(
+                                        "flex justify-center py-2 pb-4 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
+                                        index === valueEntries.length - 1 && "border-b-0"
+                                    )}
                                          data-removing={removingIds.has(entry.id)}
                                     >
-                                        <div className="flex flex-wrap items-end gap-4 relative">
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="icon"
-                                                    className={`h-12 w-12 shrink-0 border-2 transition-all rounded-xl ${entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary'}`}
-                                                    onClick={() => {
-                                                      if (!supplierId) {
-                                                        toast.error('Selecione um fornecedor primeiro')
-                                                        return
-                                                      }
-                                                      setProductSearchOpen({ open: true, entryId: entry.id })
-                                                    }}
-                                                    title={entry.productName || "Selecionar item"}
-                                                >
-                                                    <Search className="h-5 w-5" />
-                                                </Button>
-                                            </div>
+                                        <div className="flex flex-wrap items-end gap-x-4 gap-y-2 relative w-full pr-8">
+                                            {/* First Row: Item and Valor Total */}
+                                            <div className="flex items-end gap-4 flex-[1_0_240px]">
+                                                <div className="flex flex-col gap-2">
+                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className={`h-12 w-12 shrink-0 border-2 transition-all rounded-xl ${entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary'}`}
+                                                        onClick={() => {
+                                                          if (!supplierId) {
+                                                            toast.error('Selecione um fornecedor primeiro')
+                                                            return
+                                                          }
+                                                          setProductSearchOpen({ open: true, entryId: entry.id })
+                                                        }}
+                                                        title={entry.productName || "Selecionar item"}
+                                                    >
+                                                        <Search className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
 
-                                            {/* 1. Valor Total */}
-                                            <div className="flex flex-col gap-2">
-                                                <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
-                                                <div className="relative w-40">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
-                                                    <Input
-                                                        id={`gross_value_${entry.id}`}
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        placeholder="0,00"
-                                                        className="pl-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
-                                                        value={entry.grossValue}
-                                                        onChange={(e) => handleUpdateValueEntry(entry.id, 'grossValue', e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
-                                                    />
+                                                <div className="flex flex-col gap-2 flex-1">
+                                                    <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
+                                                    <div className="relative w-full">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
+                                                        <Input
+                                                            id={`gross_value_${entry.id}`}
+                                                            type="text"
+                                                            inputMode="decimal"
+                                                            placeholder="0,00"
+                                                            className="pl-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
+                                                            value={entry.grossValue}
+                                                            onChange={(e) => handleUpdateValueEntry(entry.id, 'grossValue', e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* 2. Impostos - Borda Laranja */}
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
-                                                <PercentInput
-                                                    value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
-                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
-                                                    min={0}
-                                                    max={100}
-                                                    step={0.5}
-                                                    decimals={2}
-                                                    className="w-28 [&>input]:border-l-4 [&>input]:border-l-[#f59e0b]"
-                                                />
-                                            </div>
-
-                                            {/* 3. Comissão - Borda Verde */}
-                                            <div className="flex flex-col gap-2">
-                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
-                                                <div className="flex items-center gap-2">
+                                            {/* Second Row: Impostos and Comissão - Always together */}
+                                            <div className="flex items-end gap-4 flex-[1_0_240px]">
+                                                <div className="flex flex-col gap-2 flex-1">
+                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
                                                     <PercentInput
-                                                        value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
-                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
+                                                        value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
+                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
                                                         min={0}
                                                         max={100}
                                                         step={0.5}
                                                         decimals={2}
-                                                        className="w-28 [&>input]:border-l-4 [&>input]:border-l-[#67C23A]"
+                                                        className="w-full [&>input]:border-l-4 [&>input]:border-l-[#f59e0b]"
                                                     />
+                                                </div>
 
-                                                    {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
-                                                                    <Wand2 className="h-5 w-5" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-56">
-                                                                <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
-                                                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
-                                                                        <span>{rule.name}</span>
-                                                                        <span className="font-bold text-muted-foreground">
-                                                                            {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
-                                                                        </span>
-                                                                    </DropdownMenuItem>
-                                                                ))}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    )}
+                                                <div className="flex flex-col gap-2 flex-1">
+                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <PercentInput
+                                                            value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
+                                                            onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
+                                                            min={0}
+                                                            max={100}
+                                                            step={0.5}
+                                                            decimals={2}
+                                                            className="w-full [&>input]:border-l-4 [&>input]:border-l-[#67C23A]"
+                                                        />
+
+                                                        {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
+                                                                        <Wand2 className="h-5 w-5" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-56">
+                                                                    <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
+                                                                    <DropdownMenuSeparator />
+                                                                    {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
+                                                                        <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
+                                                                            <span>{rule.name}</span>
+                                                                            <span className="font-bold text-muted-foreground">
+                                                                                {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
+                                                                            </span>
+                                                                        </DropdownMenuItem>
+                                                                    ))}
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             {/* Botão Remover - Discreto e Colado nos inputs */}
                                             {valueEntries.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveValueEntry(entry.id)}
-                                                    className="absolute -right-7 bottom-3.5 p-1 text-destructive/40 hover:text-destructive transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                                    title="Remover valor"
-                                                >
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveValueEntry(entry.id)}
+                                                        className="absolute right-0 top-3 p-1 text-destructive/40 hover:text-destructive transition-all opacity-100 cursor-pointer"
+                                                        title="Remover valor"
+                                                    >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             )}
