@@ -204,7 +204,7 @@ export function ClientPicker({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn('flex-1 justify-between font-normal')}
+            className={cn('flex-1 justify-between font-normal bg-background')}
             disabled={loading}
           >
             <span className={cn('truncate', !displayValue && 'text-muted-foreground')}>

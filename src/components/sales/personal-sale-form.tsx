@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import type { Product, PersonalClient, CommissionRule } from '@/types'
 import type { PersonalSaleWithItems } from '@/types/personal-sale'
+import { cn } from "@/lib/utils"
 import {
     Dialog,
     DialogContent,
@@ -184,6 +185,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (paymentType === 'parcelado') {
       const days = getSafeNumber(firstInstallmentDays, 30)
       setFirstInstallmentDate(calculateDateFromDays(days, date))
+    } else {
+      // Para vendas à vista, a data de recebimento por padrão acompanha a venda
+      setFirstInstallmentDate(date)
     }
   }
 
@@ -601,9 +605,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardHeader>
             <CardTitle>Dados Iniciais</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="supplier">Fornecedor *</Label>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Fornecedor (pasta) *</Label>
               <SupplierPicker
                 suppliers={suppliersList}
                 value={supplierId}
@@ -616,8 +620,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               />
             </div>
 
-            <div className="flex-1 space-y-2">
-              <Label>Cliente *</Label>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Cliente *</Label>
               <ClientPicker
                 value={clientId}
                 onChange={handleClientChange}
@@ -839,31 +843,36 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardHeader>
             <CardTitle>Condições de Pagamento</CardTitle>
           </CardHeader>
-          <CardContent>
-             
-            {/* Data da Venda (Âncora Temporal) */}
-             <div className="flex flex-col items-center justify-center space-y-3 mb-6">
-                <Label htmlFor="date" className="text-muted-foreground text-sm uppercase tracking-wide font-bold">Data da Venda</Label>
-                <div className="relative">
-                    <Input
-                        id="date"
-                        type="date"
-                        value={saleDate}
-                        onChange={(e) => handleSaleDateChange(e.target.value)}
-                        className="w-auto min-w-[200px] text-center font-bold text-lg h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary px-4"
-                    />
-                </div>
-             </div>
+          <CardContent className="space-y-6">
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="date" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Data da Venda</Label>
+                <Input
+                    id="date"
+                    type="date"
+                    value={saleDate}
+                    onChange={(e) => handleSaleDateChange(e.target.value)}
+                    className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
+                />
+              </div>
 
-             {/* Separador Visual Customizado */}
-             <div className="flex items-center justify-center gap-4 mb-8 opacity-50">
-                <div className="h-px bg-border w-12"></div>
-                <div className="h-1 w-1 rounded-full bg-border"></div>
-                <div className="h-px bg-border w-12"></div>
-             </div>
+              <div className="space-y-2">
+                <Label htmlFor="first_installment_date_footer" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">
+                  {paymentType === 'vista' ? 'Data de Recebimento' : 'Data da 1ª Parcela'}
+                </Label>
+                <Input
+                  id="first_installment_date_footer"
+                  type="date"
+                  className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
+                  value={firstInstallmentDate}
+                  onChange={(e) => handleFirstDateChange(e.target.value)}
+                />
+              </div>
+            </div>
 
              {/* Seletor de Tipo */}
-             <div className="flex justify-center mb-8">
+             <div className="flex justify-center py-4">
                 <RadioGroup
                 value={paymentType}
                 onValueChange={(v) => setPaymentType(v as 'vista' | 'parcelado')}
@@ -894,208 +903,202 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 </RadioGroup>
             </div>
 
-            {paymentType === 'parcelado' && (
-            <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                
-                {/* 1. O Comando (Input Rápido com Autocomplete) */}
-                <div className="space-y-3">
-                    <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
-                        Digite os prazos (ex: 30/60/90)
-                    </Label>
-                    <div className="relative max-w-md mx-auto">
-                        <Input
-                            id="quick_condition"
-                            placeholder="30/60/90"
-                            value={quickCondition}
-                            onChange={(e) => {
-                              setQuickCondition(e.target.value)
-                              setIsUpdatingFromQuick(true)
-                              setIrregularPatternWarning(null)
-                            }}
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => {
-                              // Delay para permitir clique nas sugestões
-                              setTimeout(() => {
-                                setShowSuggestions(false)
-                                handleQuickConditionBlur()
-                              }, 150)
-                            }}
-                            className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
-                              irregularPatternWarning 
-                                ? 'border-amber-400 focus-visible:border-amber-500' 
-                                : 'border-primary/20 focus-visible:border-primary'
-                            }`}
-                        />
+            <div 
+                className={cn(
+                    "grid transition-all duration-500 ease-in-out overflow-hidden",
+                    paymentType === 'parcelado' ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                )}
+            >
+                <div className="min-h-0">
+                    <div className="max-w-2xl mx-auto space-y-6 pt-6 animate-in fade-in slide-in-from-top-4 duration-500 fill-mode-both">
                         
-                        {/* Autocomplete Dropdown */}
-                        {showSuggestions && filteredSuggestions.length > 0 && (
-                          <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
-                            {filteredSuggestions.map((suggestion, index) => (
-                              <button
-                                key={index}
-                                type="button"
-                                className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
-                                onMouseDown={(e) => {
-                                  e.preventDefault()
-                                  handleSelectSuggestion(suggestion.value)
-                                }}
-                              >
-                                <span className="font-medium">{suggestion.label}</span>
-                                {suggestion.description && (
-                                  <span className="text-xs text-muted-foreground">{suggestion.description}</span>
+                        {/* 1. O Comando (Input Rápido com Autocomplete) */}
+                        <div className="space-y-3">
+                            <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
+                                Digite os prazos (ex: 30/60/90)
+                            </Label>
+                            <div className="relative max-w-md mx-auto">
+                                <Input
+                                    id="quick_condition"
+                                    placeholder="30/60/90"
+                                    value={quickCondition}
+                                    onChange={(e) => {
+                                      setQuickCondition(e.target.value)
+                                      setIsUpdatingFromQuick(true)
+                                      setIrregularPatternWarning(null)
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => {
+                                      // Delay para permitir clique nas sugestões
+                                      setTimeout(() => {
+                                        setShowSuggestions(false)
+                                        handleQuickConditionBlur()
+                                      }, 150)
+                                    }}
+                                    className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                                      irregularPatternWarning 
+                                        ? 'border-amber-400 focus-visible:border-amber-500' 
+                                        : 'border-primary/20 focus-visible:border-primary'
+                                    }`}
+                                />
+                                
+                                {/* Autocomplete Dropdown */}
+                                {showSuggestions && filteredSuggestions.length > 0 && (
+                                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                                    {filteredSuggestions.map((suggestion, index) => (
+                                      <button
+                                        key={index}
+                                        type="button"
+                                        className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault()
+                                          handleSelectSuggestion(suggestion.value)
+                                        }}
+                                      >
+                                        <span className="font-medium">{suggestion.label}</span>
+                                        {suggestion.description && (
+                                          <span className="text-xs text-muted-foreground">{suggestion.description}</span>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
                                 )}
-                              </button>
-                            ))}
-                          </div>
+                            </div>
+                            
+                            {/* Alerta de Padrão Irregular */}
+                            {irregularPatternWarning && (
+                              <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div className="flex-1">
+                                  <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
+                                  <button
+                                    type="button"
+                                    className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
+                                    onClick={() => setIrregularPatternWarning(null)}
+                                  >
+                                    Entendi, continuar assim
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                        </div>
+
+                        {/* 2. A Conexão */}
+                        <div className="flex items-center justify-center gap-4 text-muted-foreground/30">
+                            <div className="h-px bg-border flex-1"></div>
+                            <div className="text-xs uppercase tracking-widest font-semibold">Detalhes do Prazo</div>
+                            <div className="h-px bg-border flex-1"></div>
+                        </div>
+
+                        {/* 3. A Mecânica (Box Técnico) */}
+                        <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
+                                Número de Parcelas
+                                </Label>
+                                <NumberStepper
+                                  value={Number(installments) || 1}
+                                  onChange={(val) => setInstallments(val)}
+                                  min={1}
+                                  max={24}
+                                  step={1}
+                                  size="sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
+                                Intervalo em dias
+                                </Label>
+                                <NumberStepper
+                                  value={Number(interval) || 30}
+                                  onChange={(val) => setInterval(val)}
+                                  min={1}
+                                  step={5}
+                                  size="sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
+                                1ª Parcela em Dias
+                                </Label>
+                                <NumberStepper
+                                  value={Number(firstInstallmentDays) || 30}
+                                  onChange={(val) => {
+                                    setFirstInstallmentDays(val)
+                                    setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                                  }}
+                                  min={0}
+                                  step={5}
+                                  size="sm"
+                                />
+                            </div>
+                        </div>
+
+                        {/* 4. O Resultado (Lista Limpa e Primária) */}
+                        {installmentDates && (
+                            <div className="pt-4 pb-6">
+                                <Label className="text-sm font-semibold block mb-4 text-center">
+                                    Previsão de Recebimento
+                                </Label>
+                                <div className="bg-card rounded-lg border shadow-sm divide-y">
+                                    {(() => {
+                                        const safeInstallments = getSafeNumber(installments, 1);
+                                        const safeInterval = getSafeNumber(interval, 30);
+                                        const safeFirstDays = getSafeNumber(firstInstallmentDays, 30);
+                                        const installmentValue = totalValue > 0 ? totalValue / safeInstallments : 0;
+                                        
+                                        const dates = [];
+                                        const baseDate = firstInstallmentDate ? new Date(firstInstallmentDate + 'T12:00:00') : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00');
+                                        
+                                        for(let i=0; i < Math.min(safeInstallments, 4); i++) {
+                                            const d = new Date(baseDate);
+                                            d.setDate(d.getDate() + (i * safeInterval));
+                                            dates.push(d);
+                                        }
+
+                                        return (
+                                            <>
+                                                {dates.map((date, idx) => (
+                                                    <div key={idx} className="flex justify-between items-center p-3 hover:bg-muted/20 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                                                                {idx + 1}
+                                                            </span>
+                                                            <span className="text-sm font-medium">
+                                                                {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date)}
+                                                            </span>
+                                                        </div>
+                                                        <span className="font-bold text-sm">
+                                                            {installmentValue > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue) : '-'}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                
+                                                {safeInstallments > 4 && (
+                                                    <div className="p-2 bg-muted/20 text-center">
+                                                        <Button
+                                                            type="button"
+                                                            variant="link"
+                                                            size="sm"
+                                                            className="text-xs h-auto py-1"
+                                                            onClick={() => setInstallmentsSheetOpen(true)}
+                                                        >
+                                                            <Eye className="h-3 w-3 mr-1" />
+                                                            Ver mais {safeInstallments - 4} parcelas...
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
                         )}
                     </div>
-                    
-                    {/* Alerta de Padrão Irregular */}
-                    {irregularPatternWarning && (
-                      <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
-                          <button
-                            type="button"
-                            className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
-                            onClick={() => setIrregularPatternWarning(null)}
-                          >
-                            Entendi, continuar assim
-                          </button>
-                        </div>
-                      </div>
-                    )}
                 </div>
-
-                {/* 2. A Conexão */}
-                <div className="flex items-center justify-center gap-4 text-muted-foreground/30">
-                    <div className="h-px bg-border flex-1"></div>
-                    <div className="text-xs uppercase tracking-widest font-semibold">Configuração Avançada</div>
-                    <div className="h-px bg-border flex-1"></div>
-                </div>
-
-                {/* 3. A Mecânica (Box Técnico) */}
-                <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                        Qtd.
-                        </Label>
-                        <NumberStepper
-                          value={Number(installments) || 1}
-                          onChange={(val) => setInstallments(val)}
-                          min={1}
-                          max={24}
-                          step={1}
-                          size="sm"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                        Intervalo
-                        </Label>
-                        <NumberStepper
-                          value={Number(interval) || 30}
-                          onChange={(val) => setInterval(val)}
-                          min={1}
-                          step={5}
-                          size="sm"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                        1ª em (dias)
-                        </Label>
-                        <NumberStepper
-                          value={Number(firstInstallmentDays) || 30}
-                          onChange={(val) => {
-                            setFirstInstallmentDays(val)
-                            setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
-                          }}
-                          min={0}
-                          step={5}
-                          size="sm"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="first_installment_date" className="text-[10px] uppercase text-muted-foreground font-bold">
-                        Data 1ª
-                        </Label>
-                        <Input
-                        id="first_installment_date"
-                        type="date"
-                        required
-                        className="h-9 bg-background px-2 text-xs"
-                        value={firstInstallmentDate}
-                        onChange={(e) => handleFirstDateChange(e.target.value)}
-                        />
-                    </div>
-                </div>
-
-                {/* 4. O Resultado (Lista Limpa e Primária) */}
-                {installmentDates && (
-                    <div className="pt-4">
-                        <Label className="text-sm font-semibold block mb-4 text-center">
-                            Previsão de Recebimento
-                        </Label>
-                        <div className="bg-card rounded-lg border shadow-sm divide-y">
-                            {(() => {
-                                const safeInstallments = getSafeNumber(installments, 1);
-                                const safeInterval = getSafeNumber(interval, 30);
-                                const safeFirstDays = getSafeNumber(firstInstallmentDays, 30);
-                                const installmentValue = totalValue > 0 ? totalValue / safeInstallments : 0;
-                                
-                                const dates = [];
-                                const baseDate = firstInstallmentDate ? new Date(firstInstallmentDate + 'T12:00:00') : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00');
-                                
-                                for(let i=0; i < Math.min(safeInstallments, 4); i++) {
-                                    const d = new Date(baseDate);
-                                    d.setDate(d.getDate() + (i * safeInterval));
-                                    dates.push(d);
-                                }
-
-                                return (
-                                    <>
-                                        {dates.map((date, idx) => (
-                                            <div key={idx} className="flex justify-between items-center p-3 hover:bg-muted/20 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                                                        {idx + 1}
-                                                    </span>
-                                                    <span className="text-sm font-medium">
-                                                        {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date)}
-                                                    </span>
-                                                </div>
-                                                <span className="font-bold text-sm">
-                                                    {installmentValue > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue) : '-'}
-                                                </span>
-                                            </div>
-                                        ))}
-                                        
-                                        {safeInstallments > 4 && (
-                                            <div className="p-2 bg-muted/20 text-center">
-                                                <Button
-                                                    type="button"
-                                                    variant="link"
-                                                    size="sm"
-                                                    className="text-xs h-auto py-1"
-                                                    onClick={() => setInstallmentsSheetOpen(true)}
-                                                >
-                                                    <Eye className="h-3 w-3 mr-1" />
-                                                    Ver mais {safeInstallments - 4} parcelas...
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </div>
-                )}
             </div>
-            )}
           </CardContent>
         </Card>
 
