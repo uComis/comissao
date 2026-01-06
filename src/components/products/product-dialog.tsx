@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { createProduct, updateProduct } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product } from '@/types'
+import type { Product, CommissionRule } from '@/types'
 import { ProductForm, type ProductFormRef } from './product-form'
 
 type Props = {
@@ -22,9 +22,23 @@ type Props = {
   showSku?: boolean
   initialName?: string
   onProductCreated?: (product: Product) => void
+  availableRules?: CommissionRule[]
+  existingProducts?: Product[]
+  onAddRule?: () => void
 }
 
-export function ProductDialog({ open, onOpenChange, supplierId, product, showSku = true, initialName, onProductCreated }: Props) {
+export function ProductDialog({ 
+  open, 
+  onOpenChange, 
+  supplierId, 
+  product, 
+  showSku = true, 
+  initialName, 
+  onProductCreated,
+  availableRules,
+  existingProducts,
+  onAddRule
+}: Props) {
   const formRef = useRef<ProductFormRef>(null)
   const [loading, setLoading] = useState(false)
 
@@ -48,6 +62,9 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
           name: formData.name,
           sku: formData.sku,
           unit_price: formData.unit_price,
+          default_commission_rate: formData.default_commission_rate,
+          default_tax_rate: formData.default_tax_rate,
+          commission_rule_id: formData.commission_rule_id,
         })
 
         if (result.success) {
@@ -63,6 +80,9 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
           name: formData.name,
           sku: formData.sku ?? undefined,
           unit_price: formData.unit_price,
+          default_commission_rate: formData.default_commission_rate,
+          default_tax_rate: formData.default_tax_rate,
+          commission_rule_id: formData.commission_rule_id,
         })
 
         if (result.success) {
@@ -94,7 +114,15 @@ export function ProductDialog({ open, onOpenChange, supplierId, product, showSku
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <ProductForm ref={formRef} product={product} showSku={showSku} initialName={initialName} />
+          <ProductForm 
+            ref={formRef} 
+            product={product} 
+            showSku={showSku} 
+            initialName={initialName}
+            availableRules={availableRules}
+            existingProducts={existingProducts}
+            onAddRule={onAddRule}
+          />
 
           <DialogFooter>
             <Button

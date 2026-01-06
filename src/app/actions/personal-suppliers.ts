@@ -17,6 +17,8 @@ export type PersonalSupplier = {
   match_status: 'unlinked' | 'suggested' | 'linked' | 'rejected'
   matched_at: string | null
   matched_by: 'auto_cnpj' | 'auto_name' | 'manual' | null
+  default_commission_rate: number
+  default_tax_rate: number
   created_at: string
   updated_at: string
 }
@@ -38,11 +40,14 @@ const ruleInputSchema = z.object({
     percentage: z.number().min(0).max(100),
   })).nullable(),
   is_default: z.boolean().optional(),
+  target: z.enum(['commission', 'tax']).optional().default('commission'),
 })
 
 const createSupplierWithRuleSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   cnpj: z.string().optional(),
+  default_commission_rate: z.number().min(0).max(100).optional(),
+  default_tax_rate: z.number().min(0).max(100).optional(),
   rule: ruleInputSchema.optional().nullable(),
 })
 
@@ -51,6 +56,8 @@ const updateSupplierWithRulesSchema = z.object({
   cnpj: z.string().optional(),
   rules: z.array(ruleInputSchema).optional(),
   default_rule_id: z.string().optional(),
+  default_commission_rate: z.number().optional(),
+  default_tax_rate: z.number().optional(),
 })
 
 // Types de retorno
@@ -203,6 +210,8 @@ export async function createPersonalSupplierWithRule(
         user_id: user.id,
         name: parsed.data.name,
         cnpj: parsed.data.cnpj || null,
+        default_commission_rate: parsed.data.default_commission_rate || 0,
+        default_tax_rate: parsed.data.default_tax_rate || 0,
       })
       .select()
       .single()
@@ -283,6 +292,8 @@ export async function updatePersonalSupplierWithRules(
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name
     if (parsed.data.cnpj !== undefined) updateData.cnpj = parsed.data.cnpj || null
     if (parsed.data.default_rule_id !== undefined) updateData.commission_rule_id = parsed.data.default_rule_id
+    if (parsed.data.default_commission_rate !== undefined) updateData.default_commission_rate = parsed.data.default_commission_rate
+    if (parsed.data.default_tax_rate !== undefined) updateData.default_tax_rate = parsed.data.default_tax_rate
 
     const { error: updateError } = await supabase
       .from('personal_suppliers')
@@ -305,6 +316,7 @@ export async function updatePersonalSupplierWithRules(
             .update({
               name: rule.name,
               type: rule.type,
+              target: rule.target || 'commission',
               percentage: rule.type === 'fixed' ? rule.percentage : null,
               tiers: rule.type === 'tiered' ? rule.tiers : null,
               updated_at: new Date().toISOString(),
@@ -321,6 +333,7 @@ export async function updatePersonalSupplierWithRules(
               personal_supplier_id: id,
               name: rule.name,
               type: rule.type,
+              target: rule.target || 'commission',
               percentage: rule.type === 'fixed' ? rule.percentage : null,
               tiers: rule.type === 'tiered' ? rule.tiers : null,
               is_default: !!rule.is_default,
@@ -362,6 +375,7 @@ export async function addCommissionRule(
         personal_supplier_id: supplierId,
         name: parsed.data.name,
         type: parsed.data.type,
+        target: parsed.data.target || 'commission',
         percentage: parsed.data.type === 'fixed' ? parsed.data.percentage : null,
         tiers: parsed.data.type === 'tiered' ? parsed.data.tiers : null,
         is_default: !!parsed.data.is_default,

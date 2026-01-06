@@ -31,13 +31,14 @@ import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Pencil, Trash2, Power, PowerOff } from 'lucide-react'
 import { deleteProduct, toggleProductActive } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product } from '@/types'
+import type { Product, CommissionRule } from '@/types'
 import { ProductDialog } from './product-dialog'
 
 type Props = {
   products: Product[]
   supplierId: string
   showSku?: boolean
+  availableRules?: CommissionRule[]
 }
 
 function formatPrice(value: number | null): string {
@@ -48,7 +49,7 @@ function formatPrice(value: number | null): string {
   }).format(value)
 }
 
-export function ProductTable({ products, supplierId, showSku = true }: Props) {
+export function ProductTable({ products, supplierId, showSku = true, availableRules }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -165,6 +166,8 @@ export function ProductTable({ products, supplierId, showSku = true }: Props) {
         supplierId={supplierId}
         product={editingProduct}
         showSku={showSku}
+        availableRules={availableRules}
+        existingProducts={products}
       />
 
       {/* Dialog de confirmação de exclusão */}

@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,23 +10,22 @@ import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { PercentInput } from '@/components/ui/percent-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
-import { Eye, Save, Wand2, X, Pencil, Trash2 } from 'lucide-react'
-import { SaleItemsEditor } from './sale-items-editor'
+import { Eye, Wand2, Trash2, Search } from 'lucide-react'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
-import { addCommissionRule } from '@/app/actions/personal-suppliers'
+import { updateProduct } from '@/app/actions/products'
+import { updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
-import type { Product, PersonalClient } from '@/types'
-import type { CreatePersonalSaleItemInput, PersonalSaleWithItems } from '@/types/personal-sale'
+import type { Product, PersonalClient, CommissionRule } from '@/types'
+import type { PersonalSaleWithItems } from '@/types/personal-sale'
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogDescription,
     DialogFooter
 } from "@/components/ui/dialog"
 import {
@@ -39,7 +37,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-type SaleItem = CreatePersonalSaleItemInput & { id: string }
+type ValueEntry = {
+  id: string
+  grossValue: string
+  taxRate: string
+  commissionRate: string
+  productId?: string | null
+  productName?: string
+}
 
 type Props = {
   suppliers: PersonalSupplierWithRules[]
@@ -156,7 +161,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       const days = calculateDaysFromDate(firstInstallmentDate, saleDate)
       setFirstInstallmentDays(days)
     }
-  }, [paymentType, saleDate, firstInstallmentDate])
+  }, [paymentType, saleDate, firstInstallmentDate, interval])
 
   const handleFirstInstallmentDaysChange = (val: string) => {
     setFirstInstallmentDays(val)
@@ -283,72 +288,33 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }, [installments, interval, firstInstallmentDays, paymentType, isUpdatingFromQuick])
 
   const [notes, setNotes] = useState(sale?.notes || '')
-  const [entryMode, setEntryMode] = useState<'total' | 'items'>(
-    sale?.items && sale.items.length > 0 ? 'items' : 'total'
-  )
-  
-  // Estado para múltiplos valores
-  type ValueEntry = {
-    id: string
-    grossValue: string
-    taxRate: string
-    commissionRate: string
-  }
-  
-  const [valueEntries, setValueEntries] = useState<ValueEntry[]>([
-    {
-      id: crypto.randomUUID(),
-      grossValue: sale?.gross_value?.toString() || '',
-      taxRate: sale?.tax_rate?.toString() || '',
-      commissionRate: sale?.commission_rate?.toString() || ''
-    }
-  ])
-  
-  // Mantém compatibilidade com código existente (usa primeiro entry)
-  const grossValueInput = valueEntries[0]?.grossValue || ''
-  const setGrossValueInput = (val: string) => {
-    setValueEntries(prev => prev.map((entry, idx) => 
-      idx === 0 ? { ...entry, grossValue: val } : entry
-    ))
-  }
-  
-  const taxRateInput = valueEntries[0]?.taxRate || ''
-  const setTaxRateInput = (val: string) => {
-    setValueEntries(prev => prev.map((entry, idx) => 
-      idx === 0 ? { ...entry, taxRate: val } : entry
-    ))
-  }
-  
-  const [selectedRuleId, setSelectedRuleId] = useState<string>('custom')
-  const commissionRate = valueEntries[0]?.commissionRate || ''
-  const setCommissionRate = (val: string) => {
-    setValueEntries(prev => prev.map((entry, idx) => 
-      idx === 0 ? { ...entry, commissionRate: val } : entry
-    ))
-  }
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
-  const [showSaveRuleDialog, setShowSaveRuleDialog] = useState(false)
-  const [newRuleName, setNewRuleName] = useState('')
-  const [savingRule, setSavingRule] = useState(false)
-  
-  // Estado para modo de edição quando há comissões diferentes nos itens
-  const [isEqualizingCommission, setIsEqualizingCommission] = useState(false)
-  const [equalizingValue, setEqualizingValue] = useState<number>(0)
-
-  const [items, setItems] = useState<SaleItem[]>(() => {
+  const [valueEntries, setValueEntries] = useState<ValueEntry[]>(() => {
     if (sale?.items && sale.items.length > 0) {
       return sale.items.map(item => ({
         id: item.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        tax_rate: item.tax_rate || 0,
-        commission_rate: item.commission_rate || 0,
+        grossValue: (item.quantity * item.unit_price).toString(),
+        taxRate: (item.tax_rate || 0).toString(),
+        commissionRate: (item.commission_rate || 0).toString(),
+        productId: item.product_id,
+        productName: item.product_name
       }))
     }
-    return []
+    return [
+      {
+        id: crypto.randomUUID(),
+        grossValue: sale?.gross_value?.toString() || '',
+        taxRate: sale?.tax_rate?.toString() || '',
+        commissionRate: sale?.commission_rate?.toString() || ''
+      }
+    ]
   })
+  
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const [productSearchOpen, setProductSearchOpen] = useState<{ open: boolean; entryId?: string }>({ open: false })
+  const [productSearchQuery, setProductSearchQuery] = useState('')
+
+
+  // Removido estado items e lógica itemsCommissionAnalysis que dependia de entryMode
 
   const paymentCondition = paymentType === 'vista'
     ? ''
@@ -368,195 +334,86 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
 
   const totalValue = useMemo(() => {
-    if (entryMode === 'total') {
-      // Soma todos os entries
-      return valueEntries.reduce((sum, entry) => {
-        const gross = parseFloat(entry.grossValue) || 0
-        const taxRate = parseFloat(entry.taxRate) || 0
-        return sum + (gross * (1 - (taxRate / 100)))
-      }, 0)
-    }
-    return items.reduce((sum, item) => {
-        const gross = item.quantity * item.unit_price
-        const tax = gross * ((item.tax_rate || 0) / 100)
-        return sum + (gross - tax)
+    // Agora sempre soma todos os entries (venda consolidada)
+    return valueEntries.reduce((sum, entry) => {
+      const gross = parseFloat(entry.grossValue) || 0
+      const taxRate = parseFloat(entry.taxRate) || 0
+      return sum + (gross * (1 - (taxRate / 100)))
     }, 0)
-  }, [items, entryMode, valueEntries])
+  }, [valueEntries])
 
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
 
-  useMemo(() => {
-      if (selectedSupplier && !isEdit) {
-          const defaultRule = selectedSupplier.default_rule
-          if (defaultRule) {
-              if (defaultRule.type === 'fixed' && defaultRule.percentage) {
-                  setCommissionRate(defaultRule.percentage.toString())
-              } else if (defaultRule.type === 'tiered' && defaultRule.tiers?.[0]) {
-                  setCommissionRate(defaultRule.tiers[0].percentage.toString())
-              }
-              // Marca como regra selecionada para não mostrar botão de salvar
-              setSelectedRuleId(defaultRule.id)
-          } else {
-              setCommissionRate('')
-              setSelectedRuleId('custom')
-          }
-      }
-  }, [supplierId, isEdit])
-
   const applyRule = (ruleId: string) => {
       const rule = selectedSupplier?.commission_rules.find(r => r.id === ruleId)
       if (rule) {
           if (rule.type === 'fixed' && rule.percentage) {
-              setCommissionRate(rule.percentage.toString())
+              // Aplica na primeira linha por padrão ou na linha selecionada no futuro
+              handleUpdateValueEntry(valueEntries[0].id, 'commissionRate', rule.percentage.toString())
               toast.success(`Taxa de ${rule.percentage}% aplicada!`)
-          } else if (rule.type === 'tiered' && rule.tiers?.[0]) {
-              setCommissionRate(rule.tiers[0].percentage.toString())
-              toast.success(`Taxa base de ${rule.tiers[0].percentage}% aplicada!`)
           }
       }
-      setSelectedRuleId(ruleId)
   }
 
-  const handleCommissionRateChange = (value: string) => {
-      setCommissionRate(value)
-      if (selectedRuleId !== 'custom') {
-          setSelectedRuleId('custom')
-      }
+  // handleCommissionRateChange was removed as it's no longer used for a single field
+
+  const calculateTieredRate = (rule: CommissionRule, value: number) => {
+    if (!rule.tiers || rule.tiers.length === 0) return rule.percentage || 0
+    
+    // Encontrar a faixa correspondente
+    const tier = rule.tiers.find((t) => {
+        const minMatches = value >= t.min
+        const maxMatches = t.max === null || value <= t.max
+        return minMatches && maxMatches
+    })
+    
+    return tier ? tier.percentage : (rule.tiers[rule.tiers.length - 1].percentage || 0)
   }
 
-  async function handleSaveNewRule() {
-      if (!newRuleName.trim()) {
-          toast.error('Informe o nome da regra')
-          return
-      }
-      if (!commissionRate || parseFloat(commissionRate) <= 0) {
-          toast.error('Informe uma porcentagem válida')
-          return
-      }
+  const getEffectiveRate = (entryId: string, target: 'commission' | 'tax', currentGross?: string, currentProductId?: string | null) => {
+    const entry = valueEntries.find(e => e.id === entryId)
+    if (!entry) return 0
 
-      setSavingRule(true)
-      try {
-          const result = await addCommissionRule(supplierId, {
-              name: newRuleName,
-              type: 'fixed',
-              percentage: parseFloat(commissionRate),
-              tiers: null,
-              is_default: false
-          })
+    const gross = parseFloat(currentGross !== undefined ? currentGross : entry.grossValue) || 0
+    const productId = currentProductId !== undefined ? currentProductId : entry.productId
 
-          if (result.success) {
-              toast.success('Regra salva com sucesso!')
-              
-              setSuppliersList(prev => prev.map(s => {
-                  if (s.id === supplierId) {
-                      return {
-                          ...s,
-                          commission_rules: [...s.commission_rules, result.data]
-                      }
-                  }
-                  return s
-              }))
-              
-              setSelectedRuleId(result.data.id)
-              setShowSaveRuleDialog(false)
-              setNewRuleName('')
-          } else {
-              toast.error(result.error)
-          }
-      } catch (error) {
-          console.error(error)
-          toast.error('Erro ao salvar regra')
-      } finally {
-          setSavingRule(false)
-      }
-  }
-
-  const commissionPercentage = useMemo(() => {
-    if (commissionRate) return parseFloat(commissionRate)
-    return null
-  }, [commissionRate])
-
-  // Análise das comissões dos itens
-  const itemsCommissionAnalysis = useMemo(() => {
-    if (entryMode !== 'items' || items.length === 0) {
-      return { hasItems: false, allSame: true, uniqueRates: [], avgRate: 0, totalCommission: 0 }
-    }
-    
-    const rates = items.map(i => i.commission_rate || 0)
-    const uniqueRates = [...new Set(rates)]
-    const allSame = uniqueRates.length === 1
-    
-    // Calcula comissão total baseada nos itens
-    const totalCommission = items.reduce((sum, item) => {
-      const gross = item.quantity * item.unit_price
-      const tax = gross * ((item.tax_rate || 0) / 100)
-      const net = gross - tax
-      return sum + (net * ((item.commission_rate || 0) / 100))
-    }, 0)
-    
-    // Taxa média ponderada
-    const avgRate = totalValue > 0 ? (totalCommission / totalValue) * 100 : 0
-    
-    return {
-      hasItems: true,
-      allSame,
-      uniqueRates,
-      avgRate: Math.round(avgRate * 100) / 100,
-      totalCommission
-    }
-  }, [items, entryMode, totalValue])
-
-  // Sincroniza o campo global com os itens quando todos têm mesma comissão
-  useMemo(() => {
-    if (entryMode === 'items' && items.length > 0 && itemsCommissionAnalysis.allSame) {
-      const itemRate = items[0].commission_rate || 0
-      if (parseFloat(commissionRate || '0') !== itemRate) {
-        setCommissionRate(itemRate.toString())
+    // 1. Produto
+    if (productId) {
+      const product = selectedProducts.find(p => p.id === productId)
+      if (product) {
+        // a) Regra de Faixa do Produto
+        if (product.commission_rule_id) {
+            const rule = selectedSupplier?.commission_rules.find(r => r.id === product.commission_rule_id)
+            if (rule && rule.target === target && rule.type === 'tiered') {
+                return calculateTieredRate(rule, gross)
+            }
+        }
+        // b) Valor Fixo do Produto
+        const fixed = target === 'commission' ? product.default_commission_rate : product.default_tax_rate
+        if (fixed !== null) return fixed
       }
     }
-  }, [items, entryMode, itemsCommissionAnalysis.allSame])
 
-  // Handler para mudança de comissão que propaga para itens se necessário
-  const handleGlobalCommissionChange = (value: string) => {
-    const newRate = parseFloat(value) || 0
-    
-    if (entryMode === 'items' && items.length > 0) {
-      // Propaga para todos os itens
-      const updatedItems = items.map(item => ({
-        ...item,
-        commission_rate: newRate
-      }))
-      setItems(updatedItems)
+    // 2. Pasta (Fornecedor)
+    if (selectedSupplier) {
+        // a) Regra de Faixa da Pasta (Default para o target)
+        const supplierRule = selectedSupplier.commission_rules.find(r => r.target === target && r.type === 'tiered' && r.is_default)
+        if (supplierRule) {
+            return calculateTieredRate(supplierRule, gross)
+        }
+
+        // b) Valor Fixo da Pasta
+        const fixed = target === 'commission' ? selectedSupplier.default_commission_rate : selectedSupplier.default_tax_rate
+        return fixed || 0
     }
-    
-    setCommissionRate(value)
-    if (selectedRuleId !== 'custom') {
-      setSelectedRuleId('custom')
-    }
+
+    return 0
   }
-  
-  // Handler para quando está no modo "igualar" e edita o valor
-  const handleEqualizingCommissionChange = (newValue: number) => {
-    // Arredonda para múltiplo de 0.5 mais próximo
-    const rounded = Math.round(newValue * 2) / 2
-    setEqualizingValue(rounded)
-    handleGlobalCommissionChange(rounded.toString())
-    setIsEqualizingCommission(false)
-    toast.success(`Comissão de ${rounded}% aplicada a todos os itens!`)
-  }
-  
-  // Inicia o modo de igualar
-  const startEqualizingMode = () => {
-    setEqualizingValue(itemsCommissionAnalysis.avgRate)
-    setIsEqualizingCommission(true)
-  }
-  
-  // Cancela o modo de igualar
-  const cancelEqualizingMode = () => {
-    setIsEqualizingCommission(false)
-  }
+
+
+  // Removidas funções de equalização de comissão
 
   const installmentDates = useMemo(() => {
     if (paymentType !== 'parcelado') return null
@@ -595,23 +452,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return
     }
 
-    if (entryMode === 'items' && items.length === 0) {
-      toast.error('Adicione pelo menos um item')
-      return
-    }
-
-    if (entryMode === 'total' && (!grossValueInput || parseFloat(grossValueInput) <= 0)) {
-      toast.error('Informe o valor total da venda')
-      return
-    }
-
-    if (entryMode === 'items') {
-      const invalidItems = items.filter(item => !item.product_name.trim())
-      if (invalidItems.length > 0) {
-        toast.error('Todos os itens precisam ter nome')
-        return
-      }
-    }
+    // Validação básica
 
     setSaving(true)
 
@@ -624,17 +465,34 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         payment_condition: paymentCondition.trim() || undefined,
         first_installment_date: firstInstallmentDate || undefined,
         notes: notes.trim() || undefined,
-        gross_value: entryMode === 'total' ? parseFloat(grossValueInput) : undefined,
-        tax_rate: entryMode === 'total' ? (parseFloat(taxRateInput) || 0) : undefined,
-        commission_rate: commissionRate ? parseFloat(commissionRate) : undefined,
-        items: entryMode === 'items' ? items.map(({ product_id, product_name, quantity, unit_price, tax_rate, commission_rate }) => ({
-          product_id,
-          product_name,
-          quantity,
-          unit_price,
-          tax_rate: tax_rate || 0,
-          commission_rate: commission_rate || 0
-        })) : [],
+        // Agora mapeamos SEMPRE valueEntries para items
+        items: valueEntries.map(entry => ({
+          product_id: entry.productId,
+          product_name: entry.productName || 'Valor',
+          quantity: 1,
+          unit_price: parseFloat(entry.grossValue) || 0,
+          tax_rate: parseFloat(entry.taxRate) || 0,
+          commission_rate: parseFloat(entry.commissionRate) || 0
+        })),
+      }
+
+      // Aprendizado Silencioso (V3): Atualiza defaults baseados no uso real
+      // Fazemos isso em background (não aguardamos resposta se possível ou fazemos antes do refresh)
+      for (const entry of valueEntries) {
+        const comm = parseFloat(entry.commissionRate) || 0
+        const tax = parseFloat(entry.taxRate) || 0
+
+        if (entry.productId) {
+          updateProduct(entry.productId, {
+            default_commission_rate: comm,
+            default_tax_rate: tax,
+          })
+        } else if (supplierId) {
+          updatePersonalSupplierWithRules(supplierId, {
+            default_commission_rate: comm,
+            default_tax_rate: tax,
+          })
+        }
       }
 
       const result = isEdit
@@ -682,9 +540,23 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string) {
-    setValueEntries(prev => prev.map(entry => 
-      entry.id === id ? { ...entry, [field]: value } : entry
-    ))
+    setValueEntries(prev => prev.map(entry => {
+      if (entry.id === id) {
+        const updatedEntry = { ...entry, [field]: value }
+        
+        // Se mudou valor ou produto, recalculamos taxas baseadas em regras
+        if (field === 'grossValue' || field === 'productId') {
+          const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? value : undefined, field === 'productId' ? value : undefined)
+          const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? value : undefined, field === 'productId' ? value : undefined)
+          
+          updatedEntry.commissionRate = String(newComm)
+          updatedEntry.taxRate = String(newTax)
+        }
+        
+        return updatedEntry
+      }
+      return entry
+    }))
   }
 
   function handleCancel() {
@@ -692,11 +564,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleSupplierChange(value: string) {
-    const shouldClearItems = supplierId !== '' && value !== supplierId
     setSupplierId(value)
-    if (shouldClearItems) {
-      setItems([])
-    }
+    // Ao mudar fornecedor, limpamos os produtos vinculados mas mantemos os valores
+    setValueEntries(prev => prev.map(entry => ({
+      ...entry,
+      productId: undefined,
+      productName: undefined
+    })))
   }
 
   function handleClientChange(id: string | null, name: string) {
@@ -758,42 +632,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </CardContent>
         </Card>
 
-        {/* Bloco 2: O Que (Itens + Comissão Global) */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>{entryMode === 'total' ? 'Informe o total da venda' : 'Informe os itens da venda'}</CardTitle>
-            <RadioGroup
-              value={entryMode}
-              onValueChange={(v) => setEntryMode(v as 'total' | 'items')}
-              className="flex bg-muted p-1 rounded-lg"
-            >
-              <div className="flex items-center">
-                <RadioGroupItem value="total" id="mode-total" className="sr-only" />
-                <Label
-                  htmlFor="mode-total"
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                    entryMode === 'total' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                  }`}
-                >
-                  Total
-                </Label>
-              </div>
-              <div className="flex items-center">
-                <RadioGroupItem value="items" id="mode-items" className="sr-only" />
-                <Label
-                  htmlFor="mode-items"
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                    entryMode === 'items' ? 'bg-background shadow-sm' : 'text-muted-foreground'
-                  }`}
-                >
-                  Itens
-                </Label>
-              </div>
-            </RadioGroup>
+            <CardTitle>Informe os valores da venda</CardTitle>
           </CardHeader>
           <CardContent>
-            {entryMode === 'total' ? (
-              <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6">
                 
                 {/* Corpo: Inputs Centralizados */}
                 <div className="flex flex-col items-center gap-4 py-6">
@@ -813,6 +657,26 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                          data-removing={removingIds.has(entry.id)}
                                     >
                                         <div className="flex flex-wrap items-end gap-4 relative">
+                                            <div className="flex flex-col gap-2">
+                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className={`h-12 w-12 shrink-0 border-2 transition-all rounded-xl ${entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary'}`}
+                                                    onClick={() => {
+                                                      if (!supplierId) {
+                                                        toast.error('Selecione um fornecedor primeiro')
+                                                        return
+                                                      }
+                                                      setProductSearchOpen({ open: true, entryId: entry.id })
+                                                    }}
+                                                    title={entry.productName || "Selecionar item"}
+                                                >
+                                                    <Search className="h-5 w-5" />
+                                                </Button>
+                                            </div>
+
                                             {/* 1. Valor Total */}
                                             <div className="flex flex-col gap-2">
                                                 <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
@@ -866,13 +730,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end" className="w-56">
-                                                                <DropdownMenuLabel>Regras Salvas</DropdownMenuLabel>
+                                                                <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
                                                                 <DropdownMenuSeparator />
-                                                                {selectedSupplier.commission_rules.map(rule => (
+                                                                {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
                                                                     <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
                                                                         <span>{rule.name}</span>
                                                                         <span className="font-bold text-muted-foreground">
-                                                                            {rule.type === 'fixed' ? `${rule.percentage}%` : `${rule.tiers?.[0]?.percentage}%`}
+                                                                            {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
                                                                         </span>
                                                                     </DropdownMenuItem>
                                                                 ))}
@@ -911,29 +775,18 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         + Adicionar valor
                     </Button>
                 </div>
-
-              </div>
-            ) : (
-              <SaleItemsEditor
-                products={selectedProducts}
-                value={items}
-                onChange={setItems}
-                supplierId={supplierId}
-                defaultCommissionRate={commissionRate ? parseFloat(commissionRate) : 0}
-              />
-            )}
+            </div>
           </CardContent>
           
-          {/* Rodapé com Totais - Apenas no modo Total */}
-          {entryMode === 'total' && (
-            <CardFooter className="flex flex-col gap-4 pt-6">
+          {/* Rodapé com Totais */}
+          <CardFooter className="flex flex-col gap-4 pt-6">
               {/* Linha Separadora com Ícone de Conexão */}
               <div className="relative w-full">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border"></div>
                 </div>
                 <div className="relative flex justify-center">
-                  <div className="bg-background px-3">
+                  <div className="bg-card px-3">
                     <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
@@ -978,96 +831,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 </div>
               </div>
 
-              {/* Atalho para Salvar Regra */}
-              {commissionRate && parseFloat(commissionRate) > 0 && selectedRuleId === 'custom' && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 self-center"
-                  onClick={() => setShowSaveRuleDialog(true)}
-                >
-                  <Save className="h-3 w-3 mr-1" />
-                  Salvar como regra
-                </Button>
-              )}
             </CardFooter>
-          )}
-          
-          {/* Rodapé de Comissão Removido (integrado acima no entryMode === 'total') */}
-          {supplierId && entryMode === 'items' && (
-            <CardFooter className="flex flex-col items-center border-t bg-muted/20 py-8 space-y-6">
-                
-                {/* Header da Comissão (Apenas para modo Itens) */}
-                <div className="relative w-full flex justify-center">
-                    <Label className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        Comissão dos Itens
-                    </Label>
-                    {isEqualizingCommission && (
-                      <button
-                        type="button"
-                        onClick={cancelEqualizingMode}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="Manter comissões personalizadas"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                </div>
-
-                <div className="flex flex-col items-center gap-4">
-                    {itemsCommissionAnalysis.hasItems && !itemsCommissionAnalysis.allSame && !isEqualizingCommission ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="text-4xl font-bold text-foreground hover:text-primary transition-colors cursor-pointer"
-                          onClick={startEqualizingMode}
-                        >
-                          {itemsCommissionAnalysis.avgRate.toFixed(1).replace('.', ',')}%
-                        </button>
-                        <button
-                          type="button"
-                          onClick={startEqualizingMode}
-                          className="p-1.5 rounded-full text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
-                          title="Editar comissão"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <PercentInput
-                          value={isEqualizingCommission ? equalizingValue : (commissionRate ? parseFloat(commissionRate) : 0)}
-                          onChange={(val) => isEqualizingCommission ? handleEqualizingCommissionChange(val) : handleGlobalCommissionChange(String(val))}
-                          min={0}
-                          max={100}
-                          step={0.5}
-                          decimals={2}
-                          className="w-40"
-                        />
-                      </div>
-                    )}
-                </div>
-
-                <div className="flex flex-col items-center gap-2">
-                    {(() => {
-                      const commissionToShow = itemsCommissionAnalysis.totalCommission;
-                      return commissionToShow > 0 ? (
-                        <div className="bg-emerald-50 text-emerald-900 px-6 py-3 rounded-full border border-emerald-100 flex items-center gap-3 shadow-sm animate-in zoom-in-95 duration-300">
-                            <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">A Receber</span>
-                            <span className="text-2xl font-bold tracking-tight">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(commissionToShow)}
-                            </span>
-                        </div>
-                      ) : (
-                        <div className="h-12 flex items-center text-muted-foreground/50 text-sm italic">
-                            Adicione itens para calcular comissão
-                        </div>
-                      )
-                    })()}
-                </div>
-            </CardFooter>
-          )}
         </Card>
 
         {/* Bloco 3: Financeiro (Pagamento) */}
@@ -1149,7 +913,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                               setIrregularPatternWarning(null)
                             }}
                             onFocus={() => setShowSuggestions(true)}
-                            onBlur={(e) => {
+                            onBlur={() => {
                               // Delay para permitir clique nas sugestões
                               setTimeout(() => {
                                 setShowSuggestions(false)
@@ -1220,7 +984,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         Qtd.
                         </Label>
                         <NumberStepper
-                          value={typeof installments === 'number' ? installments : parseInt(String(installments)) || 1}
+                          value={Number(installments) || 1}
                           onChange={(val) => setInstallments(val)}
                           min={1}
                           max={24}
@@ -1233,7 +997,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         Intervalo
                         </Label>
                         <NumberStepper
-                          value={typeof interval === 'number' ? interval : parseInt(String(interval)) || 30}
+                          value={Number(interval) || 30}
                           onChange={(val) => setInterval(val)}
                           min={1}
                           step={5}
@@ -1245,7 +1009,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         1ª em (dias)
                         </Label>
                         <NumberStepper
-                          value={typeof firstInstallmentDays === 'number' ? firstInstallmentDays : parseInt(String(firstInstallmentDays)) || 30}
+                          value={Number(firstInstallmentDays) || 30}
                           onChange={(val) => {
                             setFirstInstallmentDays(val)
                             setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
@@ -1361,6 +1125,72 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         </div>
       </form>
 
+      <Dialog open={productSearchOpen.open} onOpenChange={(open) => setProductSearchOpen({ open, entryId: productSearchOpen.entryId })}>
+        <DialogContent className="max-w-md w-full p-0 gap-0 overflow-hidden rounded-3xl">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle>Selecionar Item</DialogTitle>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar item..."
+                value={productSearchQuery}
+                onChange={(e) => setProductSearchQuery(e.target.value)}
+                className="pl-9 h-12 border-2 rounded-xl"
+                autoFocus
+              />
+            </div>
+          </DialogHeader>
+          
+          <div className="p-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid gap-2">
+              {selectedProducts
+                .filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+                .map(product => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    className="flex flex-col items-start p-4 hover:bg-muted rounded-2xl transition-colors border-2 border-transparent hover:border-primary/20 text-left"
+                    onClick={() => {
+                      if (!productSearchOpen.entryId) return
+                      const eid = productSearchOpen.entryId
+                      setValueEntries(prev => prev.map(entry => {
+                        if (entry.id === eid) {
+                          return {
+                            ...entry,
+                            productId: product.id,
+                            productName: product.name,
+                            grossValue: product.unit_price?.toString() || entry.grossValue,
+                          }
+                        }
+                        return entry
+                      }))
+                      setProductSearchOpen({ open: false })
+                      toast.success(`Item ${product.name} selecionado`)
+                    }}
+                  >
+                    <span className="font-bold text-foreground">{product.name}</span>
+                    <div className="flex gap-4 mt-1">
+                      {product.unit_price && <span className="text-xs text-muted-foreground">Preço: R$ {product.unit_price.toFixed(2).replace('.', ',')}</span>}
+                    </div>
+                  </button>
+                ))}
+              
+              {selectedProducts.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 && (
+                <div className="py-12 text-center text-muted-foreground italic">
+                  Nenhum item encontrado para este fornecedor.
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter className="p-6 bg-muted/20 border-t">
+            <Button variant="outline" onClick={() => setProductSearchOpen({ open: false })} className="w-full rounded-xl h-12 font-bold border-2">
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ClientDialog
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}
@@ -1382,40 +1212,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         installments={getSafeNumber(installments, 1)}
         interval={getSafeNumber(interval, 30)}
         totalValue={totalValue}
-        commissionPercentage={commissionPercentage}
+        commissionPercentage={null}
       />
 
-      {/* Dialog para salvar nova regra */}
-      <Dialog open={showSaveRuleDialog} onOpenChange={setShowSaveRuleDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Salvar Nova Regra</DialogTitle>
-            <DialogDescription>
-              Crie uma regra para reutilizar esta taxa de {commissionRate}% no futuro.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rule-name">Nome da Regra</Label>
-              <Input
-                id="rule-name"
-                value={newRuleName}
-                onChange={(e) => setNewRuleName(e.target.value)}
-                placeholder="Ex: Promoção de Natal"
-                autoFocus
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowSaveRuleDialog(false)}>
-                Cancelar
-            </Button>
-            <Button type="button" onClick={handleSaveNewRule} disabled={savingRule}>
-              {savingRule ? 'Salvando...' : 'Salvar Regra'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

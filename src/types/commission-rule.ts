@@ -12,6 +12,7 @@ export type CommissionRule = {
   personal_supplier_id: string | null // null se pertence a organization
   name: string
   type: CommissionRuleType
+  target: 'commission' | 'tax'
   percentage: number | null // usado quando type = 'fixed'
   tiers: CommissionTier[] | null // usado quando type = 'tiered'
   is_default: boolean
@@ -28,6 +29,7 @@ export type CreateCommissionRuleInput = {
   percentage?: number
   tiers?: CommissionTier[]
   is_default?: boolean
+  target?: 'commission' | 'tax'
 }
 
 export type UpdateCommissionRuleInput = Partial<

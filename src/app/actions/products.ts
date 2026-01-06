@@ -11,12 +11,18 @@ const createProductSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   sku: z.string().optional(),
   unit_price: z.number().min(0).nullable().optional(),
+  default_commission_rate: z.number().min(0).max(100).nullable().optional(),
+  default_tax_rate: z.number().min(0).max(100).nullable().optional(),
+  commission_rule_id: z.string().uuid().nullable().optional(),
 })
 
 const updateProductSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
   sku: z.string().nullable().optional(),
   unit_price: z.number().min(0).nullable().optional(),
+  default_commission_rate: z.number().min(0).max(100).nullable().optional(),
+  default_tax_rate: z.number().min(0).max(100).nullable().optional(),
+  commission_rule_id: z.string().uuid().nullable().optional(),
   is_active: z.boolean().optional(),
 })
 
@@ -104,6 +110,9 @@ export async function createProduct(
         name: parsed.data.name,
         sku: parsed.data.sku || null,
         unit_price: parsed.data.unit_price ?? null,
+        default_commission_rate: parsed.data.default_commission_rate ?? null,
+        default_tax_rate: parsed.data.default_tax_rate ?? null,
+        commission_rule_id: parsed.data.commission_rule_id ?? null,
       })
       .select()
       .single()
@@ -137,6 +146,9 @@ export async function updateProduct(
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name
     if (parsed.data.sku !== undefined) updateData.sku = parsed.data.sku || null
     if (parsed.data.unit_price !== undefined) updateData.unit_price = parsed.data.unit_price
+    if (parsed.data.default_commission_rate !== undefined) updateData.default_commission_rate = parsed.data.default_commission_rate
+    if (parsed.data.default_tax_rate !== undefined) updateData.default_tax_rate = parsed.data.default_tax_rate
+    if (parsed.data.commission_rule_id !== undefined) updateData.commission_rule_id = parsed.data.commission_rule_id
     if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active
 
     const { data, error } = await supabase

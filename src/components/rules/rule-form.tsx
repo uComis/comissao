@@ -20,6 +20,7 @@ export type RuleFormData = {
   percentage: number | null
   tiers: CommissionTier[] | null
   is_default: boolean
+  target: 'commission' | 'tax'
 }
 
 export type RuleFormRef = {
@@ -43,14 +44,16 @@ export const RuleForm = forwardRef<RuleFormRef, Props>(function RuleForm(
   ref
 ) {
   const [name, setName] = useState('')
-  const [type, setType] = useState<'fixed' | 'tiered'>('fixed')
+  const [target, setTarget] = useState<'commission' | 'tax'>('commission')
+  const [type, setType] = useState<'fixed' | 'tiered'>('tiered')
   const [percentage, setPercentage] = useState('')
   const [tiers, setTiers] = useState<CommissionTier[]>([{ ...emptyTier }])
   const [isDefault, setIsDefault] = useState(false)
 
   const reset = useCallback(() => {
     setName('')
-    setType('fixed')
+    setTarget('commission')
+    setType('tiered')
     setPercentage('')
     setTiers([{ ...emptyTier }])
     setIsDefault(false)
@@ -63,13 +66,15 @@ export const RuleForm = forwardRef<RuleFormRef, Props>(function RuleForm(
       percentage: type === 'fixed' && percentage ? parseFloat(percentage) : null,
       tiers: type === 'tiered' ? tiers : null,
       is_default: isDefault,
+      target,
     }
-  }, [name, type, percentage, tiers, isDefault])
+  }, [name, type, percentage, tiers, isDefault, target])
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (rule) {
         setName(rule.name)
+        setTarget(rule.target || 'commission')
         setType(rule.type)
         setPercentage(rule.percentage?.toString() || '')
         setTiers(rule.tiers && rule.tiers.length > 0 ? rule.tiers : [{ ...emptyTier }])
@@ -140,14 +145,14 @@ export const RuleForm = forwardRef<RuleFormRef, Props>(function RuleForm(
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="ruleType">Tipo de Cálculo *</Label>
-        <Select value={type} onValueChange={(v) => setType(v as 'fixed' | 'tiered')}>
-          <SelectTrigger>
+        <Label htmlFor="ruleTarget">Aplicar em *</Label>
+        <Select value={target} onValueChange={(v) => setTarget(v as 'commission' | 'tax')}>
+          <SelectTrigger id="ruleTarget">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="fixed">Percentual Fixo</SelectItem>
-            <SelectItem value="tiered">Escalonada (Faixas)</SelectItem>
+            <SelectItem value="commission">Comissão</SelectItem>
+            <SelectItem value="tax">Taxa/Imposto</SelectItem>
           </SelectContent>
         </Select>
       </div>

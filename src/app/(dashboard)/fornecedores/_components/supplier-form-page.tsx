@@ -14,7 +14,7 @@ import { ArrowLeft, Loader2, Plus, Package, Trash2, Edit2, Star } from 'lucide-r
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
-import type { CommissionRule, Product } from '@/types'
+import type { Product, CommissionRule } from '@/types'
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,8 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
   // Dados do fornecedor
   const [name, setName] = useState(supplier?.name || '')
   const [cnpj, setCnpj] = useState(formatCnpj(supplier?.cnpj || ''))
+  const [defaultCommission, setDefaultCommission] = useState<string | number>(supplier?.default_commission_rate ?? 0)
+  const [defaultTax, setDefaultTax] = useState<string | number>(supplier?.default_tax_rate ?? 0)
   
   // Regras
   const existingRules = supplier?.commission_rules || (supplier?.commission_rule ? [supplier.commission_rule] : [])
@@ -104,6 +106,7 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
         organization_id: null,
         name: formData.name,
         type: formData.type,
+        target: formData.target || 'commission',
         percentage: formData.percentage,
         tiers: formData.tiers,
         is_default: rules.length === 0, // Primeira regra vira default
@@ -160,10 +163,13 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           name,
           cnpj: cleanCnpj,
           default_rule_id: defaultRuleId!,
+          default_commission_rate: Number(defaultCommission) || 0,
+          default_tax_rate: Number(defaultTax) || 0,
           rules: rules.map(r => ({
             id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
             name: r.name,
             type: r.type,
+            target: r.target || 'commission',
             percentage: r.percentage,
             tiers: r.tiers,
             is_default: r.id === defaultRuleId
@@ -189,9 +195,12 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           rule: {
             name: mainRule.name,
             type: mainRule.type,
+            target: mainRule.target || 'commission',
             percentage: mainRule.percentage,
             tiers: mainRule.tiers,
           },
+          default_commission_rate: Number(defaultCommission) || 0,
+          default_tax_rate: Number(defaultTax) || 0,
         })
 
         if (result.success) {
@@ -257,86 +266,135 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
                     placeholder="00.000.000/0000-00"
                   />
                 </div>
+
               </CardContent>
             </Card>
 
             {/* Lista de Regras */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle>Regras de Comissão</CardTitle>
-                        <CardDescription>
-                        Gerencie as diferentes regras para este fornecedor
-                        </CardDescription>
-                    </div>
-                    <Button type="button" size="sm" onClick={handleAddRule} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Nova Regra
-                    </Button>
-                </div>
+                <CardTitle>Regras de Comissão</CardTitle>
+                <CardDescription>
+                  Gerencie as diferentes regras para este fornecedor
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {rules.length === 0 ? (
-                    <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultCommission">Comissão Padrão (%)</Label>
+                    <Input
+                      id="defaultCommission"
+                      type="number"
+                      step="0.01"
+                      value={defaultCommission}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val !== '' && parseFloat(val) < 0) {
+                          setDefaultCommission('')
+                        } else {
+                          setDefaultCommission(val)
+                        }
+                      }}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="defaultTax">Taxa Padrão (%)</Label>
+                    <Input
+                      id="defaultTax"
+                      type="number"
+                      step="0.01"
+                      value={defaultTax}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val !== '' && parseFloat(val) < 0) {
+                          setDefaultTax('')
+                        } else {
+                          setDefaultTax(val)
+                        }
+                      }}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium">Regras por Faixa</h4>
+                    {rules.length > 0 && (
+                      <Button type="button" size="icon" variant="ghost" onClick={handleAddRule} className="h-8 w-8">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {rules.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 border border-dashed rounded-lg space-y-4">
+                      <p className="text-muted-foreground text-sm">
                         Nenhuma regra cadastrada. Adicione ao menos uma.
+                      </p>
+                      <Button type="button" size="sm" onClick={handleAddRule} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nova Regra
+                      </Button>
                     </div>
-                ) : (
+                  ) : (
                     <div className="space-y-3">
-                        {rules.map((rule) => (
-                            <div 
-                                key={rule.id} 
-                                className={`flex items-center justify-between p-3 border rounded-lg ${defaultRuleId === rule.id ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}
-                            >
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{rule.name}</span>
-                                        {defaultRuleId === rule.id && (
-                                            <Badge variant="secondary" className="text-xs h-5">Padrão</Badge>
-                                        )}
-                                    </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        {rule.type === 'fixed' 
-                                            ? `${rule.percentage}% fixo` 
-                                            : `${rule.tiers?.length || 0} faixas escalonadas`
-                                        }
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    {defaultRuleId !== rule.id && (
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            title="Definir como padrão"
-                                            onClick={() => setDefaultRuleId(rule.id)}
-                                        >
-                                            <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
-                                        </Button>
-                                    )}
-                                    <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon"
-                                        onClick={() => handleEditRule(rule)}
-                                    >
-                                        <Edit2 className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                        type="button" 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="text-destructive hover:text-destructive"
-                                        onClick={() => handleDeleteRule(rule.id)}
-                                        disabled={rules.length === 1} // Não pode apagar a última
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                      {rules.map((rule) => (
+                        <div 
+                          key={rule.id} 
+                          className={`flex items-center justify-between p-3 border rounded-lg ${defaultRuleId === rule.id ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{rule.name}</span>
+                              {defaultRuleId === rule.id && (
+                                <Badge variant="secondary" className="text-xs h-5">Padrão</Badge>
+                              )}
                             </div>
-                        ))}
+                            <div className="text-sm text-muted-foreground">
+                              {rule.type === 'fixed' 
+                                ? `${rule.percentage}% fixo` 
+                                : `${rule.tiers?.length || 0} faixas escalonadas`
+                              }
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {defaultRuleId !== rule.id && (
+                              <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="icon" 
+                                title="Definir como padrão"
+                                onClick={() => setDefaultRuleId(rule.id)}
+                              >
+                                <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
+                              </Button>
+                            )}
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleEditRule(rule)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteRule(rule.id)}
+                              disabled={rules.length === 1} // Não pode apagar a última
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                )}
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -369,6 +427,7 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
                       products={products}
                       supplierId={supplier.id}
                       showSku={false}
+                      availableRules={rules}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center h-full">
@@ -440,6 +499,8 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           onOpenChange={setProductDialogOpen}
           supplierId={supplier.id}
           showSku={false}
+          availableRules={rules}
+          onAddRule={handleAddRule}
         />
       )}
     </div>
