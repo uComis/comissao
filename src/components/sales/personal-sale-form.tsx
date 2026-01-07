@@ -11,7 +11,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
-import { Eye, Wand2, Trash2, Search } from 'lucide-react'
+import { Eye, Wand2, Trash2, Search, Plus, Pencil } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter as SheetFooterUI,
+} from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
@@ -81,6 +89,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [informItems, setInformItems] = useState(false)
   const [containerWidth, setContainerWidth] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
+  
+  // Mobile Drawer State
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   
   useEffect(() => {
     if (!containerRef.current) return
@@ -362,6 +374,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }, 0)
   }, [valueEntries, informItems])
 
+
+
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
@@ -625,7 +639,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mt-[10px] mb-[20px]">
-              <Label htmlFor="supplier" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Fornecedor (pasta) *</Label>
+              <Label htmlFor="supplier" className="text-muted-foreground text-[10px] font-bold">Fornecedor (pasta) *</Label>
               <SupplierPicker
                 suppliers={suppliersList}
                 value={supplierId}
@@ -639,7 +653,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             </div>
 
             <div className="space-y-2 mt-[40px] mb-[20px]">
-              <Label className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Cliente *</Label>
+              <Label className="text-muted-foreground text-[10px] font-bold">Cliente *</Label>
               <ClientPicker
                 value={clientId}
                 onChange={handleClientChange}
@@ -684,21 +698,21 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         )}>
                             {informItems && (
                                 <>
-                                    <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-left pl-1">Item</Label>
-                                    <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Qntd.</Label>
-                                </>
-                            )}
-                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-left pl-1">
-                                {informItems ? "Preço" : "Valor"}
-                            </Label>
-                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Impostos</Label>
-                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Comissão</Label>
+                            <Label className="text-[10px] text-foreground font-black text-left pl-1">Item</Label>
+                            <Label className="text-[10px] text-foreground font-black text-center">Qntd.</Label>
+                        </>
+                    )}
+                    <Label className="text-[10px] text-foreground font-black text-left pl-1">
+                        {informItems ? "Preço" : "Valor"}
+                    </Label>
+                    <Label className="text-[10px] text-foreground font-black text-center">Impostos</Label>
+                    <Label className="text-[10px] text-foreground font-black text-center">Comissão</Label>
                         </div>
 
                         <div 
                             ref={containerRef}
                             className={cn(
-                                "flex flex-col gap-3 w-full",
+                                "hidden md:flex flex-col gap-3 w-full",
                                 informItems ? "max-w-none" : "max-w-2xl"
                             )}
                         >
@@ -735,7 +749,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                         isIntermediate ? "col-span-4" : ""
                                                     )}>
                                                         <Label className={cn(
-                                                            "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                            "text-[10px] text-muted-foreground font-bold",
                                                             isIntermediate ? "block pl-1" : "text-center md:hidden"
                                                         )}>Item</Label>
                                                         <Button
@@ -766,7 +780,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                         isIntermediate ? "col-span-2" : ""
                                                     )}>
                                                         <Label className={cn(
-                                                            "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                            "text-[10px] text-muted-foreground font-bold",
                                                             isIntermediate ? "block text-center" : "text-center md:hidden"
                                                         )}>Qntd.</Label>
                                                         <CompactNumberInput
@@ -791,7 +805,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                     isIntermediate ? "justify-start pl-1" : "justify-center"
                                                 )}>
                                                     <Label htmlFor={`gross_value_${entry.id}`} className={cn(
-                                                        "text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0",
+                                                        "text-[10px] text-muted-foreground font-bold shrink-0",
                                                         isIntermediate ? "block" : "md:hidden"
                                                     )}>
                                                         {informItems ? "Preço" : "Valor"}
@@ -816,7 +830,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                 isIntermediate ? "col-span-2" : ""
                                             )}>
                                                 <Label className={cn(
-                                                    "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                    "text-[10px] text-muted-foreground font-bold",
                                                     isIntermediate ? "block text-center" : "text-center md:hidden"
                                                 )}>Impostos</Label>
                                                 <CompactNumberInput
@@ -838,7 +852,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                 isIntermediate ? "col-span-2" : ""
                                             )}>
                                                 <Label className={cn(
-                                                    "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                    "text-[10px] text-muted-foreground font-bold",
                                                     isIntermediate ? "block text-center" : "text-center md:hidden"
                                                 )}>Comissão</Label>
                                                 <div className="flex items-center gap-2">
@@ -896,12 +910,110 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         ))}
                     </div>
 
-                    {/* Botão Adicionar Valor - com transição suave */}
+                    {/* V3: Mobile View (Cards) - Apenas se Tela < 768px (sm) */}
+                    <div className="md:hidden flex flex-col gap-4 w-full">
+                        {valueEntries.filter(e => e.productName || (parseFloat(e.grossValue) > 0)).map((entry, index) => {
+                            const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
+                            return (
+                                <div 
+                                    key={entry.id}
+                                    onClick={() => {
+                                        setEditingEntryId(entry.id)
+                                        setIsDrawerOpen(true)
+                                    }}
+                                    className="bg-white border-2 border-border/60 rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden group hover:border-primary/30"
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex flex-col gap-1 flex-1 min-w-0 mr-4">
+                                            <span className="text-xs font-black tracking-tighter text-muted-foreground/60">
+                                                {informItems ? `ITEM #${index + 1}` : `ENTRADA #${index + 1}`}
+                                            </span>
+                                            <h3 className="font-bold text-base text-foreground truncate leading-tight">
+                                                {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
+                                            </h3>
+                                        </div>
+                                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-black">
+                                            {entry.commissionRate || '0'}%
+                                        </Badge>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-end mt-4 pt-3 border-t border-dashed border-border/50">
+                                        <div className="flex flex-col">
+                                            {informItems && (
+                                                <span className="text-[11px] font-medium text-muted-foreground">
+                                                    {entry.quantity} un x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}
+                                                </span>
+                                            )}
+                                            {!informItems && (
+                                                <span className="text-[11px] font-medium text-muted-foreground">
+                                                    Taxa: {entry.taxRate}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-lg font-black text-foreground">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Pencil Indicator (discreto) */}
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                    
+                                    {/* Botão Remover Discreto em Mobile */}
+                                    {valueEntries.length > 1 && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleRemoveValueEntry(entry.id)
+                                            }}
+                                            className="absolute -top-1 -right-1 p-2 text-destructive/30 hover:text-destructive transition-colors"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        })}
+
+
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                                "h-16 border-dashed border-2 border-primary/30 text-primary hover:bg-primary/5 rounded-2xl font-bold flex gap-2 transition-all",
+                                !valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? "h-24 text-lg border-primary/50 bg-primary/[0.02]" : "mb-8"
+                            )}
+                            onClick={() => {
+                                // Criamos um item limpo para o Drawer
+                                const newId = Math.random().toString(36).substr(2, 9)
+                                const newEntry: ValueEntry = {
+                                    id: newId,
+                                    quantity: 1,
+                                    grossValue: '',
+                                    taxRate: selectedSupplier ? String(selectedSupplier.default_tax_rate || 0) : '0',
+                                    commissionRate: selectedSupplier ? String(selectedSupplier.default_commission_rate || 0) : '0',
+                                    productName: ''
+                                }
+                                setValueEntries(prev => [...prev.filter(e => e.productName || parseFloat(e.grossValue) > 0), newEntry])
+                                setEditingEntryId(newId)
+                                setIsDrawerOpen(true)
+                            }}
+                        >
+                            <Plus className="h-5 w-5" />
+                            {valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? 'ADICIONAR OUTRO' : 'ADICIONAR ITEM'}
+                        </Button>
+                    </div>
+
+                    {/* Botão Adicionar Valor - ORIGINAL Desktop - Escondido no Mobile */}
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                        className="hidden md:flex border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
                         onClick={handleAddValueEntry}
                     >
                         + Adicionar valor
@@ -975,7 +1087,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="date" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">Data da Venda</Label>
+                <Label htmlFor="date" className="text-muted-foreground text-[10px] font-bold">Data da Venda</Label>
                 <Input
                     id="date"
                     type="date"
@@ -986,7 +1098,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="first_installment_date_footer" className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold">
+                <Label htmlFor="first_installment_date_footer" className="text-muted-foreground text-[10px] font-bold">
                   {paymentType === 'vista' ? 'Data de Recebimento' : 'Data da 1ª Parcela'}
                 </Label>
                 <Input
@@ -1370,6 +1482,119 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         totalValue={totalValue}
         commissionPercentage={null}
       />
+
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <SheetContent side="bottom" className="h-[90vh] sm:h-auto rounded-t-[20px] p-0 flex flex-col overflow-hidden">
+          <SheetHeader className="p-6 pb-2 border-b">
+            <SheetTitle className="text-xl font-bold">
+              {editingEntryId ? 'Editar Item' : 'Adicionar Item'}
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+            {editingEntryId && valueEntries.find(e => e.id === editingEntryId) && (
+              <div className="space-y-6">
+                {informItems && (
+                  <div className="space-y-3">
+                    <Label className="text-[10px] text-muted-foreground font-black">Item</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base",
+                        valueEntries.find(e => e.id === editingEntryId)?.productId ? 'border-border' : 'border-dashed border-primary/30 text-muted-foreground'
+                      )}
+                      onClick={() => setProductSearchOpen({ open: true, entryId: editingEntryId })}
+                    >
+                      <span className="truncate font-semibold">
+                        {valueEntries.find(e => e.id === editingEntryId)?.productName || "Selecionar item..."}
+                      </span>
+                      <Search className="h-5 w-5 shrink-0 opacity-50" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Qntd e Preço em 2 colunas ou Preço Único */}
+                <div className={cn("grid gap-4", informItems ? "grid-cols-2" : "grid-cols-1")}>
+                  {informItems && (
+                    <div className="space-y-3">
+                      <Label className="text-[10px] text-muted-foreground font-black">Quantidade</Label>
+                      <CompactNumberInput
+                        value={valueEntries.find(e => e.id === editingEntryId)?.quantity || 1}
+                        onChange={(val) => handleUpdateValueEntry(editingEntryId, 'quantity', val)}
+                        min={1}
+                        step={1}
+                        decimals={0}
+                        className="h-14 text-lg font-bold"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    <Label className="text-[10px] text-muted-foreground font-black">
+                      {informItems ? "Preço Unitário" : "Valor Total"}
+                    </Label>
+                    <CurrencyInput
+                      placeholder="0,00"
+                      value={valueEntries.find(e => e.id === editingEntryId)?.grossValue || ''}
+                      onChange={(val) => handleUpdateValueEntry(editingEntryId, 'grossValue', val)}
+                      className="h-14 text-lg font-bold"
+                    />
+                  </div>
+                </div>
+                
+                {/* Info Totalizador no Drawer (Apenas se Detalhado) */}
+                {informItems && (
+                  <div className="bg-muted/30 rounded-2xl p-4 flex justify-between items-center border border-dashed mt-4">
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Subtotal do Item</span>
+                    <span className="text-xl font-black text-primary">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        (valueEntries.find(e => e.id === editingEntryId)?.quantity || 0) * 
+                        (parseFloat(valueEntries.find(e => e.id === editingEntryId)?.grossValue || '0') || 0)
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* Impostos e Comissão */}
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] text-muted-foreground font-black flex items-center gap-2">
+                      Impostos <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[9px] px-1 py-0 h-4">Retido</Badge>
+                    </Label>
+                    <CompactNumberInput
+                      value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.taxRate || '0')}
+                      onChange={(val) => handleUpdateValueEntry(editingEntryId, 'taxRate', String(val))}
+                      min={0} max={100} step={0.5} decimals={2} suffix="%"
+                      accentColor="#f59e0b"
+                      className="h-14 text-lg font-bold"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] text-muted-foreground font-black flex items-center gap-2">
+                      Comissão <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-[9px] px-1 py-0 h-4">Minimo</Badge>
+                    </Label>
+                    <CompactNumberInput
+                      value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.commissionRate || '0')}
+                      onChange={(val) => handleUpdateValueEntry(editingEntryId, 'commissionRate', String(val))}
+                      min={0} max={100} step={0.5} decimals={2} suffix="%"
+                      accentColor="#67C23A"
+                      className="h-14 text-lg font-bold"
+                    />
+                  </div>
+                </div>
+
+              </div>
+            )}
+          </div>
+
+          <SheetFooterUI className="p-6 border-t bg-background sticky bottom-0 mt-autos">
+            <Button onClick={() => setIsDrawerOpen(false)} className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg">
+              Confirmar Alteração
+            </Button>
+          </SheetFooterUI>
+        </SheetContent>
+      </Sheet>
+
 
     </>
   )
