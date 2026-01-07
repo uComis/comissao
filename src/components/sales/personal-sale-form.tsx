@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { PercentInput } from '@/components/ui/percent-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
 import { Eye, Wand2, Trash2, Search } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
@@ -75,6 +76,7 @@ function parsePaymentCondition(condition: string | null): { type: 'vista' | 'par
 export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create' }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [informItems, setInformItems] = useState(false)
   const isEdit = mode === 'edit' && !!sale
 
   const [suppliersList, setSuppliersList] = useState(initialSuppliers)
@@ -631,6 +633,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>Informe os valores da venda</CardTitle>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="inform-items-switch" className="text-sm font-medium leading-none cursor-pointer">
+                Informar itens
+              </Label>
+              <Switch 
+                id="inform-items-switch"
+                checked={informItems} 
+                onCheckedChange={setInformItems}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-6">
@@ -658,25 +670,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                         <div className="flex flex-wrap items-end gap-x-4 gap-y-2 relative w-full pr-8">
                                             {/* First Row: Item and Valor Total */}
                                             <div className="flex items-end gap-4 flex-[1_0_240px]">
-                                                <div className="flex flex-col gap-2">
-                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="icon"
-                                                        className={`h-12 w-12 shrink-0 border-2 transition-all rounded-xl ${entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary'}`}
-                                                        onClick={() => {
-                                                          if (!supplierId) {
-                                                            toast.error('Selecione um fornecedor primeiro')
-                                                            return
-                                                          }
-                                                          setProductSearchOpen({ open: true, entryId: entry.id })
-                                                        }}
-                                                        title={entry.productName || "Selecionar item"}
-                                                    >
-                                                        <Search className="h-5 w-5" />
-                                                    </Button>
-                                                </div>
+                                                {informItems && (
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className={`h-12 w-12 shrink-0 border-2 transition-all rounded-xl ${entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary'}`}
+                                                            onClick={() => {
+                                                              if (!supplierId) {
+                                                                toast.error('Selecione um fornecedor primeiro')
+                                                                return
+                                                              }
+                                                              setProductSearchOpen({ open: true, entryId: entry.id })
+                                                            }}
+                                                            title={entry.productName || "Selecionar item"}
+                                                        >
+                                                            <Search className="h-5 w-5" />
+                                                        </Button>
+                                                    </div>
+                                                )}
 
                                                 <div className="flex flex-col gap-2 flex-1">
                                                     <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
