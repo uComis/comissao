@@ -1484,7 +1484,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       />
 
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent side="bottom" className="h-[90vh] sm:h-auto rounded-t-[20px] p-0 flex flex-col overflow-hidden">
+        <SheetContent side="bottom" className={cn(
+          "sm:h-auto rounded-t-[20px] p-0 flex flex-col overflow-hidden transition-all duration-300",
+          informItems ? "h-[90vh]" : "h-[60vh]"
+        )}>
           <SheetHeader className="p-6 pb-2 border-b">
             <SheetTitle className="text-xl font-bold">
               {editingEntryId ? 'Editar Item' : 'Adicionar Item'}
