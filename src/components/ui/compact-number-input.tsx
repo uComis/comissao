@@ -93,7 +93,22 @@ export function CompactNumberInput({
   }
 
   return (
-    <div className={cn('relative group', className)}>
+    <div 
+        className={cn(
+            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden',
+            isFocused && !accentColor ? 'border-primary ring-2 ring-primary/20' : 'border-border',
+            className
+        )}
+        style={{ 
+            borderLeftColor: accentColor,
+            borderLeftWidth: accentColor ? '4px' : undefined,
+            // Se houver accentColor e estiver focado, usa a cor para a borda e o ring
+            ...(isFocused && accentColor ? {
+                borderColor: accentColor,
+                boxShadow: `0 0 0 2px ${accentColor}33` // ~20% de opacidade
+            } : {})
+        }}
+    >
       <input
         type="text"
         inputMode="decimal"
@@ -102,21 +117,20 @@ export function CompactNumberInput({
         onBlur={handleBlur}
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
-        style={{ 
-            borderLeftColor: accentColor,
-            borderLeftWidth: accentColor ? '4px' : undefined
-        }}
         className={cn(
-            "w-full h-12 pl-3 pr-8 text-center text-lg font-medium bg-background border rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
+            "w-full h-11 pl-3 pr-8 text-center text-lg font-medium bg-transparent outline-none border-none",
         )}
       />
       
       {/* Controle à Direita: Sufixo ou Setas */}
       <div
         className={cn(
-          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background rounded-r-xl border-l transition-all duration-200',
+          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background/50 backdrop-blur-sm border-l transition-all duration-200',
           (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
         )}
+        style={{
+            borderLeftColor: isFocused ? (accentColor ? `${accentColor}4D` : undefined) : undefined // 4D is ~30%
+        }}
       >
         {/* Símbolo (ex: %) - Visível quando não há hover/foco e existe sufixo */}
         {suffix && (
@@ -137,7 +151,7 @@ export function CompactNumberInput({
             type="button"
             onClick={increment}
             disabled={max !== undefined && value >= max}
-            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl"
+            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronUp className="h-3 w-3" />
           </button>
@@ -145,7 +159,7 @@ export function CompactNumberInput({
             type="button"
             onClick={decrement}
             disabled={value <= min}
-            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-br-xl border-t"
+            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-t"
           >
             <ChevronDown className="h-3 w-3" />
           </button>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
 import { Eye, Wand2, Trash2, Search } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
@@ -725,18 +726,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                 informItems ? "flex-[1.8_0_150px]" : "flex-[1_0_240px]"
                                             )}>
                                                 <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Unitário</Label>
-                                                <div className="relative w-full">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
-                                                    <Input
-                                                        id={`gross_value_${entry.id}`}
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        placeholder="0,00"
-                                                        className="pl-9 pr-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
-                                                        value={entry.grossValue}
-                                                        onChange={(e) => handleUpdateValueEntry(entry.id, 'grossValue', e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
-                                                    />
-                                                </div>
+                                                <CurrencyInput
+                                                    id={`gross_value_${entry.id}`}
+                                                    placeholder="0,00"
+                                                    value={entry.grossValue}
+                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'grossValue', val)}
+                                                />
                                             </div>
 
                                             {/* Impostos */}
