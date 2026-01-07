@@ -229,6 +229,7 @@ export async function createPersonalSupplierWithRule(
           personal_supplier_id: supplier.id,
           name: rule.name,
           type: rule.type,
+          target: rule.target || 'commission',
           percentage: rule.type === 'fixed' ? rule.percentage : null,
           tiers: rule.type === 'tiered' ? rule.tiers : null,
           is_default: true, // A primeira regra é sempre padrão

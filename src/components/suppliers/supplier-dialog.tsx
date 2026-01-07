@@ -79,8 +79,10 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
         rule: ruleData ? {
           name: ruleData.name || `${name} - Regra`,
           type: ruleData.type,
+          target: ruleData.target,
           percentage: ruleData.percentage,
           tiers: ruleData.tiers,
+          is_default: ruleData.is_default,
         } : null, // Manda null se não tiver comissão configurada
       })
 
