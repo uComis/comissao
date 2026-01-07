@@ -98,33 +98,43 @@ export function PercentInput({
         onKeyDown={handleKeyDown}
         className="w-full h-12 px-3 text-center text-lg font-medium bg-background border rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
       />
-      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
-        %
-      </span>
-
-      {/* Botões verticais - mais visíveis por padrão e destacados no hover */}
+      {/* Controle à Direita: Porcentagem ou Setas */}
       <div
         className={cn(
-          'absolute right-0 top-0 bottom-0 flex flex-col opacity-40 group-hover:opacity-100 transition-opacity bg-background rounded-r-xl border-l',
-          isFocused && 'opacity-100'
+          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background rounded-r-xl border-l transition-all duration-200',
+          (isFocused || value !== 0) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
         )}
       >
-        <button
-          type="button"
-          onClick={increment}
-          disabled={value >= max}
-          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl"
-        >
-          <ChevronUp className="h-3 w-3" />
-        </button>
-        <button
-          type="button"
-          onClick={decrement}
-          disabled={value <= min}
-          className="flex-1 flex items-center justify-center w-8 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-br-xl border-t"
-        >
-          <ChevronDown className="h-3 w-3" />
-        </button>
+        {/* Símbolo % - Visível quando não há hover/foco */}
+        <span className={cn(
+            "absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none transition-opacity duration-200 font-medium",
+            (isFocused) ? "opacity-0" : "group-hover:opacity-0"
+        )}>
+          %
+        </span>
+
+        {/* Botões de Stepper - Visíveis no hover ou foco */}
+        <div className={cn(
+            "flex flex-col h-full w-full transition-opacity duration-200",
+            (isFocused) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          <button
+            type="button"
+            onClick={increment}
+            disabled={value >= max}
+            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl"
+          >
+            <ChevronUp className="h-3 w-3" />
+          </button>
+          <button
+            type="button"
+            onClick={decrement}
+            disabled={value <= min}
+            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-br-xl border-t"
+          >
+            <ChevronDown className="h-3 w-3" />
+          </button>
+        </div>
       </div>
     </div>
   )
