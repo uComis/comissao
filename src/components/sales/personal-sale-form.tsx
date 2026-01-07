@@ -720,12 +720,21 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                 </div>
                                             )}
 
-                                            {/* Valor Total */}
+                                            {/* Valor Unitário / Total */}
                                             <div className={cn(
                                                 "flex flex-col gap-2 min-w-[140px]",
                                                 informItems ? "flex-[1.8_0_150px]" : "flex-[1_0_240px]"
                                             )}>
-                                                <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Unitário</Label>
+                                                <div className="flex justify-center items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                                                    <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0">
+                                                        Unitário
+                                                    </Label>
+                                                    {entry.quantity > 1 && (
+                                                        <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
+                                                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))})
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <CurrencyInput
                                                     id={`gross_value_${entry.id}`}
                                                     placeholder="0,00"
