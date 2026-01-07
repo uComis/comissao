@@ -338,12 +338,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const totalValue = useMemo(() => {
     // Agora sempre soma todos os entries (venda consolidada)
     return valueEntries.reduce((sum, entry) => {
-      const quantity = entry.quantity || 1
+      const quantity = informItems ? (entry.quantity || 1) : 1
       const gross = parseFloat(entry.grossValue) || 0
       const taxRate = parseFloat(entry.taxRate) || 0
       return sum + (quantity * gross * (1 - (taxRate / 100)))
     }, 0)
-  }, [valueEntries])
+  }, [valueEntries, informItems])
 
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
@@ -471,8 +471,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         // Agora mapeamos SEMPRE valueEntries para items
         items: valueEntries.map(entry => ({
           product_id: entry.productId,
-          product_name: entry.productName || 'Valor',
-          quantity: entry.quantity || 1,
+          product_name: entry.productName || (informItems ? 'Item' : 'Valor'),
+          quantity: informItems ? (entry.quantity || 1) : 1,
           unit_price: parseFloat(entry.grossValue) || 0,
           tax_rate: parseFloat(entry.taxRate) || 0,
           commission_rate: parseFloat(entry.commissionRate) || 0
@@ -753,7 +753,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                     <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0 md:hidden">
                                                         {informItems ? "Preço" : "Valor"}
                                                     </Label>
-                                                    {entry.quantity > 1 && (
+                                                    {informItems && entry.quantity > 1 && (
                                                         <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
                                                             ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))})
                                                         </span>
@@ -877,7 +877,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total</span>
                   <span className="text-lg font-bold text-foreground">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      valueEntries.reduce((sum, entry) => sum + ((entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)), 0)
+                      valueEntries.reduce((sum, entry) => sum + ((informItems ? (entry.quantity || 1) : 1) * (parseFloat(entry.grossValue) || 0)), 0)
                     )}
                   </span>
                 </div>
@@ -896,7 +896,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   <span className="text-lg font-bold text-emerald-900">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                       valueEntries.reduce((sum, entry) => {
-                        const qty = entry.quantity || 1
+                        const qty = informItems ? (entry.quantity || 1) : 1
                         const gross = parseFloat(entry.grossValue) || 0
                         const taxRate = parseFloat(entry.taxRate) || 0
                         const commRate = parseFloat(entry.commissionRate) || 0
