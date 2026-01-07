@@ -657,12 +657,31 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 {/* Corpo: Inputs Centralizados */}
                 <div className="flex flex-col items-center gap-4 py-6">
                     
-                    {/* Múltiplas Linhas de Valores */}
-                    <div className={cn(
-                        "flex flex-col gap-3 w-full",
-                        informItems ? "max-w-none" : "max-w-2xl"
-                    )}>
-                        {valueEntries.map((entry, index) => (
+                        {/* Cabeçalho de Tabela - Sincronizado com o Grid das Linhas */}
+                        <div className={cn(
+                            "hidden md:grid gap-4 w-full pr-8 mb-2",
+                            informItems 
+                                ? "max-w-none grid-cols-[2fr_80px_1.5fr_0.8fr_1.2fr]" // Sincronizado com as colunas detalhadas
+                                : "max-w-2xl mx-auto grid-cols-[1.5fr_0.8fr_1.2fr]"    // Sincronizado com as colunas diretas
+                        )}>
+                            {informItems && (
+                                <>
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
+                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Qntd.</Label>
+                                </>
+                            )}
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">
+                                {informItems ? "Preço" : "Valor"}
+                            </Label>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
+                        </div>
+
+                        <div className={cn(
+                            "flex flex-col gap-3 w-full",
+                            informItems ? "max-w-none" : "max-w-2xl"
+                        )}>
+                            {valueEntries.map((entry, index) => (
                             <div 
                                 key={entry.id}
                                 className="grid transition-[grid-template-rows] duration-300 ease-in-out [grid-template-rows:1fr] data-[new=true]:animate-[grow_0.3s_ease-in-out] data-[removing=true]:[grid-template-rows:0fr]"
@@ -677,13 +696,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                     )}
                                          data-removing={removingIds.has(entry.id)}
                                     >
-                                        <div className="flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8">
-                                            {/* Group 1: Item + Qntd (only if informItems) */}
+                                        <div className={cn(
+                                            "flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8",
+                                            "md:grid md:flex-none", // No desktop, desativa flex-wrap e usa grid
+                                            informItems 
+                                                ? "md:grid-cols-[2fr_80px_1.5fr_0.8fr_1.2fr]" 
+                                                : "md:grid-cols-[1.5fr_0.8fr_1.2fr]"
+                                        )}>
+                                            {/* Group 1: Item + Qntd (Apenas se informItems) */}
                                             {informItems && (
-                                                <div className="flex items-end gap-4 flex-[1_0_300px] min-w-0">
+                                                <>
                                                     {/* Item Selector */}
-                                                    <div className="flex flex-col gap-2 flex-1 min-w-0">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
+                                                    <div className="flex flex-col gap-2 min-w-0">
+                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Item</Label>
                                                         <Button
                                                             type="button"
                                                             variant="outline"
@@ -707,8 +732,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                     </div>
 
                                                     {/* Quantidade */}
-                                                    <div className="flex flex-col gap-2 w-[80px] shrink-0">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Qntd.</Label>
+                                                    <div className="flex flex-col gap-2 shrink-0">
+                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Qntd.</Label>
                                                         <CompactNumberInput
                                                             value={entry.quantity}
                                                             onChange={(val) => handleUpdateValueEntry(entry.id, 'quantity', val)}
@@ -718,88 +743,82 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                             className="w-full"
                                                         />
                                                     </div>
-                                                </div>
+                                                </>
                                             )}
 
-                                            {/* Group 2: Unitário + Impostos + Comissão */}
-                                            <div className={cn(
-                                                "flex items-end gap-4 min-w-0",
-                                                informItems ? "flex-[1.5_0_400px]" : "w-full"
-                                            )}>
-                                                {/* Valor Unitário / Total */}
-                                                <div className="flex flex-col gap-2 flex-[1.5_1_0px] min-w-[140px]">
-                                                    <div className="flex justify-center items-center gap-1.5 whitespace-nowrap overflow-hidden">
-                                                        <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0">
-                                                            Unitário
-                                                        </Label>
-                                                        {entry.quantity > 1 && (
-                                                            <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
-                                                                ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <CurrencyInput
-                                                        id={`gross_value_${entry.id}`}
-                                                        placeholder="0,00"
-                                                        value={entry.grossValue}
-                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'grossValue', val)}
-                                                    />
+                                            {/* Preço / Valor */}
+                                            <div className="flex flex-col gap-2 min-w-0">
+                                                <div className="flex justify-center items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                                                    <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0 md:hidden">
+                                                        {informItems ? "Preço" : "Valor"}
+                                                    </Label>
+                                                    {entry.quantity > 1 && (
+                                                        <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
+                                                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))})
+                                                        </span>
+                                                    )}
                                                 </div>
+                                                <CurrencyInput
+                                                    id={`gross_value_${entry.id}`}
+                                                    placeholder="0,00"
+                                                    value={entry.grossValue}
+                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'grossValue', val)}
+                                                />
+                                            </div>
 
-                                                {/* Impostos */}
-                                                <div className="flex flex-col gap-2 flex-[0.8_1_0px] min-w-[90px]">
-                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
+                                            {/* Impostos */}
+                                            <div className="flex flex-col gap-2 min-w-0">
+                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Impostos</Label>
+                                                <CompactNumberInput
+                                                    value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
+                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
+                                                    min={0}
+                                                    max={100}
+                                                    step={0.5}
+                                                    decimals={2}
+                                                    suffix="%"
+                                                    accentColor="#f59e0b"
+                                                    className="w-full"
+                                                />
+                                            </div>
+
+                                            {/* Comissão */}
+                                            <div className="flex flex-col gap-2 min-w-0">
+                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Comissão</Label>
+                                                <div className="flex items-center gap-2">
                                                     <CompactNumberInput
-                                                        value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
-                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
+                                                        value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
+                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
                                                         min={0}
                                                         max={100}
                                                         step={0.5}
                                                         decimals={2}
                                                         suffix="%"
-                                                        accentColor="#f59e0b"
+                                                        accentColor="#67C23A"
                                                         className="w-full"
                                                     />
-                                                </div>
-
-                                                {/* Comissão */}
-                                                <div className="flex flex-col gap-2 flex-[1.2_1_0px] min-w-[110px]">
-                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
-                                                    <div className="flex items-center gap-2">
-                                                        <CompactNumberInput
-                                                            value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
-                                                            onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
-                                                            min={0}
-                                                            max={100}
-                                                            step={0.5}
-                                                            decimals={2}
-                                                            suffix="%"
-                                                            accentColor="#67C23A"
-                                                            className="w-full"
-                                                        />
-                                                        
-                                                        {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
-                                                                        <Wand2 className="h-5 w-5" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end" className="w-56">
-                                                                    <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
-                                                                    <DropdownMenuSeparator />
-                                                                    {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
-                                                                        <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
-                                                                            <span>{rule.name}</span>
-                                                                            <span className="font-bold text-muted-foreground">
-                                                                                {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
-                                                                            </span>
-                                                                        </DropdownMenuItem>
-                                                                    ))}
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        )}
-                                                    </div>
+                                                    
+                                                    {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
+                                                                    <Wand2 className="h-5 w-5" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-56">
+                                                                <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
+                                                                <DropdownMenuSeparator />
+                                                                {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
+                                                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
+                                                                        <span>{rule.name}</span>
+                                                                        <span className="font-bold text-muted-foreground">
+                                                                            {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
+                                                                        </span>
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -835,7 +854,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             </div>
           </CardContent>
           
-          {/* Rodapé com Totais */}
           <CardFooter className="flex flex-col gap-4 pt-6">
               {/* Linha Separadora com Ícone de Conexão */}
               <div className="relative w-full">
