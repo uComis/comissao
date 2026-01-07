@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -12,9 +12,11 @@ type Props = {
   step?: number
   className?: string
   decimals?: number
+  suffix?: string
+  accentColor?: string
 }
 
-export function PercentInput({
+export function CompactNumberInput({
   value,
   onChange,
   min = 0,
@@ -22,6 +24,8 @@ export function PercentInput({
   step = 0.5,
   className,
   decimals = 2,
+  suffix,
+  accentColor,
 }: Props) {
   function formatNumber(num: number, dec: number): string {
     return num.toLocaleString('pt-BR', {
@@ -37,10 +41,12 @@ export function PercentInput({
 
   const [displayValue, setDisplayValue] = useState(() => formatNumber(value, decimals))
   const [isFocused, setIsFocused] = useState(false)
+  const [prevValue, setPrevValue] = useState(value)
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value)
     setDisplayValue(formatNumber(value, decimals))
-  }, [value, decimals])
+  }
 
   function decrement() {
     const newVal = Math.max(min, value - step)
@@ -49,7 +55,7 @@ export function PercentInput({
   }
 
   function increment() {
-    const newVal = Math.min(max, value + step)
+    const newVal = max !== undefined ? Math.min(max, value + step) : value + step
     const rounded = Number(newVal.toFixed(decimals))
     onChange(rounded)
   }
@@ -64,7 +70,7 @@ export function PercentInput({
   function handleBlur() {
     setIsFocused(false)
     const num = parseNumber(displayValue)
-    const clamped = Math.min(max, Math.max(min, num))
+    const clamped = max !== undefined ? Math.min(max, Math.max(min, num)) : Math.max(min, num)
     const rounded = Number(clamped.toFixed(decimals))
     onChange(rounded)
     setDisplayValue(formatNumber(rounded, decimals))
@@ -96,32 +102,41 @@ export function PercentInput({
         onBlur={handleBlur}
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
-        className="w-full h-12 px-3 text-center text-lg font-medium bg-background border rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+        style={{ 
+            borderLeftColor: accentColor,
+            borderLeftWidth: accentColor ? '4px' : undefined
+        }}
+        className={cn(
+            "w-full h-12 pl-3 pr-8 text-center text-lg font-medium bg-background border rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all",
+        )}
       />
-      {/* Controle à Direita: Porcentagem ou Setas */}
+      
+      {/* Controle à Direita: Sufixo ou Setas */}
       <div
         className={cn(
           'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background rounded-r-xl border-l transition-all duration-200',
-          (isFocused || value !== 0) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
+          (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
         )}
       >
-        {/* Símbolo % - Visível quando não há hover/foco */}
-        <span className={cn(
-            "absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none transition-opacity duration-200 font-medium",
-            (isFocused) ? "opacity-0" : "group-hover:opacity-0"
-        )}>
-          %
-        </span>
+        {/* Símbolo (ex: %) - Visível quando não há hover/foco e existe sufixo */}
+        {suffix && (
+            <span className={cn(
+                "absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none transition-opacity duration-200 font-medium text-sm",
+                (isFocused) ? "opacity-0" : "group-hover:opacity-0"
+            )}>
+              {suffix}
+            </span>
+        )}
 
-        {/* Botões de Stepper - Visíveis no hover ou foco */}
+        {/* Botões de Stepper - Visíveis no hover ou foco, ou sempre se não houver sufixo */}
         <div className={cn(
             "flex flex-col h-full w-full transition-opacity duration-200",
-            (isFocused) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            (!suffix || isFocused) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}>
           <button
             type="button"
             onClick={increment}
-            disabled={value >= max}
+            disabled={max !== undefined && value >= max}
             className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-tr-xl"
           >
             <ChevronUp className="h-3 w-3" />

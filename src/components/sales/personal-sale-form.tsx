@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { PercentInput } from '@/components/ui/percent-input'
+import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { NumberStepper } from '@/components/ui/number-stepper'
 import { Eye, Wand2, Trash2, Search } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
@@ -41,6 +41,7 @@ import {
 
 type ValueEntry = {
   id: string
+  quantity: number
   grossValue: string
   taxRate: string
   commissionRate: string
@@ -290,7 +291,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (sale?.items && sale.items.length > 0) {
       return sale.items.map(item => ({
         id: item.id,
-        grossValue: (item.quantity * item.unit_price).toString(),
+        quantity: item.quantity || 1,
+        grossValue: item.unit_price.toString(),
         taxRate: (item.tax_rate || 0).toString(),
         commissionRate: (item.commission_rate || 0).toString(),
         productId: item.product_id,
@@ -300,6 +302,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return [
       {
         id: crypto.randomUUID(),
+        quantity: 1,
         grossValue: sale?.gross_value?.toString() || '',
         taxRate: sale?.tax_rate?.toString() || '',
         commissionRate: sale?.commission_rate?.toString() || ''
@@ -334,9 +337,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const totalValue = useMemo(() => {
     // Agora sempre soma todos os entries (venda consolidada)
     return valueEntries.reduce((sum, entry) => {
+      const quantity = entry.quantity || 1
       const gross = parseFloat(entry.grossValue) || 0
       const taxRate = parseFloat(entry.taxRate) || 0
-      return sum + (gross * (1 - (taxRate / 100)))
+      return sum + (quantity * gross * (1 - (taxRate / 100)))
     }, 0)
   }, [valueEntries])
 
@@ -467,7 +471,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         items: valueEntries.map(entry => ({
           product_id: entry.productId,
           product_name: entry.productName || 'Valor',
-          quantity: 1,
+          quantity: entry.quantity || 1,
           unit_price: parseFloat(entry.grossValue) || 0,
           tax_rate: parseFloat(entry.taxRate) || 0,
           commission_rate: parseFloat(entry.commissionRate) || 0
@@ -511,6 +515,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   function handleAddValueEntry() {
     setValueEntries(prev => [...prev, {
       id: crypto.randomUUID(),
+      quantity: 1,
       grossValue: '',
       taxRate: '',
       commissionRate: ''
@@ -537,15 +542,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }, 300)
   }
 
-  function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string) {
+  function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) {
     setValueEntries(prev => prev.map(entry => {
       if (entry.id === id) {
         const updatedEntry = { ...entry, [field]: value }
         
         // Se mudou valor ou produto, recalculamos taxas baseadas em regras
         if (field === 'grossValue' || field === 'productId') {
-          const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? value : undefined, field === 'productId' ? value : undefined)
-          const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? value : undefined, field === 'productId' ? value : undefined)
+          const valStr = typeof value === 'string' ? value : String(value)
+          const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
+          const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
           
           updatedEntry.commissionRate = String(newComm)
           updatedEntry.taxRate = String(newTax)
@@ -673,7 +679,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                         <div className="flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8">
                                             {/* Item Selector */}
                                             {informItems && (
-                                                <div className="flex flex-col gap-2 flex-[3_0_240px] min-w-[200px]">
+                                                <div className="flex flex-col gap-2 flex-[4_0_240px] min-w-[200px]">
                                                     <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
                                                     <Button
                                                         type="button"
@@ -698,12 +704,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                 </div>
                                             )}
 
+                                            {/* Quantidade */}
+                                            {informItems && (
+                                                <div className="flex flex-col gap-2 flex-[0.8_0_80px] min-w-[80px]">
+                                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Qntd.</Label>
+                                                    <CompactNumberInput
+                                                        value={entry.quantity}
+                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'quantity', val)}
+                                                        min={1}
+                                                        step={1}
+                                                        decimals={0}
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            )}
+
                                             {/* Valor Total */}
                                             <div className={cn(
                                                 "flex flex-col gap-2 min-w-[140px]",
-                                                informItems ? "flex-[2_0_180px]" : "flex-[1_0_240px]"
+                                                informItems ? "flex-[1.8_0_150px]" : "flex-[1_0_240px]"
                                             )}>
-                                                <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Valor Total</Label>
+                                                <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Unitário</Label>
                                                 <div className="relative w-full">
                                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">R$</span>
                                                     <Input
@@ -711,7 +732,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                         type="text"
                                                         inputMode="decimal"
                                                         placeholder="0,00"
-                                                        className="pl-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
+                                                        className="pl-9 pr-9 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-0 focus-visible:border-primary rounded-xl"
                                                         value={entry.grossValue}
                                                         onChange={(e) => handleUpdateValueEntry(entry.id, 'grossValue', e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
                                                     />
@@ -721,14 +742,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             {/* Impostos */}
                                             <div className="flex flex-col gap-2 flex-[0.8_0_100px] min-w-[90px]">
                                                 <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
-                                                <PercentInput
+                                                <CompactNumberInput
                                                     value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
                                                     onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
                                                     min={0}
                                                     max={100}
                                                     step={0.5}
                                                     decimals={2}
-                                                    className="w-full [&>input]:border-l-4 [&>input]:border-l-[#f59e0b]"
+                                                    suffix="%"
+                                                    accentColor="#f59e0b"
+                                                    className="w-full"
                                                 />
                                             </div>
 
@@ -736,16 +759,18 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             <div className="flex flex-col gap-2 flex-[1_0_120px] min-w-[110px]">
                                                 <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
                                                 <div className="flex items-center gap-2">
-                                                    <PercentInput
+                                                    <CompactNumberInput
                                                         value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
                                                         onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
                                                         min={0}
                                                         max={100}
                                                         step={0.5}
                                                         decimals={2}
-                                                        className="w-full [&>input]:border-l-4 [&>input]:border-l-[#67C23A]"
+                                                        suffix="%"
+                                                        accentColor="#67C23A"
+                                                        className="w-full"
                                                     />
-
+                                                    
                                                     {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
@@ -825,7 +850,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total</span>
                   <span className="text-lg font-bold text-foreground">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      valueEntries.reduce((sum, entry) => sum + (parseFloat(entry.grossValue) || 0), 0)
+                      valueEntries.reduce((sum, entry) => sum + ((entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)), 0)
                     )}
                   </span>
                 </div>
@@ -844,10 +869,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   <span className="text-lg font-bold text-emerald-900">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                       valueEntries.reduce((sum, entry) => {
+                        const qty = entry.quantity || 1
                         const gross = parseFloat(entry.grossValue) || 0
                         const taxRate = parseFloat(entry.taxRate) || 0
                         const commRate = parseFloat(entry.commissionRate) || 0
-                        const base = gross * (1 - (taxRate / 100))
+                        const base = qty * gross * (1 - (taxRate / 100))
                         return sum + (base * (commRate / 100))
                       }, 0)
                     )}
