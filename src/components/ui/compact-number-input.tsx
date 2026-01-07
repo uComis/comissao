@@ -95,17 +95,19 @@ export function CompactNumberInput({
   return (
     <div 
         className={cn(
-            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden',
+            'relative group border-2 rounded-xl transition-all duration-200 bg-white overflow-hidden shadow-md',
             isFocused && !accentColor ? 'border-primary ring-2 ring-primary/20' : 'border-border',
             className
         )}
         style={{ 
             borderLeftColor: accentColor,
             borderLeftWidth: accentColor ? '4px' : undefined,
-            // Se houver accentColor e estiver focado, usa a cor para a borda e o ring
+            // Se houver accentColor e estiver focado, expande a cor para as outras bordas sem sobrescrever a esquerda
             ...(isFocused && accentColor ? {
-                borderColor: accentColor,
-                boxShadow: `0 0 0 2px ${accentColor}33` // ~20% de opacidade
+                borderTopColor: accentColor,
+                borderRightColor: accentColor,
+                borderBottomColor: accentColor,
+                boxShadow: `0 0 0 2px ${accentColor}33`
             } : {})
         }}
     >
@@ -125,7 +127,7 @@ export function CompactNumberInput({
       {/* Controle à Direita: Sufixo ou Setas */}
       <div
         className={cn(
-          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background/50 backdrop-blur-sm border-l transition-all duration-200',
+          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-white border-l transition-all duration-200',
           (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
         )}
         style={{

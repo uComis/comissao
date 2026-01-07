@@ -714,8 +714,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                             type="button"
                                                             variant="outline"
                                                             className={cn(
-                                                                "h-11 w-full border-2 transition-all rounded-xl justify-between px-3",
-                                                                entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary font-normal text-muted-foreground'
+                                                                "h-11 w-full border-2 transition-all rounded-xl justify-between px-3 shadow-md bg-white",
+                                                                entry.productId ? 'border-border text-foreground' : 'hover:border-primary/50 font-normal text-muted-foreground'
                                                             )}
                                                             onClick={() => {
                                                               if (!supplierId) {
@@ -725,7 +725,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                               setProductSearchOpen({ open: true, entryId: entry.id })
                                                             }}
                                                         >
-                                                            <span className="truncate">
+                                                            <span className="truncate text-sm font-medium">
                                                                 {entry.productName || "Selecionar item..."}
                                                             </span>
                                                             <Search className="h-4 w-4 shrink-0 opacity-50" />
