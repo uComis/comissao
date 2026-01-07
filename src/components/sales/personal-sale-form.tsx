@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,23 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [informItems, setInformItems] = useState(false)
+  const [containerWidth, setContainerWidth] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+    
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  const isIntermediate = informItems && containerWidth > 0 && containerWidth < 670
   const isEdit = mode === 'edit' && !!sale
 
   const [suppliersList, setSuppliersList] = useState(initialSuppliers)
@@ -660,10 +677,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     
                         {/* Cabeçalho de Tabela - Negrito e Próximo */}
                         <div className={cn(
-                            "hidden md:grid gap-4 w-full pr-8 mb-0.5", // mb reduzido
-                            informItems 
-                                ? "max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]"
-                                : "max-w-2xl mx-auto grid-cols-[1.5fr_0.8fr_1.2fr]"
+                            "gap-4 w-full pr-8 mb-0.5", 
+                            isIntermediate || !informItems ? "hidden" : "hidden md:grid",
+                            informItems && !isIntermediate && "max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]",
+                            !informItems && "max-w-2xl mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]"
                         )}>
                             {informItems && (
                                 <>
@@ -678,10 +695,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Comissão</Label>
                         </div>
 
-                        <div className={cn(
-                            "flex flex-col gap-3 w-full",
-                            informItems ? "max-w-none" : "max-w-2xl"
-                        )}>
+                        <div 
+                            ref={containerRef}
+                            className={cn(
+                                "flex flex-col gap-3 w-full",
+                                informItems ? "max-w-none" : "max-w-2xl"
+                            )}
+                        >
                             {valueEntries.map((entry, index) => (
                             <div 
                                 key={entry.id}
@@ -701,15 +721,23 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             "flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8",
                                             "md:grid md:flex-none",
                                             informItems 
-                                                ? "md:grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]" 
+                                                ? isIntermediate
+                                                    ? "md:grid-cols-6" // 6 colunas para permitir quebras 4+2 e 2+2+2
+                                                    : "md:grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]" 
                                                 : "md:max-w-2xl md:mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]"
                                         )}>
                                             {/* Group 1: Item + Qntd (Apenas se informItems) */}
                                             {informItems && (
                                                 <>
                                                     {/* Item Selector */}
-                                                    <div className="flex flex-col gap-2 min-w-0">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Item</Label>
+                                                    <div className={cn(
+                                                        "flex flex-col gap-2 min-w-0",
+                                                        isIntermediate ? "col-span-4" : ""
+                                                    )}>
+                                                        <Label className={cn(
+                                                            "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                            isIntermediate ? "block pl-1" : "text-center md:hidden"
+                                                        )}>Item</Label>
                                                         <Button
                                                             type="button"
                                                             variant="outline"
@@ -733,8 +761,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                     </div>
 
                                                     {/* Quantidade */}
-                                                    <div className="flex flex-col gap-2 shrink-0">
-                                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Qntd.</Label>
+                                                    <div className={cn(
+                                                        "flex flex-col gap-2 shrink-0",
+                                                        isIntermediate ? "col-span-2" : ""
+                                                    )}>
+                                                        <Label className={cn(
+                                                            "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                            isIntermediate ? "block text-center" : "text-center md:hidden"
+                                                        )}>Qntd.</Label>
                                                         <CompactNumberInput
                                                             value={entry.quantity}
                                                             onChange={(val) => handleUpdateValueEntry(entry.id, 'quantity', val)}
@@ -748,9 +782,18 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             )}
 
                                             {/* Preço / Valor */}
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <div className="flex justify-center items-center gap-1.5 whitespace-nowrap overflow-hidden">
-                                                    <Label htmlFor={`gross_value_${entry.id}`} className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0 md:hidden">
+                                            <div className={cn(
+                                                "flex flex-col gap-2 min-w-0",
+                                                isIntermediate ? "col-span-2" : ""
+                                            )}>
+                                                <div className={cn(
+                                                    "flex items-center gap-1.5 whitespace-nowrap overflow-hidden",
+                                                    isIntermediate ? "justify-start pl-1" : "justify-center"
+                                                )}>
+                                                    <Label htmlFor={`gross_value_${entry.id}`} className={cn(
+                                                        "text-[10px] text-muted-foreground uppercase tracking-widest font-bold shrink-0",
+                                                        isIntermediate ? "block" : "md:hidden"
+                                                    )}>
                                                         {informItems ? "Preço" : "Valor"}
                                                     </Label>
                                                     {informItems && entry.quantity > 1 && (
@@ -768,8 +811,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             </div>
 
                                             {/* Impostos */}
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Impostos</Label>
+                                            <div className={cn(
+                                                "flex flex-col gap-2 min-w-0",
+                                                isIntermediate ? "col-span-2" : ""
+                                            )}>
+                                                <Label className={cn(
+                                                    "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                    isIntermediate ? "block text-center" : "text-center md:hidden"
+                                                )}>Impostos</Label>
                                                 <CompactNumberInput
                                                     value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
                                                     onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
@@ -784,8 +833,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             </div>
 
                                             {/* Comissão */}
-                                            <div className="flex flex-col gap-2 min-w-0">
-                                                <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center md:hidden">Comissão</Label>
+                                            <div className={cn(
+                                                "flex flex-col gap-2 min-w-0",
+                                                isIntermediate ? "col-span-2" : ""
+                                            )}>
+                                                <Label className={cn(
+                                                    "text-[10px] text-muted-foreground uppercase tracking-widest font-bold",
+                                                    isIntermediate ? "block text-center" : "text-center md:hidden"
+                                                )}>Comissão</Label>
                                                 <div className="flex items-center gap-2">
                                                     <CompactNumberInput
                                                         value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
