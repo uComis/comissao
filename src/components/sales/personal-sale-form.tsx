@@ -712,8 +712,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             >
                                 <div className="overflow-hidden">
                                     <div className={cn(
-                                        "flex justify-center py-1 pb-3 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
-                                        index === valueEntries.length - 1 && "border-b-0"
+                                        "flex justify-center py-1 pb-6 pt-2 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
+                                        index === valueEntries.length - 1 && "border-b-0 pb-2"
                                     )}
                                          data-removing={removingIds.has(entry.id)}
                                     >
