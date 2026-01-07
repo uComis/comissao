@@ -672,7 +672,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>Informe os valores da venda</CardTitle>
             <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
-              <Label htmlFor="inform-items-switch" className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground cursor-pointer">
+              <Label htmlFor="inform-items-switch" className="text-[11px] font-bold text-muted-foreground cursor-pointer">
                 Detalhado
               </Label>
               <Switch 
@@ -698,15 +698,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         )}>
                             {informItems && (
                                 <>
-                            <Label className="text-[10px] text-foreground font-black text-left pl-1">Item</Label>
-                            <Label className="text-[10px] text-foreground font-black text-center">Qntd.</Label>
+                            <Label className="text-[10px] text-foreground font-bold text-left pl-1">Item</Label>
+                            <Label className="text-[10px] text-foreground font-bold text-center">Qntd.</Label>
                         </>
                     )}
-                    <Label className="text-[10px] text-foreground font-black text-left pl-1">
+                    <Label className="text-[10px] text-foreground font-bold text-left pl-1">
                         {informItems ? "Preço" : "Valor"}
                     </Label>
-                    <Label className="text-[10px] text-foreground font-black text-center">Impostos</Label>
-                    <Label className="text-[10px] text-foreground font-black text-center">Comissão</Label>
+                    <Label className="text-[10px] text-foreground font-bold text-center">Impostos</Label>
+                    <Label className="text-[10px] text-foreground font-bold text-center">Comissão</Label>
                         </div>
 
                         <div 
@@ -925,14 +925,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                 >
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex flex-col gap-1 flex-1 min-w-0 mr-4">
-                                            <span className="text-xs font-black tracking-tighter text-muted-foreground/60">
+                                            <span className="text-[10px] font-bold text-muted-foreground/60">
                                                 {informItems ? `ITEM #${index + 1}` : `ENTRADA #${index + 1}`}
                                             </span>
                                             <h3 className="font-bold text-base text-foreground truncate leading-tight">
                                                 {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
                                             </h3>
                                         </div>
-                                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-black">
+                                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-bold">
                                             {entry.commissionRate || '0'}%
                                         </Badge>
                                     </div>
@@ -951,7 +951,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                             )}
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <span className="text-lg font-black text-foreground">
+                                            <span className="text-lg font-bold text-foreground">
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
                                             </span>
                                         </div>
@@ -1004,7 +1004,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             }}
                         >
                             <Plus className="h-5 w-5" />
-                            {valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? 'ADICIONAR OUTRO' : 'ADICIONAR ITEM'}
+                            {valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? 'Adicionar outro' : 'Adicionar item'}
                         </Button>
                     </div>
 
@@ -1041,7 +1041,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <div className="grid grid-cols-3 gap-4 w-full">
                 {/* Total Geral */}
                 <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total</span>
+                  <span className="text-[10px] font-bold text-muted-foreground">Total</span>
                   <span className="text-lg font-bold text-foreground">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                       valueEntries.reduce((sum, entry) => sum + ((informItems ? (entry.quantity || 1) : 1) * (parseFloat(entry.grossValue) || 0)), 0)
@@ -1051,7 +1051,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
                 {/* Base de Cálculo */}
                 <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Base de Cálculo</span>
+                  <span className="text-[10px] font-bold text-muted-foreground">Base de Cálculo</span>
                   <span className="text-lg font-bold text-foreground">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
                   </span>
@@ -1059,7 +1059,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
                 {/* Comissão */}
                 <div className="flex flex-col items-center gap-1 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Comissão</span>
+                  <span className="text-[10px] font-bold text-emerald-700">Comissão</span>
                   <span className="text-lg font-bold text-emerald-900">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                       valueEntries.reduce((sum, entry) => {
@@ -1244,7 +1244,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         {/* 2. A Conexão */}
                         <div className="flex items-center justify-center gap-4 text-muted-foreground/30">
                             <div className="h-px bg-border flex-1"></div>
-                            <div className="text-xs uppercase tracking-widest font-semibold">Detalhes do Prazo</div>
+                            <div className="text-xs font-semibold">Detalhes do Prazo</div>
                             <div className="h-px bg-border flex-1"></div>
                         </div>
 
@@ -1496,7 +1496,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <div className="space-y-6">
                 {informItems && (
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-black">Item</Label>
+                    <Label className="text-[10px] text-muted-foreground font-semibold">Item</Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -1518,7 +1518,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 <div className={cn("grid gap-4", informItems ? "grid-cols-2" : "grid-cols-1")}>
                   {informItems && (
                     <div className="space-y-3">
-                      <Label className="text-[10px] text-muted-foreground font-black">Quantidade</Label>
+                      <Label className="text-[10px] text-muted-foreground font-semibold">Quantidade</Label>
                       <CompactNumberInput
                         value={valueEntries.find(e => e.id === editingEntryId)?.quantity || 1}
                         onChange={(val) => handleUpdateValueEntry(editingEntryId, 'quantity', val)}
@@ -1530,7 +1530,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     </div>
                   )}
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-black">
+                    <Label className="text-[10px] text-muted-foreground font-semibold">
                       {informItems ? "Preço Unitário" : "Valor Total"}
                     </Label>
                     <CurrencyInput
@@ -1545,8 +1545,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 {/* Info Totalizador no Drawer (Apenas se Detalhado) */}
                 {informItems && (
                   <div className="bg-muted/30 rounded-2xl p-4 flex justify-between items-center border border-dashed mt-4">
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Subtotal do Item</span>
-                    <span className="text-xl font-black text-primary">
+                    <span className="text-sm font-medium text-muted-foreground">Subtotal do Item</span>
+                    <span className="text-xl font-bold text-primary">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                         (valueEntries.find(e => e.id === editingEntryId)?.quantity || 0) * 
                         (parseFloat(valueEntries.find(e => e.id === editingEntryId)?.grossValue || '0') || 0)
@@ -1558,8 +1558,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 {/* Impostos e Comissão */}
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-black flex items-center gap-2">
-                      Impostos <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[9px] px-1 py-0 h-4">Retido</Badge>
+                    <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2">
+                      <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[9px] px-1 py-0 h-4">Impostos</Badge>
                     </Label>
                     <CompactNumberInput
                       value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.taxRate || '0')}
@@ -1570,8 +1570,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-black flex items-center gap-2">
-                      Comissão <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-[9px] px-1 py-0 h-4">Minimo</Badge>
+                    <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2">
+                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-[9px] px-1 py-0 h-4">Comissão</Badge>
                     </Label>
                     <CompactNumberInput
                       value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.commissionRate || '0')}
