@@ -118,7 +118,7 @@ export function CompactNumberInput({
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
         className={cn(
-            "w-full h-11 pl-3 pr-8 text-center text-lg font-medium bg-transparent outline-none border-none",
+            "w-full h-11 pl-3 pr-8 text-center text-sm font-medium bg-transparent outline-none border-none",
         )}
       />
       

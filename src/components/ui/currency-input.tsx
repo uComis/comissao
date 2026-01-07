@@ -106,7 +106,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
           type="text"
           inputMode="decimal"
           className={cn(
-            "pl-9 pr-4 h-12 text-xl font-bold text-center shadow-md border-2 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary rounded-xl transition-all",
+            "pl-9 pr-4 h-11 text-base font-semibold text-center shadow-md border-2 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary rounded-xl transition-all",
             className
           )}
           value={displayValue}

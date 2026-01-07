@@ -640,14 +640,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>Informe os valores da venda</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="inform-items-switch" className="text-sm font-medium leading-none cursor-pointer">
-                Informar itens
+            <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+              <Label htmlFor="inform-items-switch" className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground cursor-pointer">
+                Detalhado
               </Label>
               <Switch 
                 id="inform-items-switch"
                 checked={informItems} 
                 onCheckedChange={setInformItems}
+                className="scale-75 data-[state=checked]:bg-primary"
               />
             </div>
           </CardHeader>
@@ -655,26 +656,26 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             <div className="flex flex-col gap-6">
                 
                 {/* Corpo: Inputs Centralizados */}
-                <div className="flex flex-col items-center gap-4 py-6">
+                <div className="flex flex-col items-center gap-4 py-2">
                     
-                        {/* Cabeçalho de Tabela - Sincronizado com o Grid das Linhas */}
+                        {/* Cabeçalho de Tabela - Negrito e Próximo */}
                         <div className={cn(
-                            "hidden md:grid gap-4 w-full pr-8 mb-2",
+                            "hidden md:grid gap-4 w-full pr-8 mb-0.5", // mb reduzido
                             informItems 
-                                ? "max-w-none grid-cols-[2fr_80px_1.5fr_0.8fr_1.2fr]" // Sincronizado com as colunas detalhadas
-                                : "max-w-2xl mx-auto grid-cols-[1.5fr_0.8fr_1.2fr]"    // Sincronizado com as colunas diretas
+                                ? "max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]"
+                                : "max-w-2xl mx-auto grid-cols-[1.5fr_0.8fr_1.2fr]"
                         )}>
                             {informItems && (
                                 <>
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Item</Label>
-                                    <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Qntd.</Label>
+                                    <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-left pl-1">Item</Label>
+                                    <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Qntd.</Label>
                                 </>
                             )}
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">
+                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-left pl-1">
                                 {informItems ? "Preço" : "Valor"}
                             </Label>
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Impostos</Label>
-                            <Label className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold text-center">Comissão</Label>
+                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Impostos</Label>
+                            <Label className="text-[10px] text-foreground uppercase tracking-widest font-black text-center">Comissão</Label>
                         </div>
 
                         <div className={cn(
@@ -691,17 +692,17 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                             >
                                 <div className="overflow-hidden">
                                     <div className={cn(
-                                        "flex justify-center py-2 pb-4 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
+                                        "flex justify-center py-1 pb-3 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
                                         index === valueEntries.length - 1 && "border-b-0"
                                     )}
                                          data-removing={removingIds.has(entry.id)}
                                     >
                                         <div className={cn(
                                             "flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8",
-                                            "md:grid md:flex-none", // No desktop, desativa flex-wrap e usa grid
+                                            "md:grid md:flex-none",
                                             informItems 
-                                                ? "md:grid-cols-[2fr_80px_1.5fr_0.8fr_1.2fr]" 
-                                                : "md:grid-cols-[1.5fr_0.8fr_1.2fr]"
+                                                ? "md:grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]" 
+                                                : "md:max-w-2xl md:mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]"
                                         )}>
                                             {/* Group 1: Item + Qntd (Apenas se informItems) */}
                                             {informItems && (
@@ -713,7 +714,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                             type="button"
                                                             variant="outline"
                                                             className={cn(
-                                                                "h-12 w-full border-2 transition-all rounded-xl justify-between px-3",
+                                                                "h-11 w-full border-2 transition-all rounded-xl justify-between px-3",
                                                                 entry.productId ? 'border-primary text-primary bg-primary/5' : 'hover:border-primary hover:bg-primary/5 hover:text-primary font-normal text-muted-foreground'
                                                             )}
                                                             onClick={() => {
@@ -801,7 +802,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                                     {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" size="icon" className="h-12 w-12 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
+                                                                <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
                                                                     <Wand2 className="h-5 w-5" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
