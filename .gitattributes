@@ -1,0 +1,15 @@
+# Força line endings consistentes
+* text=auto eol=lf
+
+# Arquivos Windows específicos
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Arquivos binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.svg binary
