@@ -678,7 +678,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <Switch 
                 id="inform-items-switch"
                 checked={informItems} 
-                onCheckedChange={setInformItems}
+                onCheckedChange={(checked) => {
+                  if (checked && !supplierId) {
+                    toast.error('Selecione um fornecedor primeiro para ativar o modo detalhado')
+                    return
+                  }
+                  setInformItems(checked)
+                }}
                 className="scale-75 data-[state=checked]:bg-primary"
               />
             </div>
@@ -910,8 +916,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         ))}
                     </div>
 
-                    {/* V3: Mobile View (Cards) - Apenas se Tela < 768px (sm) */}
-                    <div className="md:hidden flex flex-col gap-4 w-full">
+                    {/* V3: Mobile View (List Items like Bank Extract) - Apenas se Tela < 768px (sm) */}
+                    <div className="md:hidden flex flex-col w-full gap-2">
                         {valueEntries.filter(e => e.productName || (parseFloat(e.grossValue) > 0)).map((entry, index) => {
                             const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
                             return (
@@ -921,71 +927,66 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                         setEditingEntryId(entry.id)
                                         setIsDrawerOpen(true)
                                     }}
-                                    className="bg-white border-2 border-border/60 rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all relative overflow-hidden group hover:border-primary/30"
+                                    className="py-4 pl-3 pr-40 active:bg-muted/30 transition-colors relative border border-border rounded-xl"
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex flex-col gap-1 flex-1 min-w-0 mr-4">
-                                            <span className="text-[10px] font-bold text-muted-foreground/60">
-                                                {informItems ? `ITEM #${index + 1}` : `ENTRADA #${index + 1}`}
-                                            </span>
-                                            <h3 className="font-bold text-base text-foreground truncate leading-tight">
-                                                {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
-                                            </h3>
-                                        </div>
-                                        <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/10 font-bold">
+                                    {/* Left side: Item info */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
+                                            {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
+                                        </h3>
+                                        <span className="text-xs text-muted-foreground">
+                                            {informItems 
+                                                ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
+                                                : `Taxa: ${entry.taxRate}%`
+                                            }
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Right side - Absolute positioned */}
+                                    {/* Tax% - top right (orange) */}
+                                    <div className="absolute top-4 right-36">
+                                        <span className="text-xs font-bold text-orange-600">
+                                            {entry.taxRate || '0'}%
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Commission% - bottom right (green) */}
+                                    <div className="absolute bottom-4 right-36">
+                                        <span className="text-xs font-bold text-green-600">
                                             {entry.commissionRate || '0'}%
-                                        </Badge>
+                                        </span>
                                     </div>
                                     
-                                    <div className="flex justify-between items-end mt-4 pt-3 border-t border-dashed border-border/50">
-                                        <div className="flex flex-col">
-                                            {informItems && (
-                                                <span className="text-[11px] font-medium text-muted-foreground">
-                                                    {entry.quantity} un x {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}
-                                                </span>
-                                            )}
-                                            {!informItems && (
-                                                <span className="text-[11px] font-medium text-muted-foreground">
-                                                    Taxa: {entry.taxRate}%
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-lg font-bold text-foreground">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Pencil Indicator (discreto) */}
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                    
-                                    {/* Botão Remover Discreto em Mobile */}
+                                    {/* Trash icon - top far right */}
                                     {valueEntries.length > 1 && (
                                         <button 
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 handleRemoveValueEntry(entry.id)
                                             }}
-                                            className="absolute -top-1 -right-1 p-2 text-destructive/30 hover:text-destructive transition-colors"
+                                            className="absolute top-3 right-4 p-1 text-destructive/40 hover:text-destructive transition-colors"
                                         >
-                                            <Trash2 className="h-3.5 w-3.5" />
+                                            <Trash2 className="h-4 w-4" />
                                         </button>
                                     )}
+                                    
+                                    {/* Total - bottom far right */}
+                                    <div className="absolute bottom-4 right-4">
+                                        <span className="text-sm font-bold text-foreground whitespace-nowrap">
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
+                                        </span>
+                                    </div>
                                 </div>
                             )
                         })}
-
 
 
                         <Button
                             type="button"
                             variant="outline"
                             className={cn(
-                                "h-16 border-dashed border-2 border-primary/30 text-primary hover:bg-primary/5 rounded-2xl font-bold flex gap-2 transition-all",
-                                !valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? "h-24 text-lg border-primary/50 bg-primary/[0.02]" : "mb-8"
+                                "h-12 border-dashed border-2 border-primary/30 text-primary hover:bg-primary/5 rounded-xl font-semibold flex gap-2 transition-all mt-4",
+                                !valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) && "h-16 text-base border-primary/50 bg-primary/[0.02]"
                             )}
                             onClick={() => {
                                 // Criamos um item limpo para o Drawer
@@ -1484,9 +1485,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       />
 
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent side="bottom" className={cn(
-          "sm:h-auto rounded-t-[20px] p-0 flex flex-col overflow-hidden transition-all duration-300",
-          informItems ? "h-[90vh]" : "h-[60vh]"
+        <SheetContent side="right" className={cn(
+          "w-full h-full p-0 flex flex-col overflow-hidden transition-all duration-300"
         )}>
           <SheetHeader className="p-6 pb-2 border-b">
             <SheetTitle className="text-xl font-bold">

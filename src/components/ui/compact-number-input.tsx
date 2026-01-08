@@ -95,7 +95,7 @@ export function CompactNumberInput({
   return (
     <div 
         className={cn(
-            'relative group border-2 rounded-xl transition-all duration-200 bg-white overflow-hidden shadow-md',
+            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden shadow-md',
             isFocused && !accentColor ? 'border-primary ring-2 ring-primary/20' : 'border-border',
             className
         )}
@@ -120,14 +120,14 @@ export function CompactNumberInput({
         onFocus={handleFocus}
         onKeyDown={handleKeyDown}
         className={cn(
-            "w-full h-11 pl-3 pr-8 text-center text-sm font-medium bg-transparent outline-none border-none",
+            "w-full h-11 pl-3 pr-8 text-center text-sm font-medium bg-transparent text-foreground outline-none border-none",
         )}
       />
       
       {/* Controle à Direita: Sufixo ou Setas */}
       <div
         className={cn(
-          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-white border-l transition-all duration-200',
+          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background border-l transition-all duration-200',
           (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
         )}
         style={{
