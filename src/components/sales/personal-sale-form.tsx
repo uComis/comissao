@@ -1123,7 +1123,7 @@ export function PersonalSaleForm({
                           {/* Main item content */}
                           <div
                             className={cn(
-                              'py-4 pl-3 pr-40 bg-background border border-border rounded-xl transition-transform duration-200 relative min-h-[72px]',
+                              'py-4 pl-3 pr-40 bg-card border border-border/60 rounded-xl transition-transform duration-200 relative min-h-[72px] shadow-sm',
                               isSwiped ? '-translate-x-12' : 'translate-x-0'
                             )}
                             onClick={() => {
