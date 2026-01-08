@@ -341,6 +341,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   })
   
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [productSearchOpen, setProductSearchOpen] = useState<{ open: boolean; entryId?: string }>({ open: false })
   const [productSearchQuery, setProductSearchQuery] = useState('')
 
@@ -560,6 +563,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return
     }
     
+    // Fecha o swipe se estiver aberto
+    setSwipedItemId(null)
+    
     // Inicia animação de saída
     setRemovingIds(prev => new Set(prev).add(id))
     
@@ -572,6 +578,31 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         return next
       })
     }, 300)
+  }
+
+  // Swipe handlers
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = (entryId: string) => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    
+    if (isLeftSwipe) {
+      setSwipedItemId(entryId)
+    } else {
+      setSwipedItemId(null)
+    }
   }
 
   function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) {
@@ -920,62 +951,85 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     <div className="md:hidden flex flex-col w-full gap-2">
                         {valueEntries.filter(e => e.productName || (parseFloat(e.grossValue) > 0)).map((entry, index) => {
                             const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
+                            const isSwiped = swipedItemId === entry.id
+                            
                             return (
                                 <div 
                                     key={entry.id}
-                                    onClick={() => {
-                                        setEditingEntryId(entry.id)
-                                        setIsDrawerOpen(true)
-                                    }}
-                                    className="py-4 pl-3 pr-40 active:bg-muted/30 transition-colors relative border border-border rounded-xl"
+                                    className="relative overflow-hidden rounded-xl"
+                                    onTouchStart={onTouchStart}
+                                    onTouchMove={onTouchMove}
+                                    onTouchEnd={() => onTouchEnd(entry.id)}
                                 >
-                                    {/* Left side: Item info */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
-                                            {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
-                                        </h3>
-                                        <span className="text-xs text-muted-foreground">
-                                            {informItems 
-                                                ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
-                                                : `Taxa: ${entry.taxRate}%`
+                                    {/* Delete background revealed on swipe */}
+                                    <div className={cn(
+                                        "absolute inset-0 bg-destructive transition-opacity duration-200",
+                                        isSwiped ? "opacity-100" : "opacity-0"
+                                    )} />
+                                    
+                                    {/* Main item content */}
+                                    <div 
+                                        className={cn(
+                                            "py-4 pl-3 pr-40 bg-background border border-border rounded-xl transition-transform duration-200 relative min-h-[72px]",
+                                            isSwiped ? "-translate-x-12" : "translate-x-0"
+                                        )}
+                                        onClick={() => {
+                                            if (isSwiped) {
+                                                setSwipedItemId(null)
+                                            } else {
+                                                setEditingEntryId(entry.id)
+                                                setIsDrawerOpen(true)
                                             }
-                                        </span>
+                                        }}
+                                    >
+                                        {/* Left side: Item info */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
+                                                {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
+                                            </h3>
+                                            <span className="text-xs text-muted-foreground">
+                                                {informItems 
+                                                    ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
+                                                    : `Taxa: ${entry.taxRate}%`
+                                                }
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Right side - Absolute positioned */}
+                                        {/* Tax% - top right (orange) */}
+                                        <div className="absolute top-4 right-36">
+                                            <span className="text-xs font-bold text-orange-600">
+                                                {entry.taxRate || '0'}%
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Commission% - bottom right (green) */}
+                                        <div className="absolute bottom-4 right-36">
+                                            <span className="text-xs font-bold text-green-600">
+                                                {entry.commissionRate || '0'}%
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Total - vertically centered on the right */}
+                                        <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
+                                            <span className="text-sm font-bold whitespace-nowrap text-foreground">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
+                                            </span>
+                                        </div>
                                     </div>
                                     
-                                    {/* Right side - Absolute positioned */}
-                                    {/* Tax% - top right (orange) */}
-                                    <div className="absolute top-4 right-36">
-                                        <span className="text-xs font-bold text-orange-600">
-                                            {entry.taxRate || '0'}%
-                                        </span>
-                                    </div>
-                                    
-                                    {/* Commission% - bottom right (green) */}
-                                    <div className="absolute bottom-4 right-36">
-                                        <span className="text-xs font-bold text-green-600">
-                                            {entry.commissionRate || '0'}%
-                                        </span>
-                                    </div>
-                                    
-                                    {/* Trash icon - top far right */}
-                                    {valueEntries.length > 1 && (
-                                        <button 
+                                    {/* Confirm delete button when swiped - vertically centered */}
+                                    {isSwiped && (
+                                        <button
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 handleRemoveValueEntry(entry.id)
                                             }}
-                                            className="absolute top-3 right-4 p-1 text-destructive/40 hover:text-destructive transition-colors"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2"
                                         >
-                                            <Trash2 className="h-4 w-4" />
+                                            <Trash2 className="h-5 w-5 text-white" />
                                         </button>
                                     )}
-                                    
-                                    {/* Total - bottom far right */}
-                                    <div className="absolute bottom-4 right-4">
-                                        <span className="text-sm font-bold text-foreground whitespace-nowrap">
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
-                                        </span>
-                                    </div>
                                 </div>
                             )
                         })}
@@ -1591,9 +1645,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </div>
 
           <SheetFooterUI className="p-6 border-t bg-background sticky bottom-0 mt-autos">
-            <Button onClick={() => setIsDrawerOpen(false)} className="w-full h-14 rounded-2xl text-lg font-bold shadow-lg">
-              Confirmar Alteração
-            </Button>
+            <div className="flex gap-3 w-full">
+              {valueEntries.length > 1 && editingEntryId && (
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    handleRemoveValueEntry(editingEntryId)
+                    setIsDrawerOpen(false)
+                  }} 
+                  className="h-14 rounded-2xl text-base font-bold flex-1"
+                >
+                  <Trash2 className="h-5 w-5 mr-2" />
+                  Excluir
+                </Button>
+              )}
+              <Button 
+                onClick={() => setIsDrawerOpen(false)} 
+                className={cn(
+                  "h-14 rounded-2xl text-base font-bold shadow-lg",
+                  valueEntries.length > 1 ? "flex-1" : "w-full"
+                )}
+              >
+                Confirmar
+              </Button>
+            </div>
           </SheetFooterUI>
         </SheetContent>
       </Sheet>
