@@ -722,7 +722,7 @@ export function PersonalSaleForm({
         {/* Bloco 1: Contexto (Quem) */}
         <Card>
           <CardHeader>
-            <CardTitle>Dados Iniciais</CardTitle>
+            <CardTitle>Identificação</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mt-[10px] mb-[20px]">
@@ -764,7 +764,7 @@ export function PersonalSaleForm({
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>Informe os valores da venda</CardTitle>
+            <CardTitle>Valores</CardTitle>
             <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
               <Label
                 htmlFor="inform-items-switch"
