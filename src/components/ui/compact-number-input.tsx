@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronUp, ChevronDown, Minus, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -42,6 +42,17 @@ export function CompactNumberInput({
   const [displayValue, setDisplayValue] = useState(() => formatNumber(value, decimals))
   const [isFocused, setIsFocused] = useState(false)
   const [prevValue, setPrevValue] = useState(value)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   if (value !== prevValue) {
     setPrevValue(value)
@@ -93,80 +104,140 @@ export function CompactNumberInput({
   }
 
   return (
-    <div 
-        className={cn(
-            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden shadow-md',
+    <>
+      {/* Mobile Layout: Left Arrow + Input + Right Arrow */}
+      {isMobile ? (
+        <div 
+          className={cn(
+            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden shadow-md flex items-center',
             isFocused && !accentColor ? 'border-primary ring-2 ring-primary/20' : 'border-border',
             className
-        )}
-        style={{ 
+          )}
+          style={{ 
             borderLeftColor: accentColor,
             borderLeftWidth: accentColor ? '4px' : undefined,
-            // Se houver accentColor e estiver focado, expande a cor para as outras bordas sem sobrescrever a esquerda
             ...(isFocused && accentColor ? {
-                borderTopColor: accentColor,
-                borderRightColor: accentColor,
-                borderBottomColor: accentColor,
-                boxShadow: `0 0 0 2px ${accentColor}33`
+              borderTopColor: accentColor,
+              borderRightColor: accentColor,
+              borderBottomColor: accentColor,
+              boxShadow: `0 0 0 2px ${accentColor}33`
             } : {})
-        }}
-    >
-      <input
-        type="text"
-        inputMode="decimal"
-        value={displayValue}
-        onChange={handleInputChange}
-        onBlur={handleBlur}
-        onFocus={handleFocus}
-        onKeyDown={handleKeyDown}
-        className={cn(
-            "w-full h-11 pl-3 pr-8 text-center text-sm font-medium bg-transparent text-foreground outline-none border-none",
-        )}
-      />
-      
-      {/* Controle à Direita: Sufixo ou Setas */}
-      <div
-        className={cn(
-          'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background border-l transition-all duration-200',
-          (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
-        )}
-        style={{
-            borderLeftColor: isFocused ? (accentColor ? `${accentColor}4D` : undefined) : undefined // 4D is ~30%
-        }}
-      >
-        {/* Símbolo (ex: %) - Visível quando não há hover/foco e existe sufixo */}
-        {suffix && (
-            <span className={cn(
-                "absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none transition-opacity duration-200 font-medium text-sm",
-                (isFocused) ? "opacity-0" : "group-hover:opacity-0"
-            )}>
-              {suffix}
-            </span>
-        )}
-
-        {/* Botões de Stepper - Visíveis no hover ou foco, ou sempre se não houver sufixo */}
-        <div className={cn(
-            "flex flex-col h-full w-full transition-opacity duration-200",
-            (!suffix || isFocused) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )}>
-          <button
-            type="button"
-            onClick={increment}
-            disabled={max !== undefined && value >= max}
-            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronUp className="h-3 w-3" />
-          </button>
+          }}
+        >
+          {/* Left Arrow Button */}
           <button
             type="button"
             onClick={decrement}
             disabled={value <= min}
-            className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-t"
+            className="flex items-center justify-center w-12 h-11 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-r"
           >
-            <ChevronDown className="h-3 w-3" />
+            <Minus className="h-5 w-5" />
+          </button>
+          
+          {/* Input in Center */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              inputMode="decimal"
+              value={displayValue}
+              onChange={handleInputChange}
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              onKeyDown={handleKeyDown}
+              className="w-full h-11 text-center text-sm font-medium bg-transparent text-foreground outline-none border-none"
+            />
+            {suffix && !isFocused && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none font-medium text-sm">
+                {suffix}
+              </span>
+            )}
+          </div>
+          
+          {/* Right Arrow Button */}
+          <button
+            type="button"
+            onClick={increment}
+            disabled={max !== undefined && value >= max}
+            className="flex items-center justify-center w-12 h-11 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-l"
+          >
+            <Plus className="h-5 w-5" />
           </button>
         </div>
-      </div>
-    </div>
+      ) : (
+        /* Desktop Layout: Original Up/Down Arrows */
+        <div 
+          className={cn(
+            'relative group border-2 rounded-xl transition-all duration-200 bg-background overflow-hidden shadow-md',
+            isFocused && !accentColor ? 'border-primary ring-2 ring-primary/20' : 'border-border',
+            className
+          )}
+          style={{ 
+            borderLeftColor: accentColor,
+            borderLeftWidth: accentColor ? '4px' : undefined,
+            ...(isFocused && accentColor ? {
+              borderTopColor: accentColor,
+              borderRightColor: accentColor,
+              borderBottomColor: accentColor,
+              boxShadow: `0 0 0 2px ${accentColor}33`
+            } : {})
+          }}
+        >
+          <input
+            type="text"
+            inputMode="decimal"
+            value={displayValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
+            className="w-full h-11 pl-3 pr-8 text-center text-sm font-medium bg-transparent text-foreground outline-none border-none"
+          />
+          
+          {/* Controle à Direita: Sufixo ou Setas */}
+          <div
+            className={cn(
+              'absolute right-0 top-0 bottom-0 w-8 flex flex-col justify-center items-center bg-background border-l transition-all duration-200',
+              (isFocused || value !== 0 || !suffix) ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'
+            )}
+            style={{
+              borderLeftColor: isFocused ? (accentColor ? `${accentColor}4D` : undefined) : undefined
+            }}
+          >
+            {/* Símbolo (ex: %) */}
+            {suffix && (
+              <span className={cn(
+                "absolute inset-0 flex items-center justify-center text-muted-foreground pointer-events-none transition-opacity duration-200 font-medium text-sm",
+                (isFocused) ? "opacity-0" : "group-hover:opacity-0"
+              )}>
+                {suffix}
+              </span>
+            )}
+
+            {/* Botões de Stepper */}
+            <div className={cn(
+              "flex flex-col h-full w-full transition-opacity duration-200",
+              (!suffix || isFocused) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            )}>
+              <button
+                type="button"
+                onClick={increment}
+                disabled={max !== undefined && value >= max}
+                className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                type="button"
+                onClick={decrement}
+                disabled={value <= min}
+                className="flex-1 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed border-t"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
