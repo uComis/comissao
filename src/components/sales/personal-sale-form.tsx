@@ -1243,7 +1243,7 @@ export function PersonalSaleForm({
             </div>
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-4 pt-6">
+          <CardFooter className="flex flex-col gap-1 pt-0">
             {/* Linha Separadora com Ícone de Conexão */}
             <div className="relative w-full">
               <div className="absolute inset-0 flex items-center">
@@ -1268,38 +1268,42 @@ export function PersonalSaleForm({
               </div>
             </div>
 
-            {/* Grid de Totais */}
-            <div className="grid grid-cols-3 gap-4 w-full">
-              {/* Total Geral */}
-              <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground">Total</span>
-                <span className="text-lg font-bold text-foreground">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    valueEntries.reduce(
-                      (sum, entry) =>
-                        sum +
-                        (informItems ? entry.quantity || 1 : 1) *
-                          (parseFloat(entry.grossValue) || 0),
-                      0
-                    )
-                  )}
-                </span>
+            {/* Grid de Totais Refinado */}
+            <div className="flex flex-col w-full pt-1">
+              {/* Top: Dados Auxiliares Agrupados */}
+              <div className="grid grid-cols-2 relative py-4 border-b border-dashed border-border/60">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Total Geral</span>
+                  <span className="text-base font-bold text-foreground">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      valueEntries.reduce(
+                        (sum, entry) =>
+                          sum +
+                          (informItems ? entry.quantity || 1 : 1) *
+                            (parseFloat(entry.grossValue) || 0),
+                        0
+                      )
+                    )}
+                  </span>
+                </div>
+
+                {/* Divisor Vertical Interno */}
+                <div className="absolute left-1/2 top-1/2 -translate-y-1/2 w-px h-6 bg-border/60" />
+
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em]">Base de Cálculo</span>
+                  <span className="text-base font-bold text-foreground">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      totalValue
+                    )}
+                  </span>
+                </div>
               </div>
 
-              {/* Base de Cálculo */}
-              <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground">Base de Cálculo</span>
-                <span className="text-lg font-bold text-foreground">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    totalValue
-                  )}
-                </span>
-              </div>
-
-              {/* Comissão */}
-              <div className="flex flex-col items-center gap-1 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                <span className="text-[10px] font-bold text-emerald-700">Comissão</span>
-                <span className="text-lg font-bold text-emerald-900">
+              {/* Bottom: Comissão (Destaque com Fundo Sutil) */}
+              <div className="flex flex-col items-center gap-1 py-6 bg-muted/60 rounded-b-2xl">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.15em] mb-0.5">Sua Comissão</span>
+                <span className="text-2xl font-bold text-foreground">
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                     valueEntries.reduce((sum, entry) => {
                       const qty = informItems ? entry.quantity || 1 : 1
