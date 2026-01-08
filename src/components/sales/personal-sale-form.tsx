@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
+import { DatePicker } from '@/components/ui/date-picker'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { updateProduct } from '@/app/actions/products'
 import { updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
@@ -1331,12 +1332,15 @@ export function PersonalSaleForm({
                 <Label htmlFor="date" className="text-muted-foreground text-[10px] font-bold">
                   Data da Venda
                 </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={saleDate}
-                  onChange={(e) => handleSaleDateChange(e.target.value)}
-                  className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
+                <DatePicker
+                  date={saleDate ? new Date(saleDate + 'T12:00:00') : undefined}
+                  onDateChange={(date) => {
+                    if (date) {
+                      const dateStr = date.toISOString().split('T')[0]
+                      handleSaleDateChange(dateStr)
+                    }
+                  }}
+                  placeholder="Selecione a data da venda"
                 />
               </div>
 
@@ -1347,12 +1351,27 @@ export function PersonalSaleForm({
                 >
                   {paymentType === 'vista' ? 'Data de Recebimento' : 'Data da 1ª Parcela'}
                 </Label>
-                <Input
-                  id="first_installment_date_footer"
-                  type="date"
-                  className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
-                  value={firstInstallmentDate}
-                  onChange={(e) => handleFirstDateChange(e.target.value)}
+                <DatePicker
+                  date={firstInstallmentDate ? new Date(firstInstallmentDate + 'T12:00:00') : undefined}
+                  onDateChange={(date) => {
+                    if (date) {
+                      const dateStr = date.toISOString().split('T')[0]
+                      handleFirstDateChange(dateStr)
+                    }
+                  }}
+                  placeholder={
+                    paymentType === 'vista' 
+                      ? 'Selecione a data de recebimento'
+                      : 'Selecione a data da 1ª parcela'
+                  }
+                  disabled={(date) => {
+                    if (!saleDate) return false
+                    const saleDateObj = new Date(saleDate + 'T00:00:00')
+                    const compareDate = new Date(date)
+                    compareDate.setHours(0, 0, 0, 0)
+                    saleDateObj.setHours(0, 0, 0, 0)
+                    return compareDate < saleDateObj
+                  }}
                 />
               </div>
             </div>

@@ -29,7 +29,7 @@ function formatCurrency(value: number | null): string {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-'
-  return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr))
+  return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr + 'T00:00:00'))
 }
 
 function formatPaymentCondition(condition: string | null): string {
