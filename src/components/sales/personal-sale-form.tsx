@@ -558,11 +558,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleRemoveValueEntry(id: string) {
-    if (valueEntries.length === 1) {
-      toast.error('Deve haver pelo menos um valor')
-      return
-    }
-    
     // Fecha o swipe se estiver aberto
     setSwipedItemId(null)
     
@@ -957,9 +952,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                                 <div 
                                     key={entry.id}
                                     className="relative overflow-hidden rounded-xl"
-                                    onTouchStart={onTouchStart}
-                                    onTouchMove={onTouchMove}
-                                    onTouchEnd={() => onTouchEnd(entry.id)}
+                                    onTouchStart={(e) => {
+                                        onTouchStart(e)
+                                    }}
+                                    onTouchMove={(e) => {
+                                        onTouchMove(e)
+                                    }}
+                                    onTouchEnd={(e) => {
+                                        onTouchEnd(entry.id)
+                                    }}
                                 >
                                     {/* Delete background revealed on swipe */}
                                     <div className={cn(
@@ -1646,7 +1647,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
           <SheetFooterUI className="p-6 border-t bg-background sticky bottom-0 mt-autos">
             <div className="flex gap-3 w-full">
-              {valueEntries.length > 1 && editingEntryId && (
+              {editingEntryId && (
                 <Button 
                   variant="destructive" 
                   onClick={() => {
@@ -1663,7 +1664,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 onClick={() => setIsDrawerOpen(false)} 
                 className={cn(
                   "h-14 rounded-2xl text-base font-bold shadow-lg",
-                  valueEntries.length > 1 ? "flex-1" : "w-full"
+                  editingEntryId ? "flex-1" : "w-full"
                 )}
               >
                 Confirmar
