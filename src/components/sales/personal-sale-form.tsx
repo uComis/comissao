@@ -31,14 +31,14 @@ import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import type { Product, PersonalClient, CommissionRule } from '@/types'
 import type { PersonalSaleWithItems } from '@/types/personal-sale'
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter
-} from "@/components/ui/dialog"
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +46,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 
 type ValueEntry = {
   id: string
@@ -65,12 +65,19 @@ type Props = {
   mode?: 'create' | 'edit'
 }
 
-function parsePaymentCondition(condition: string | null): { type: 'vista' | 'parcelado'; installments: number; interval: number } {
+function parsePaymentCondition(condition: string | null): {
+  type: 'vista' | 'parcelado'
+  installments: number
+  interval: number
+} {
   if (!condition || condition.trim() === '') {
     return { type: 'vista', installments: 3, interval: 30 }
   }
 
-  const parts = condition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+  const parts = condition
+    .split('/')
+    .map((p) => parseInt(p.trim()))
+    .filter((n) => !isNaN(n))
   if (parts.length === 0) {
     return { type: 'vista', installments: 3, interval: 30 }
   }
@@ -83,26 +90,31 @@ function parsePaymentCondition(condition: string | null): { type: 'vista' | 'par
   }
 }
 
-export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create' }: Props) {
+export function PersonalSaleForm({
+  suppliers: initialSuppliers,
+  productsBySupplier,
+  sale,
+  mode = 'create',
+}: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [informItems, setInformItems] = useState(false)
   const [containerWidth, setContainerWidth] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
-  
+
   // Mobile Drawer State
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  
+
   useEffect(() => {
     if (!containerRef.current) return
-    
+
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         setContainerWidth(entry.contentRect.width)
       }
     })
-    
+
     observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [])
@@ -120,9 +132,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const today = new Date().toISOString().split('T')[0]
   const [saleDate, setSaleDate] = useState(sale?.sale_date || today)
   const [firstInstallmentDate, setFirstInstallmentDate] = useState(
-    sale?.first_installment_date || (initialPayment.type === 'vista' ? (sale?.sale_date || today) : '')
+    sale?.first_installment_date ||
+      (initialPayment.type === 'vista' ? sale?.sale_date || today : '')
   )
-  
+
   const calculateDateFromDays = (days: number, baseDateStr: string) => {
     const date = new Date(baseDateStr + 'T12:00:00')
     date.setDate(date.getDate() + days)
@@ -133,7 +146,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     const target = new Date(targetDateStr + 'T12:00:00')
     const base = new Date(baseDateStr + 'T12:00:00')
     const diffTime = Math.abs(target.getTime() - base.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) 
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     return diffDays
   }
 
@@ -162,26 +175,29 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   ]
 
   // Função para detectar padrão irregular
-  const detectIrregularPattern = (parts: number[]): { isIrregular: boolean; intervals: number[] } => {
+  const detectIrregularPattern = (
+    parts: number[]
+  ): { isIrregular: boolean; intervals: number[] } => {
     if (parts.length < 3) return { isIrregular: false, intervals: [] }
-    
+
     const intervals: number[] = []
     for (let i = 1; i < parts.length; i++) {
       intervals.push(parts[i] - parts[i - 1])
     }
-    
+
     // Verifica se todos os intervalos são iguais
     const firstInterval = intervals[0]
-    const isIrregular = intervals.some(int => int !== firstInterval)
-    
+    const isIrregular = intervals.some((int) => int !== firstInterval)
+
     return { isIrregular, intervals }
   }
 
   // Filtra sugestões baseado no input
-  const filteredSuggestions = paymentConditionSuggestions.filter(suggestion =>
-    suggestion.value.startsWith(quickCondition) || 
-    suggestion.label.toLowerCase().includes(quickCondition.toLowerCase()) ||
-    quickCondition === ''
+  const filteredSuggestions = paymentConditionSuggestions.filter(
+    (suggestion) =>
+      suggestion.value.startsWith(quickCondition) ||
+      suggestion.label.toLowerCase().includes(quickCondition.toLowerCase()) ||
+      quickCondition === ''
   )
 
   const getSafeNumber = (val: string | number, min: number = 0) => {
@@ -189,8 +205,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     const num = typeof val === 'string' ? parseInt(val) : val
     return isNaN(num) ? min : num
   }
-  
-
 
   const handleFirstDateChange = (date: string) => {
     setFirstInstallmentDate(date)
@@ -214,23 +228,26 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const handleQuickConditionBlur = () => {
     setShowSuggestions(false)
     setIsUpdatingFromQuick(true)
-    
+
     const normalized = quickCondition.replace(/[\s,-]+/g, '/')
-    
+
     if (normalized.includes('...')) {
-        setIsUpdatingFromQuick(false)
-        return
+      setIsUpdatingFromQuick(false)
+      return
     }
 
-    const parts = normalized.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
-    
+    const parts = normalized
+      .split('/')
+      .map((p) => parseInt(p.trim()))
+      .filter((n) => !isNaN(n))
+
     if (parts.length > 0) {
       const first = parts[0]
       const count = parts.length
-      
+
       // Detectar padrão irregular ANTES de normalizar
       const { isIrregular, intervals } = detectIrregularPattern(parts)
-      
+
       if (isIrregular && parts.length >= 3) {
         // Mostra alerta com os intervalos detectados
         const uniqueIntervals = [...new Set(intervals)]
@@ -240,25 +257,25 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       } else {
         setIrregularPatternWarning(null)
       }
-      
+
       let detectedInterval = getSafeNumber(interval, 30)
 
       if (parts.length > 1) {
         detectedInterval = parts[1] - parts[0]
       } else if (parts.length === 1 && first > 0) {
-         detectedInterval = 30 
+        detectedInterval = 30
       }
 
-      if (detectedInterval <= 0) detectedInterval = 30 
+      if (detectedInterval <= 0) detectedInterval = 30
 
       setInstallments(count)
       setFirstInstallmentDays(first)
       setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
       setInterval(detectedInterval)
-      
+
       setQuickCondition(parts.join('/'))
     }
-    
+
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
   }
 
@@ -273,7 +290,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     setIrregularPatternWarning(null)
     // Dispara o processamento após um pequeno delay
     setTimeout(() => {
-      const parts = value.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+      const parts = value
+        .split('/')
+        .map((p) => parseInt(p.trim()))
+        .filter((n) => !isNaN(n))
       if (parts.length > 0) {
         const first = parts[0]
         const detectedInterval = parts.length > 1 ? parts[1] - parts[0] : 30
@@ -301,32 +321,41 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
 
       if (safeInstallments > 5) {
-          const parts = []
-          for (let i = 0; i < 3; i++) {
-            parts.push(safeFirstDays + (i * safeInterval))
-          }
-          setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
+        const parts = []
+        for (let i = 0; i < 3; i++) {
+          parts.push(safeFirstDays + i * safeInterval)
+        }
+        setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
       } else {
-          const parts = []
-          for (let i = 0; i < safeInstallments; i++) {
-            parts.push(safeFirstDays + (i * safeInterval))
-          }
-          setQuickCondition(parts.join('/'))
+        const parts = []
+        for (let i = 0; i < safeInstallments; i++) {
+          parts.push(safeFirstDays + i * safeInterval)
+        }
+        setQuickCondition(parts.join('/'))
       }
     }
-  }, [installments, interval, firstInstallmentDays, paymentType, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition])
+  }, [
+    installments,
+    interval,
+    firstInstallmentDays,
+    paymentType,
+    isUpdatingFromQuick,
+    sale,
+    hasChangedSteppers,
+    quickCondition,
+  ])
 
   const [notes, setNotes] = useState(sale?.notes || '')
   const [valueEntries, setValueEntries] = useState<ValueEntry[]>(() => {
     if (sale?.items && sale.items.length > 0) {
-      return sale.items.map(item => ({
+      return sale.items.map((item) => ({
         id: item.id,
         quantity: item.quantity || 1,
         grossValue: item.unit_price.toString(),
         taxRate: (item.tax_rate || 0).toString(),
         commissionRate: (item.commission_rate || 0).toString(),
         productId: item.product_id,
-        productName: item.product_name
+        productName: item.product_name,
       }))
     }
     return [
@@ -335,28 +364,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         quantity: 1,
         grossValue: sale?.gross_value?.toString() || '',
         taxRate: sale?.tax_rate?.toString() || '',
-        commissionRate: sale?.commission_rate?.toString() || ''
-      }
+        commissionRate: sale?.commission_rate?.toString() || '',
+      },
     ]
   })
-  
+
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [swipedItemId, setSwipedItemId] = useState<string | null>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
-  const [productSearchOpen, setProductSearchOpen] = useState<{ open: boolean; entryId?: string }>({ open: false })
+  const [productSearchOpen, setProductSearchOpen] = useState<{ open: boolean; entryId?: string }>({
+    open: false,
+  })
   const [productSearchQuery, setProductSearchQuery] = useState('')
-
 
   // Removido estado items e lógica itemsCommissionAnalysis que dependia de entryMode
 
-  const paymentCondition = paymentType === 'vista'
-    ? ''
-    : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => {
-        const firstDays = getSafeNumber(firstInstallmentDays, 30)
-        const gap = getSafeNumber(interval, 30)
-        return firstDays + (i * gap)
-      }).join('/')
+  const paymentCondition =
+    paymentType === 'vista'
+      ? ''
+      : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => {
+          const firstDays = getSafeNumber(firstInstallmentDays, 30)
+          const gap = getSafeNumber(interval, 30)
+          return firstDays + i * gap
+        }).join('/')
 
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [clientInitialName, setClientInitialName] = useState('')
@@ -365,52 +396,55 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [supplierInitialName, setSupplierInitialName] = useState('')
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
 
-  const selectedProducts = supplierId ? (productsBySupplier[supplierId] || []) : []
+  const selectedProducts = supplierId ? productsBySupplier[supplierId] || [] : []
 
   const totalValue = useMemo(() => {
     // Agora sempre soma todos os entries (venda consolidada)
     return valueEntries.reduce((sum, entry) => {
-      const quantity = informItems ? (entry.quantity || 1) : 1
+      const quantity = informItems ? entry.quantity || 1 : 1
       const gross = parseFloat(entry.grossValue) || 0
       const taxRate = parseFloat(entry.taxRate) || 0
-      return sum + (quantity * gross * (1 - (taxRate / 100)))
+      return sum + quantity * gross * (1 - taxRate / 100)
     }, 0)
   }, [valueEntries, informItems])
-
-
 
   const selectedSupplier = useMemo(() => {
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
 
   const applyRule = (ruleId: string) => {
-      const rule = selectedSupplier?.commission_rules.find(r => r.id === ruleId)
-      if (rule) {
-          if (rule.type === 'fixed' && rule.percentage) {
-              // Aplica na primeira linha por padrão ou na linha selecionada no futuro
-              handleUpdateValueEntry(valueEntries[0].id, 'commissionRate', rule.percentage.toString())
-              toast.success(`Taxa de ${rule.percentage}% aplicada!`)
-          }
+    const rule = selectedSupplier?.commission_rules.find((r) => r.id === ruleId)
+    if (rule) {
+      if (rule.type === 'fixed' && rule.percentage) {
+        // Aplica na primeira linha por padrão ou na linha selecionada no futuro
+        handleUpdateValueEntry(valueEntries[0].id, 'commissionRate', rule.percentage.toString())
+        toast.success(`Taxa de ${rule.percentage}% aplicada!`)
       }
+    }
   }
 
   // handleCommissionRateChange was removed as it's no longer used for a single field
 
   const calculateTieredRate = (rule: CommissionRule, value: number) => {
     if (!rule.tiers || rule.tiers.length === 0) return rule.percentage || 0
-    
+
     // Encontrar a faixa correspondente
     const tier = rule.tiers.find((t) => {
-        const minMatches = value >= t.min
-        const maxMatches = t.max === null || value <= t.max
-        return minMatches && maxMatches
+      const minMatches = value >= t.min
+      const maxMatches = t.max === null || value <= t.max
+      return minMatches && maxMatches
     })
-    
-    return tier ? tier.percentage : (rule.tiers[rule.tiers.length - 1].percentage || 0)
+
+    return tier ? tier.percentage : rule.tiers[rule.tiers.length - 1].percentage || 0
   }
 
-  const getEffectiveRate = (entryId: string, target: 'commission' | 'tax', currentGross?: string, currentProductId?: string | null) => {
-    const entry = valueEntries.find(e => e.id === entryId)
+  const getEffectiveRate = (
+    entryId: string,
+    target: 'commission' | 'tax',
+    currentGross?: string,
+    currentProductId?: string | null
+  ) => {
+    const entry = valueEntries.find((e) => e.id === entryId)
     if (!entry) return 0
 
     const gross = parseFloat(currentGross !== undefined ? currentGross : entry.grossValue) || 0
@@ -418,58 +452,65 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
     // 1. Produto
     if (productId) {
-      const product = selectedProducts.find(p => p.id === productId)
+      const product = selectedProducts.find((p) => p.id === productId)
       if (product) {
         // a) Regra de Faixa do Produto
         if (product.commission_rule_id) {
-            const rule = selectedSupplier?.commission_rules.find(r => r.id === product.commission_rule_id)
-            if (rule && rule.target === target && rule.type === 'tiered') {
-                return calculateTieredRate(rule, gross)
-            }
+          const rule = selectedSupplier?.commission_rules.find(
+            (r) => r.id === product.commission_rule_id
+          )
+          if (rule && rule.target === target && rule.type === 'tiered') {
+            return calculateTieredRate(rule, gross)
+          }
         }
         // b) Valor Fixo do Produto
-        const fixed = target === 'commission' ? product.default_commission_rate : product.default_tax_rate
+        const fixed =
+          target === 'commission' ? product.default_commission_rate : product.default_tax_rate
         if (fixed !== null) return fixed
       }
     }
 
     // 2. Pasta (Fornecedor)
     if (selectedSupplier) {
-        // a) Regra de Faixa da Pasta (Default para o target)
-        const supplierRule = selectedSupplier.commission_rules.find(r => r.target === target && r.type === 'tiered' && r.is_default)
-        if (supplierRule) {
-            return calculateTieredRate(supplierRule, gross)
-        }
+      // a) Regra de Faixa da Pasta (Default para o target)
+      const supplierRule = selectedSupplier.commission_rules.find(
+        (r) => r.target === target && r.type === 'tiered' && r.is_default
+      )
+      if (supplierRule) {
+        return calculateTieredRate(supplierRule, gross)
+      }
 
-        // b) Valor Fixo da Pasta
-        const fixed = target === 'commission' ? selectedSupplier.default_commission_rate : selectedSupplier.default_tax_rate
-        return fixed || 0
+      // b) Valor Fixo da Pasta
+      const fixed =
+        target === 'commission'
+          ? selectedSupplier.default_commission_rate
+          : selectedSupplier.default_tax_rate
+      return fixed || 0
     }
 
     return 0
   }
 
-
   // Removidas funções de equalização de comissão
 
   const installmentDates = useMemo(() => {
     if (paymentType !== 'parcelado') return null
-    
+
     const safeInstallments = getSafeNumber(installments, 1)
     const safeInterval = getSafeNumber(interval, 30)
 
     let firstDate: Date
     if (firstInstallmentDate) {
-       firstDate = new Date(firstInstallmentDate + 'T12:00:00')
+      firstDate = new Date(firstInstallmentDate + 'T12:00:00')
     } else {
-       const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
-       firstDate = new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
+      const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
+      firstDate = new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
     }
 
     const lastDate = new Date(firstDate)
-    
-    lastDate.setDate(lastDate.getDate() + ((safeInstallments - 1) * safeInterval))
-    
+
+    lastDate.setDate(lastDate.getDate() + (safeInstallments - 1) * safeInterval)
+
     return {
       first: new Intl.DateTimeFormat('pt-BR').format(firstDate),
       last: new Intl.DateTimeFormat('pt-BR').format(lastDate),
@@ -503,13 +544,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         first_installment_date: firstInstallmentDate || undefined,
         notes: notes.trim() || undefined,
         // Agora mapeamos SEMPRE valueEntries para items
-        items: valueEntries.map(entry => ({
+        items: valueEntries.map((entry) => ({
           product_id: entry.productId,
           product_name: entry.productName || (informItems ? 'Item' : 'Valor'),
-          quantity: informItems ? (entry.quantity || 1) : 1,
+          quantity: informItems ? entry.quantity || 1 : 1,
           unit_price: parseFloat(entry.grossValue) || 0,
           tax_rate: parseFloat(entry.taxRate) || 0,
-          commission_rate: parseFloat(entry.commissionRate) || 0
+          commission_rate: parseFloat(entry.commissionRate) || 0,
         })),
       }
 
@@ -548,26 +589,29 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleAddValueEntry() {
-    setValueEntries(prev => [...prev, {
-      id: crypto.randomUUID(),
-      quantity: 1,
-      grossValue: '',
-      taxRate: '',
-      commissionRate: ''
-    }])
+    setValueEntries((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        quantity: 1,
+        grossValue: '',
+        taxRate: '',
+        commissionRate: '',
+      },
+    ])
   }
 
   function handleRemoveValueEntry(id: string) {
     // Fecha o swipe se estiver aberto
     setSwipedItemId(null)
-    
+
     // Inicia animação de saída
-    setRemovingIds(prev => new Set(prev).add(id))
-    
+    setRemovingIds((prev) => new Set(prev).add(id))
+
     // Remove de fato após a animação
     setTimeout(() => {
-      setValueEntries(prev => prev.filter(entry => entry.id !== id))
-      setRemovingIds(prev => {
+      setValueEntries((prev) => prev.filter((entry) => entry.id !== id))
+      setRemovingIds((prev) => {
         const next = new Set(prev)
         next.delete(id)
         return next
@@ -589,10 +633,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const onTouchEnd = (entryId: string) => {
     if (!touchStart || !touchEnd) return
-    
+
     const distance = touchStart - touchEnd
     const isLeftSwipe = distance > minSwipeDistance
-    
+
     if (isLeftSwipe) {
       setSwipedItemId(entryId)
     } else {
@@ -600,25 +644,41 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
   }
 
-  function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) {
-    setValueEntries(prev => prev.map(entry => {
-      if (entry.id === id) {
-        const updatedEntry = { ...entry, [field]: value }
-        
-        // Se mudou valor ou produto, recalculamos taxas baseadas em regras
-        if (field === 'grossValue' || field === 'productId') {
-          const valStr = typeof value === 'string' ? value : String(value)
-          const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
-          const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
-          
-          updatedEntry.commissionRate = String(newComm)
-          updatedEntry.taxRate = String(newTax)
+  function handleUpdateValueEntry(
+    id: string,
+    field: keyof Omit<ValueEntry, 'id'>,
+    value: string | number
+  ) {
+    setValueEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id === id) {
+          const updatedEntry = { ...entry, [field]: value }
+
+          // Se mudou valor ou produto, recalculamos taxas baseadas em regras
+          if (field === 'grossValue' || field === 'productId') {
+            const valStr = typeof value === 'string' ? value : String(value)
+            const newComm = getEffectiveRate(
+              id,
+              'commission',
+              field === 'grossValue' ? valStr : undefined,
+              field === 'productId' ? valStr : undefined
+            )
+            const newTax = getEffectiveRate(
+              id,
+              'tax',
+              field === 'grossValue' ? valStr : undefined,
+              field === 'productId' ? valStr : undefined
+            )
+
+            updatedEntry.commissionRate = String(newComm)
+            updatedEntry.taxRate = String(newTax)
+          }
+
+          return updatedEntry
         }
-        
-        return updatedEntry
-      }
-      return entry
-    }))
+        return entry
+      })
+    )
   }
 
   function handleCancel() {
@@ -628,11 +688,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   function handleSupplierChange(value: string) {
     setSupplierId(value)
     // Ao mudar fornecedor, limpamos os produtos vinculados mas mantemos os valores
-    setValueEntries(prev => prev.map(entry => ({
-      ...entry,
-      productId: undefined,
-      productName: undefined
-    })))
+    setValueEntries((prev) =>
+      prev.map((entry) => ({
+        ...entry,
+        productId: undefined,
+        productName: undefined,
+      }))
+    )
   }
 
   function handleClientChange(id: string | null, name: string) {
@@ -657,7 +719,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
-        
         {/* Bloco 1: Contexto (Quem) */}
         <Card>
           <CardHeader>
@@ -665,7 +726,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </CardHeader>
           <CardContent>
             <div className="space-y-2 mt-[10px] mb-[20px]">
-              <Label htmlFor="supplier" className="text-muted-foreground text-[10px] font-bold">Fornecedor (pasta) *</Label>
+              <Label
+                htmlFor="supplier"
+                className="text-foreground/70 text-[13px] font-bold mb-1 block px-1"
+              >
+                Fornecedor (pasta) *
+              </Label>
               <SupplierPicker
                 suppliers={suppliersList}
                 value={supplierId}
@@ -679,7 +745,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             </div>
 
             <div className="space-y-2 mt-[40px] mb-[20px]">
-              <Label className="text-muted-foreground text-[10px] font-bold">Cliente *</Label>
+              <Label className="text-foreground/70 text-[13px] font-bold mb-1 block px-1">
+                Cliente *
+              </Label>
               <ClientPicker
                 value={clientId}
                 onChange={handleClientChange}
@@ -698,12 +766,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>Informe os valores da venda</CardTitle>
             <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
-              <Label htmlFor="inform-items-switch" className="text-[11px] font-bold text-muted-foreground cursor-pointer">
+              <Label
+                htmlFor="inform-items-switch"
+                className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer"
+              >
                 Detalhado
               </Label>
-              <Switch 
+              <Switch
                 id="inform-items-switch"
-                checked={informItems} 
+                checked={informItems}
                 onCheckedChange={(checked) => {
                   if (checked && !supplierId) {
                     toast.error('Selecione um fornecedor primeiro para ativar o modo detalhado')
@@ -717,421 +788,532 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-6">
-                
-                {/* Corpo: Inputs Centralizados */}
-                <div className="flex flex-col items-center gap-4 py-2">
-                    
-                        {/* Cabeçalho de Tabela - Negrito e Próximo */}
-                        <div className={cn(
-                            "gap-4 w-full pr-8 mb-0.5", 
-                            isIntermediate || !informItems ? "hidden" : "hidden md:grid",
-                            informItems && !isIntermediate && "max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]",
-                            !informItems && "max-w-2xl mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]"
-                        )}>
-                            {informItems && (
-                                <>
-                            <Label className="text-[10px] text-foreground font-bold text-left pl-1">Item</Label>
-                            <Label className="text-[10px] text-foreground font-bold text-center">Qntd.</Label>
-                        </>
-                    )}
-                    <Label className="text-[10px] text-foreground font-bold text-left pl-1">
-                        {informItems ? "Preço" : "Valor"}
-                    </Label>
-                    <Label className="text-[10px] text-foreground font-bold text-center">Impostos</Label>
-                    <Label className="text-[10px] text-foreground font-bold text-center">Comissão</Label>
-                        </div>
+              {/* Corpo: Inputs Centralizados */}
+              <div className="flex flex-col items-center gap-4 py-2">
+                {/* Cabeçalho de Tabela - Negrito e Próximo */}
+                <div
+                  className={cn(
+                    'gap-4 w-full pr-8 mb-0.5',
+                    isIntermediate || !informItems ? 'hidden' : 'hidden md:grid',
+                    informItems &&
+                      !isIntermediate &&
+                      'max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]',
+                    !informItems && 'max-w-2xl mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]'
+                  )}
+                >
+                  {informItems && (
+                    <>
+                      <Label className="text-[11px] text-muted-foreground font-bold text-left pl-1">
+                        Item
+                      </Label>
+                      <Label className="text-[11px] text-muted-foreground font-bold text-center">
+                        Qntd.
+                      </Label>
+                    </>
+                  )}
+                  <Label className="text-[11px] text-muted-foreground font-bold text-left pl-1">
+                    {informItems ? 'Preço' : 'Valor'}
+                  </Label>
+                  <Label className="text-[11px] text-muted-foreground font-bold text-center">
+                    Impostos
+                  </Label>
+                  <Label className="text-[11px] text-muted-foreground font-bold text-center">
+                    Comissão
+                  </Label>
+                </div>
 
-                        <div 
-                            ref={containerRef}
-                            className={cn(
-                                "hidden md:flex flex-col gap-3 w-full",
-                                informItems ? "max-w-none" : "max-w-2xl"
-                            )}
+                <div
+                  ref={containerRef}
+                  className={cn(
+                    'hidden md:flex flex-col gap-3 w-full',
+                    informItems ? 'max-w-none' : 'max-w-2xl'
+                  )}
+                >
+                  {valueEntries.map((entry, index) => (
+                    <div
+                      key={entry.id}
+                      className="grid transition-[grid-template-rows] duration-300 ease-in-out [grid-template-rows:1fr] data-[new=true]:animate-[grow_0.3s_ease-in-out] data-[removing=true]:[grid-template-rows:0fr]"
+                      data-entry-id={entry.id}
+                      data-new={index > 0 && entry.grossValue === ''}
+                      data-removing={removingIds.has(entry.id)}
+                    >
+                      <div className="overflow-hidden">
+                        <div
+                          className={cn(
+                            'flex justify-center py-1 pb-6 pt-2 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200',
+                            index === valueEntries.length - 1 && 'border-b-0 pb-2'
+                          )}
+                          data-removing={removingIds.has(entry.id)}
                         >
-                            {valueEntries.map((entry, index) => (
-                            <div 
-                                key={entry.id}
-                                className="grid transition-[grid-template-rows] duration-300 ease-in-out [grid-template-rows:1fr] data-[new=true]:animate-[grow_0.3s_ease-in-out] data-[removing=true]:[grid-template-rows:0fr]"
-                                data-entry-id={entry.id}
-                                data-new={index > 0 && entry.grossValue === ''}
-                                data-removing={removingIds.has(entry.id)}
-                            >
-                                <div className="overflow-hidden">
-                                    <div className={cn(
-                                        "flex justify-center py-1 pb-6 pt-2 relative group border-b border-border animate-in fade-in slide-in-from-top-2 duration-500 delay-150 fill-mode-both data-[removing=true]:animate-out data-[removing=true]:fade-out data-[removing=true]:slide-out-to-top-1 data-[removing=true]:duration-200",
-                                        index === valueEntries.length - 1 && "border-b-0 pb-2"
-                                    )}
-                                         data-removing={removingIds.has(entry.id)}
-                                    >
-                                        <div className={cn(
-                                            "flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8",
-                                            "md:grid md:flex-none",
-                                            informItems 
-                                                ? isIntermediate
-                                                    ? "md:grid-cols-6" // 6 colunas para permitir quebras 4+2 e 2+2+2
-                                                    : "md:grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]" 
-                                                : "md:max-w-2xl md:mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]"
-                                        )}>
-                                            {/* Group 1: Item + Qntd (Apenas se informItems) */}
-                                            {informItems && (
-                                                <>
-                                                    {/* Item Selector */}
-                                                    <div className={cn(
-                                                        "flex flex-col gap-2 min-w-0",
-                                                        isIntermediate ? "col-span-4" : ""
-                                                    )}>
-                                                        <Label className={cn(
-                                                            "text-[10px] text-muted-foreground font-bold",
-                                                            isIntermediate ? "block pl-1" : "text-center md:hidden"
-                                                        )}>Item</Label>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            className={cn(
-                                                                "h-11 w-full border-2 transition-all rounded-xl justify-between px-3 shadow-md bg-white",
-                                                                entry.productId ? 'border-border text-foreground' : 'hover:border-primary/50 font-normal text-muted-foreground'
-                                                            )}
-                                                            onClick={() => {
-                                                              if (!supplierId) {
-                                                                toast.error('Selecione um fornecedor primeiro')
-                                                                return
-                                                              }
-                                                              setProductSearchOpen({ open: true, entryId: entry.id })
-                                                            }}
-                                                        >
-                                                            <span className="truncate text-sm font-medium">
-                                                                {entry.productName || "Selecionar item..."}
-                                                            </span>
-                                                            <Search className="h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </div>
-
-                                                    {/* Quantidade */}
-                                                    <div className={cn(
-                                                        "flex flex-col gap-2 shrink-0",
-                                                        isIntermediate ? "col-span-2" : ""
-                                                    )}>
-                                                        <Label className={cn(
-                                                            "text-[10px] text-muted-foreground font-bold",
-                                                            isIntermediate ? "block text-center" : "text-center md:hidden"
-                                                        )}>Qntd.</Label>
-                                                        <CompactNumberInput
-                                                            value={entry.quantity}
-                                                            onChange={(val) => handleUpdateValueEntry(entry.id, 'quantity', val)}
-                                                            min={1}
-                                                            step={1}
-                                                            decimals={0}
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                </>
-                                            )}
-
-                                            {/* Preço / Valor */}
-                                            <div className={cn(
-                                                "flex flex-col gap-2 min-w-0",
-                                                isIntermediate ? "col-span-2" : ""
-                                            )}>
-                                                <div className={cn(
-                                                    "flex items-center gap-1.5 whitespace-nowrap overflow-hidden",
-                                                    isIntermediate ? "justify-start pl-1" : "justify-center"
-                                                )}>
-                                                    <Label htmlFor={`gross_value_${entry.id}`} className={cn(
-                                                        "text-[10px] text-muted-foreground font-bold shrink-0",
-                                                        isIntermediate ? "block" : "md:hidden"
-                                                    )}>
-                                                        {informItems ? "Preço" : "Valor"}
-                                                    </Label>
-                                                    {informItems && entry.quantity > 1 && (
-                                                        <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
-                                                            ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))})
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <CurrencyInput
-                                                    id={`gross_value_${entry.id}`}
-                                                    placeholder="0,00"
-                                                    value={entry.grossValue}
-                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'grossValue', val)}
-                                                />
-                                            </div>
-
-                                            {/* Impostos */}
-                                            <div className={cn(
-                                                "flex flex-col gap-2 min-w-0",
-                                                isIntermediate ? "col-span-2" : ""
-                                            )}>
-                                                <Label className={cn(
-                                                    "text-[10px] text-muted-foreground font-bold",
-                                                    isIntermediate ? "block text-center" : "text-center md:hidden"
-                                                )}>Impostos</Label>
-                                                <CompactNumberInput
-                                                    value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
-                                                    onChange={(val) => handleUpdateValueEntry(entry.id, 'taxRate', String(val))}
-                                                    min={0}
-                                                    max={100}
-                                                    step={0.5}
-                                                    decimals={2}
-                                                    suffix="%"
-                                                    accentColor="#f59e0b"
-                                                    className="w-full"
-                                                />
-                                            </div>
-
-                                            {/* Comissão */}
-                                            <div className={cn(
-                                                "flex flex-col gap-2 min-w-0",
-                                                isIntermediate ? "col-span-2" : ""
-                                            )}>
-                                                <Label className={cn(
-                                                    "text-[10px] text-muted-foreground font-bold",
-                                                    isIntermediate ? "block text-center" : "text-center md:hidden"
-                                                )}>Comissão</Label>
-                                                <div className="flex items-center gap-2">
-                                                    <CompactNumberInput
-                                                        value={entry.commissionRate ? parseFloat(entry.commissionRate) : 0}
-                                                        onChange={(val) => handleUpdateValueEntry(entry.id, 'commissionRate', String(val))}
-                                                        min={0}
-                                                        max={100}
-                                                        step={0.5}
-                                                        decimals={2}
-                                                        suffix="%"
-                                                        accentColor="#67C23A"
-                                                        className="w-full"
-                                                    />
-                                                    
-                                                    {index === 0 && selectedSupplier && selectedSupplier.commission_rules.length > 0 && (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl">
-                                                                    <Wand2 className="h-5 w-5" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-56">
-                                                                <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                {selectedSupplier.commission_rules.filter(r => r.type === 'tiered').map(rule => (
-                                                                    <DropdownMenuItem key={rule.id} onClick={() => applyRule(rule.id)} className="flex justify-between items-center cursor-pointer">
-                                                                        <span>{rule.name}</span>
-                                                                        <span className="font-bold text-muted-foreground">
-                                                                            {calculateTieredRate(rule, parseFloat(entry.grossValue) || 0)}%
-                                                                        </span>
-                                                                    </DropdownMenuItem>
-                                                                ))}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Botão Remover - Discreto e Colado nos inputs */}
-                                            {valueEntries.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveValueEntry(entry.id)}
-                                                        className="absolute right-0 top-3 p-1 text-destructive/40 hover:text-destructive transition-all opacity-100 cursor-pointer"
-                                                        title="Remover valor"
-                                                    >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* V3: Mobile View (List Items like Bank Extract) - Apenas se Tela < 768px (sm) */}
-                    <div className="md:hidden flex flex-col w-full gap-2">
-                        {valueEntries.filter(e => e.productName || (parseFloat(e.grossValue) > 0)).map((entry, index) => {
-                            const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
-                            const isSwiped = swipedItemId === entry.id
-                            
-                            return (
-                                <div 
-                                    key={entry.id}
-                                    className="relative overflow-hidden rounded-xl"
-                                    onTouchStart={(e) => {
-                                        onTouchStart(e)
-                                    }}
-                                    onTouchMove={(e) => {
-                                        onTouchMove(e)
-                                    }}
-                                    onTouchEnd={(e) => {
-                                        onTouchEnd(entry.id)
-                                    }}
-                                >
-                                    {/* Delete background revealed on swipe */}
-                                    <div className={cn(
-                                        "absolute inset-0 bg-destructive transition-opacity duration-200",
-                                        isSwiped ? "opacity-100" : "opacity-0"
-                                    )} />
-                                    
-                                    {/* Main item content */}
-                                    <div 
-                                        className={cn(
-                                            "py-4 pl-3 pr-40 bg-background border border-border rounded-xl transition-transform duration-200 relative min-h-[72px]",
-                                            isSwiped ? "-translate-x-12" : "translate-x-0"
-                                        )}
-                                        onClick={() => {
-                                            if (isSwiped) {
-                                                setSwipedItemId(null)
-                                            } else {
-                                                setEditingEntryId(entry.id)
-                                                setIsDrawerOpen(true)
-                                            }
-                                        }}
-                                    >
-                                        {/* Left side: Item info */}
-                                        <div className="flex flex-col gap-1.5">
-                                            <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
-                                                {informItems ? (entry.productName || "Selecionar produto...") : "Lançamento Manual"}
-                                            </h3>
-                                            <span className="text-xs text-muted-foreground">
-                                                {informItems 
-                                                    ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
-                                                    : `Taxa: ${entry.taxRate}%`
-                                                }
-                                            </span>
-                                        </div>
-                                        
-                                        {/* Right side - Absolute positioned */}
-                                        {/* Tax% - top right (orange) */}
-                                        <div className="absolute top-4 right-36">
-                                            <span className="text-xs font-bold text-orange-600">
-                                                {entry.taxRate || '0'}%
-                                            </span>
-                                        </div>
-                                        
-                                        {/* Commission% - bottom right (green) */}
-                                        <div className="absolute bottom-4 right-36">
-                                            <span className="text-xs font-bold text-green-600">
-                                                {entry.commissionRate || '0'}%
-                                            </span>
-                                        </div>
-                                        
-                                        {/* Total - vertically centered on the right */}
-                                        <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
-                                            <span className="text-sm font-bold whitespace-nowrap text-foreground">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entryTotal)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Confirm delete button when swiped - vertically centered */}
-                                    {isSwiped && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleRemoveValueEntry(entry.id)
-                                            }}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2"
-                                        >
-                                            <Trash2 className="h-5 w-5 text-white" />
-                                        </button>
-                                    )}
-                                </div>
-                            )
-                        })}
-
-
-                        <Button
-                            type="button"
-                            variant="outline"
+                          <div
                             className={cn(
-                                "h-12 border-dashed border-2 border-primary/30 text-primary hover:bg-primary/5 rounded-xl font-semibold flex gap-2 transition-all mt-4",
-                                !valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) && "h-16 text-base border-primary/50 bg-primary/[0.02]"
+                              'flex flex-wrap items-end gap-x-4 gap-y-4 relative w-full pr-8',
+                              'md:grid md:flex-none',
+                              informItems
+                                ? isIntermediate
+                                  ? 'md:grid-cols-6' // 6 colunas para permitir quebras 4+2 e 2+2+2
+                                  : 'md:grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]'
+                                : 'md:max-w-2xl md:mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]'
+                            )}
+                          >
+                            {/* Group 1: Item + Qntd (Apenas se informItems) */}
+                            {informItems && (
+                              <>
+                                {/* Item Selector */}
+                                <div
+                                  className={cn(
+                                    'flex flex-col gap-2 min-w-0',
+                                    isIntermediate ? 'col-span-4' : ''
+                                  )}
+                                >
+                                  <Label
+                                    className={cn(
+                                      'text-[10px] text-muted-foreground font-bold',
+                                      isIntermediate ? 'block pl-1' : 'text-center md:hidden'
+                                    )}
+                                  >
+                                    Item
+                                  </Label>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className={cn(
+                                      'h-11 w-full border-2 transition-all rounded-xl justify-between px-3 shadow-md bg-white',
+                                      entry.productId
+                                        ? 'border-border text-foreground'
+                                        : 'hover:border-primary/50 font-normal text-muted-foreground'
+                                    )}
+                                    onClick={() => {
+                                      if (!supplierId) {
+                                        toast.error('Selecione um fornecedor primeiro')
+                                        return
+                                      }
+                                      setProductSearchOpen({ open: true, entryId: entry.id })
+                                    }}
+                                  >
+                                    <span className="truncate text-sm font-medium">
+                                      {entry.productName || 'Selecionar item...'}
+                                    </span>
+                                    <Search className="h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </div>
+
+                                {/* Quantidade */}
+                                <div
+                                  className={cn(
+                                    'flex flex-col gap-2 shrink-0',
+                                    isIntermediate ? 'col-span-2' : ''
+                                  )}
+                                >
+                                  <Label
+                                    className={cn(
+                                      'text-[10px] text-muted-foreground font-bold',
+                                      isIntermediate ? 'block text-center' : 'text-center md:hidden'
+                                    )}
+                                  >
+                                    Qntd.
+                                  </Label>
+                                  <CompactNumberInput
+                                    value={entry.quantity}
+                                    onChange={(val) =>
+                                      handleUpdateValueEntry(entry.id, 'quantity', val)
+                                    }
+                                    min={1}
+                                    step={1}
+                                    decimals={0}
+                                    className="w-full"
+                                  />
+                                </div>
+                              </>
+                            )}
+
+                            {/* Preço / Valor */}
+                            <div
+                              className={cn(
+                                'flex flex-col gap-2 min-w-0',
+                                isIntermediate ? 'col-span-2' : ''
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  'flex items-center gap-1.5 whitespace-nowrap overflow-hidden',
+                                  isIntermediate ? 'justify-start pl-1' : 'justify-center'
+                                )}
+                              >
+                                <Label
+                                  htmlFor={`gross_value_${entry.id}`}
+                                  className={cn(
+                                    'text-[10px] text-muted-foreground font-bold shrink-0',
+                                    isIntermediate ? 'block' : 'md:hidden'
+                                  )}
+                                >
+                                  {informItems ? 'Preço' : 'Valor'}
+                                </Label>
+                                {informItems && entry.quantity > 1 && (
+                                  <span className="text-[10px] text-muted-foreground/50 font-medium animate-in fade-in slide-in-from-left-1 duration-300 truncate">
+                                    (
+                                    {new Intl.NumberFormat('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                    }).format(entry.quantity * (parseFloat(entry.grossValue) || 0))}
+                                    )
+                                  </span>
+                                )}
+                              </div>
+                              <CurrencyInput
+                                id={`gross_value_${entry.id}`}
+                                placeholder="0,00"
+                                value={entry.grossValue}
+                                onChange={(val) =>
+                                  handleUpdateValueEntry(entry.id, 'grossValue', val)
+                                }
+                              />
+                            </div>
+
+                            {/* Impostos */}
+                            <div
+                              className={cn(
+                                'flex flex-col gap-2 min-w-0',
+                                isIntermediate ? 'col-span-2' : ''
+                              )}
+                            >
+                              <Label
+                                className={cn(
+                                  'text-[10px] text-muted-foreground font-bold',
+                                  isIntermediate ? 'block text-center' : 'text-center md:hidden'
+                                )}
+                              >
+                                Impostos
+                              </Label>
+                              <CompactNumberInput
+                                value={entry.taxRate ? parseFloat(entry.taxRate) : 0}
+                                onChange={(val) =>
+                                  handleUpdateValueEntry(entry.id, 'taxRate', String(val))
+                                }
+                                min={0}
+                                max={100}
+                                step={0.5}
+                                decimals={2}
+                                suffix="%"
+                                accentColor="#f59e0b"
+                                className="w-full"
+                              />
+                            </div>
+
+                            {/* Comissão */}
+                            <div
+                              className={cn(
+                                'flex flex-col gap-2 min-w-0',
+                                isIntermediate ? 'col-span-2' : ''
+                              )}
+                            >
+                              <Label
+                                className={cn(
+                                  'text-[10px] text-muted-foreground font-bold',
+                                  isIntermediate ? 'block text-center' : 'text-center md:hidden'
+                                )}
+                              >
+                                Comissão
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <CompactNumberInput
+                                  value={
+                                    entry.commissionRate ? parseFloat(entry.commissionRate) : 0
+                                  }
+                                  onChange={(val) =>
+                                    handleUpdateValueEntry(entry.id, 'commissionRate', String(val))
+                                  }
+                                  min={0}
+                                  max={100}
+                                  step={0.5}
+                                  decimals={2}
+                                  suffix="%"
+                                  accentColor="#67C23A"
+                                  className="w-full"
+                                />
+
+                                {index === 0 &&
+                                  selectedSupplier &&
+                                  selectedSupplier.commission_rules.length > 0 && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-11 w-11 shrink-0 border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all rounded-xl"
+                                        >
+                                          <Wand2 className="h-5 w-5" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-56">
+                                        <DropdownMenuLabel>Regras de Faixa</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {selectedSupplier.commission_rules
+                                          .filter((r) => r.type === 'tiered')
+                                          .map((rule) => (
+                                            <DropdownMenuItem
+                                              key={rule.id}
+                                              onClick={() => applyRule(rule.id)}
+                                              className="flex justify-between items-center cursor-pointer"
+                                            >
+                                              <span>{rule.name}</span>
+                                              <span className="font-bold text-muted-foreground">
+                                                {calculateTieredRate(
+                                                  rule,
+                                                  parseFloat(entry.grossValue) || 0
+                                                )}
+                                                %
+                                              </span>
+                                            </DropdownMenuItem>
+                                          ))}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                              </div>
+                            </div>
+
+                            {/* Botão Remover - Discreto e Colado nos inputs */}
+                            {valueEntries.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveValueEntry(entry.id)}
+                                className="absolute right-0 top-3 p-1 text-destructive/40 hover:text-destructive transition-all opacity-100 cursor-pointer"
+                                title="Remover valor"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* V3: Mobile View (List Items like Bank Extract) - Apenas se Tela < 768px (sm) */}
+                <div className="md:hidden flex flex-col w-full gap-2">
+                  {valueEntries
+                    .filter((e) => e.productName || parseFloat(e.grossValue) > 0)
+                    .map((entry, index) => {
+                      const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
+                      const isSwiped = swipedItemId === entry.id
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="relative overflow-hidden rounded-xl"
+                          onTouchStart={(e) => {
+                            onTouchStart(e)
+                          }}
+                          onTouchMove={(e) => {
+                            onTouchMove(e)
+                          }}
+                          onTouchEnd={(e) => {
+                            onTouchEnd(entry.id)
+                          }}
+                        >
+                          {/* Delete background revealed on swipe */}
+                          <div
+                            className={cn(
+                              'absolute inset-0 bg-destructive transition-opacity duration-200',
+                              isSwiped ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+
+                          {/* Main item content */}
+                          <div
+                            className={cn(
+                              'py-4 pl-3 pr-40 bg-background border border-border rounded-xl transition-transform duration-200 relative min-h-[72px]',
+                              isSwiped ? '-translate-x-12' : 'translate-x-0'
                             )}
                             onClick={() => {
-                                // Criamos um item limpo para o Drawer
-                                const newId = Math.random().toString(36).substr(2, 9)
-                                const newEntry: ValueEntry = {
-                                    id: newId,
-                                    quantity: 1,
-                                    grossValue: '',
-                                    taxRate: selectedSupplier ? String(selectedSupplier.default_tax_rate || 0) : '0',
-                                    commissionRate: selectedSupplier ? String(selectedSupplier.default_commission_rate || 0) : '0',
-                                    productName: ''
-                                }
-                                setValueEntries(prev => [...prev.filter(e => e.productName || parseFloat(e.grossValue) > 0), newEntry])
-                                setEditingEntryId(newId)
+                              if (isSwiped) {
+                                setSwipedItemId(null)
+                              } else {
+                                setEditingEntryId(entry.id)
                                 setIsDrawerOpen(true)
+                              }
                             }}
-                        >
-                            <Plus className="h-5 w-5" />
-                            {valueEntries.some(e => e.productName || parseFloat(e.grossValue) > 0) ? 'Adicionar outro' : 'Adicionar item'}
-                        </Button>
-                    </div>
+                          >
+                            {/* Left side: Item info */}
+                            <div className="flex flex-col gap-1.5">
+                              <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
+                                {informItems
+                                  ? entry.productName || 'Selecionar produto...'
+                                  : 'Lançamento Manual'}
+                              </h3>
+                              <span className="text-xs text-muted-foreground">
+                                {informItems
+                                  ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
+                                  : `Taxa: ${entry.taxRate}%`}
+                              </span>
+                            </div>
 
-                    {/* Botão Adicionar Valor - ORIGINAL Desktop - Escondido no Mobile */}
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="hidden md:flex border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
-                        onClick={handleAddValueEntry}
-                    >
-                        + Adicionar valor
-                    </Button>
+                            {/* Right side - Absolute positioned */}
+                            {/* Tax% - top right (orange) */}
+                            <div className="absolute top-4 right-36">
+                              <span className="text-xs font-bold text-orange-600">
+                                {entry.taxRate || '0'}%
+                              </span>
+                            </div>
+
+                            {/* Commission% - bottom right (green) */}
+                            <div className="absolute bottom-4 right-36">
+                              <span className="text-xs font-bold text-green-600">
+                                {entry.commissionRate || '0'}%
+                              </span>
+                            </div>
+
+                            {/* Total - vertically centered on the right */}
+                            <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
+                              <span className="text-sm font-bold whitespace-nowrap text-foreground">
+                                {new Intl.NumberFormat('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                }).format(entryTotal)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Confirm delete button when swiped - vertically centered */}
+                          {isSwiped && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleRemoveValueEntry(entry.id)
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2"
+                            >
+                              <Trash2 className="h-5 w-5 text-white" />
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn(
+                      'h-12 border-dashed border-2 border-primary/30 text-primary hover:bg-primary/5 rounded-xl font-semibold flex gap-2 transition-all mt-4',
+                      !valueEntries.some((e) => e.productName || parseFloat(e.grossValue) > 0) &&
+                        'h-16 text-base border-primary/50 bg-primary/[0.02]'
+                    )}
+                    onClick={() => {
+                      // Criamos um item limpo para o Drawer
+                      const newId = Math.random().toString(36).substr(2, 9)
+                      const newEntry: ValueEntry = {
+                        id: newId,
+                        quantity: 1,
+                        grossValue: '',
+                        taxRate: selectedSupplier
+                          ? String(selectedSupplier.default_tax_rate || 0)
+                          : '0',
+                        commissionRate: selectedSupplier
+                          ? String(selectedSupplier.default_commission_rate || 0)
+                          : '0',
+                        productName: '',
+                      }
+                      setValueEntries((prev) => [
+                        ...prev.filter((e) => e.productName || parseFloat(e.grossValue) > 0),
+                        newEntry,
+                      ])
+                      setEditingEntryId(newId)
+                      setIsDrawerOpen(true)
+                    }}
+                  >
+                    <Plus className="h-5 w-5" />
+                    {valueEntries.some((e) => e.productName || parseFloat(e.grossValue) > 0)
+                      ? 'Adicionar outro'
+                      : 'Adicionar item'}
+                  </Button>
                 </div>
+
+                {/* Botão Adicionar Valor - ORIGINAL Desktop - Escondido no Mobile */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:flex border-dashed border-2 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-300"
+                  onClick={handleAddValueEntry}
+                >
+                  + Adicionar valor
+                </Button>
+              </div>
             </div>
           </CardContent>
-          
+
           <CardFooter className="flex flex-col gap-4 pt-6">
-              {/* Linha Separadora com Ícone de Conexão */}
-              <div className="relative w-full">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center">
-                  <div className="bg-card px-3">
-                    <svg className="h-5 w-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  </div>
+            {/* Linha Separadora com Ícone de Conexão */}
+            <div className="relative w-full">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <div className="bg-card px-3">
+                  <svg
+                    className="h-5 w-5 text-muted-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    />
+                  </svg>
                 </div>
               </div>
+            </div>
 
-              {/* Grid de Totais */}
-              <div className="grid grid-cols-3 gap-4 w-full">
-                {/* Total Geral */}
-                <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                  <span className="text-[10px] font-bold text-muted-foreground">Total</span>
-                  <span className="text-lg font-bold text-foreground">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      valueEntries.reduce((sum, entry) => sum + ((informItems ? (entry.quantity || 1) : 1) * (parseFloat(entry.grossValue) || 0)), 0)
-                    )}
-                  </span>
-                </div>
-
-                {/* Base de Cálculo */}
-                <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
-                  <span className="text-[10px] font-bold text-muted-foreground">Base de Cálculo</span>
-                  <span className="text-lg font-bold text-foreground">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
-                  </span>
-                </div>
-
-                {/* Comissão */}
-                <div className="flex flex-col items-center gap-1 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                  <span className="text-[10px] font-bold text-emerald-700">Comissão</span>
-                  <span className="text-lg font-bold text-emerald-900">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      valueEntries.reduce((sum, entry) => {
-                        const qty = informItems ? (entry.quantity || 1) : 1
-                        const gross = parseFloat(entry.grossValue) || 0
-                        const taxRate = parseFloat(entry.taxRate) || 0
-                        const commRate = parseFloat(entry.commissionRate) || 0
-                        const base = qty * gross * (1 - (taxRate / 100))
-                        return sum + (base * (commRate / 100))
-                      }, 0)
-                    )}
-                  </span>
-                </div>
+            {/* Grid de Totais */}
+            <div className="grid grid-cols-3 gap-4 w-full">
+              {/* Total Geral */}
+              <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
+                <span className="text-[10px] font-bold text-muted-foreground">Total</span>
+                <span className="text-lg font-bold text-foreground">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    valueEntries.reduce(
+                      (sum, entry) =>
+                        sum +
+                        (informItems ? entry.quantity || 1 : 1) *
+                          (parseFloat(entry.grossValue) || 0),
+                      0
+                    )
+                  )}
+                </span>
               </div>
 
-            </CardFooter>
+              {/* Base de Cálculo */}
+              <div className="flex flex-col items-center gap-1 p-3 bg-muted/30 rounded-lg">
+                <span className="text-[10px] font-bold text-muted-foreground">Base de Cálculo</span>
+                <span className="text-lg font-bold text-foreground">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    totalValue
+                  )}
+                </span>
+              </div>
+
+              {/* Comissão */}
+              <div className="flex flex-col items-center gap-1 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <span className="text-[10px] font-bold text-emerald-700">Comissão</span>
+                <span className="text-lg font-bold text-emerald-900">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    valueEntries.reduce((sum, entry) => {
+                      const qty = informItems ? entry.quantity || 1 : 1
+                      const gross = parseFloat(entry.grossValue) || 0
+                      const taxRate = parseFloat(entry.taxRate) || 0
+                      const commRate = parseFloat(entry.commissionRate) || 0
+                      const base = qty * gross * (1 - taxRate / 100)
+                      return sum + base * (commRate / 100)
+                    }, 0)
+                  )}
+                </span>
+              </div>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* Bloco 3: Financeiro (Pagamento) */}
@@ -1140,21 +1322,25 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             <CardTitle>Condições de Pagamento</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="date" className="text-muted-foreground text-[10px] font-bold">Data da Venda</Label>
+                <Label htmlFor="date" className="text-muted-foreground text-[10px] font-bold">
+                  Data da Venda
+                </Label>
                 <Input
-                    id="date"
-                    type="date"
-                    value={saleDate}
-                    onChange={(e) => handleSaleDateChange(e.target.value)}
-                    className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
+                  id="date"
+                  type="date"
+                  value={saleDate}
+                  onChange={(e) => handleSaleDateChange(e.target.value)}
+                  className="h-12 shadow-sm border-2 focus-visible:ring-0 focus-visible:border-primary font-medium"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="first_installment_date_footer" className="text-muted-foreground text-[10px] font-bold">
+                <Label
+                  htmlFor="first_installment_date_footer"
+                  className="text-muted-foreground text-[10px] font-bold"
+                >
                   {paymentType === 'vista' ? 'Data de Recebimento' : 'Data da 1ª Parcela'}
                 </Label>
                 <Input
@@ -1167,19 +1353,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               </div>
             </div>
 
-             {/* Seletor de Tipo */}
-             <div className="flex justify-center py-4">
-                <RadioGroup
+            {/* Seletor de Tipo */}
+            <div className="flex justify-center py-4">
+              <RadioGroup
                 value={paymentType}
                 onValueChange={(v) => {
                   const newType = v as 'vista' | 'parcelado'
                   setPaymentType(newType)
-                  
+
                   if (newType === 'parcelado') {
                     // Se os dias estiverem <= 0 (provavelmente vindo de à vista), usa o padrão de 30
                     let days = getSafeNumber(firstInstallmentDays, 30)
                     if (days <= 0) days = 30
-                    
+
                     setFirstInstallmentDays(days)
                     setFirstInstallmentDate(calculateDateFromDays(days, saleDate))
                   } else {
@@ -1189,234 +1375,269 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   }
                 }}
                 className="flex gap-2 bg-muted p-1 rounded-full"
-                >
+              >
                 <div className="flex items-center">
-                    <RadioGroupItem value="vista" id="vista" className="sr-only" />
-                    <Label 
-                        htmlFor="vista" 
-                        className={`px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all ${
-                            paymentType === 'vista' ? 'bg-background shadow-sm text-foreground ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
+                  <RadioGroupItem value="vista" id="vista" className="sr-only" />
+                  <Label
+                    htmlFor="vista"
+                    className={`px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all ${
+                      paymentType === 'vista'
+                        ? 'bg-background shadow-sm text-foreground ring-1 ring-border'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
                     À vista
-                    </Label>
+                  </Label>
                 </div>
                 <div className="flex items-center">
-                    <RadioGroupItem value="parcelado" id="parcelado" className="sr-only" />
-                    <Label 
-                        htmlFor="parcelado" 
-                        className={`px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all ${
-                            paymentType === 'parcelado' ? 'bg-background shadow-sm text-foreground ring-1 ring-border' : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
+                  <RadioGroupItem value="parcelado" id="parcelado" className="sr-only" />
+                  <Label
+                    htmlFor="parcelado"
+                    className={`px-6 py-2 text-sm font-medium rounded-full cursor-pointer transition-all ${
+                      paymentType === 'parcelado'
+                        ? 'bg-background shadow-sm text-foreground ring-1 ring-border'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
                     Parcelado
-                    </Label>
+                  </Label>
                 </div>
-                </RadioGroup>
+              </RadioGroup>
             </div>
 
-            <div 
-                className={cn(
-                    "grid transition-all duration-500 ease-in-out overflow-hidden",
-                    paymentType === 'parcelado' ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                )}
+            <div
+              className={cn(
+                'grid transition-all duration-500 ease-in-out overflow-hidden',
+                paymentType === 'parcelado'
+                  ? 'grid-rows-[1fr] opacity-100'
+                  : 'grid-rows-[0fr] opacity-0'
+              )}
             >
-                <div className="min-h-0">
-                    <div className="max-w-2xl mx-auto space-y-6 pt-6 animate-in fade-in slide-in-from-top-4 duration-500 fill-mode-both">
-                        
-                        {/* 1. O Comando (Input Rápido com Autocomplete) */}
-                        <div className="space-y-3">
-                            <Label htmlFor="quick_condition" className="text-sm font-medium text-center block text-primary">
-                                Digite os prazos
-                            </Label>
-                            <div className="relative max-w-md mx-auto">
-                                <Input
-                                    id="quick_condition"
-                                    placeholder="ex: 30/60/90"
-                                    value={quickCondition}
-                                    onChange={(e) => {
-                                      setQuickCondition(e.target.value)
-                                      setIsUpdatingFromQuick(true)
-                                      setIrregularPatternWarning(null)
-                                    }}
-                                    onFocus={() => setShowSuggestions(true)}
-                                    onBlur={() => {
-                                      // Delay para permitir clique nas sugestões
-                                      setTimeout(() => {
-                                        setShowSuggestions(false)
-                                        handleQuickConditionBlur()
-                                      }, 150)
-                                    }}
-                                    className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
-                                      irregularPatternWarning 
-                                        ? 'border-amber-400 focus-visible:border-amber-500' 
-                                        : 'border-primary/20 focus-visible:border-primary'
-                                    }`}
-                                />
-                                
-                                {/* Autocomplete Dropdown */}
-                                {showSuggestions && filteredSuggestions.length > 0 && (
-                                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
-                                    {filteredSuggestions.map((suggestion, index) => (
-                                      <button
-                                        key={index}
-                                        type="button"
-                                        className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
-                                        onMouseDown={(e) => {
-                                          e.preventDefault()
-                                          handleSelectSuggestion(suggestion.value)
-                                        }}
-                                      >
-                                        <span className="font-medium">{suggestion.label}</span>
-                                        {suggestion.description && (
-                                          <span className="text-xs text-muted-foreground">{suggestion.description}</span>
-                                        )}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                            </div>
-                            
-                            {/* Alerta de Padrão Irregular */}
-                            {irregularPatternWarning && (
-                              <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <div className="flex-1">
-                                  <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
-                                  <button
-                                    type="button"
-                                    className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
-                                    onClick={() => setIrregularPatternWarning(null)}
-                                  >
-                                    Entendi, continuar assim
-                                  </button>
-                                </div>
-                              </div>
-                            )}
+              <div className="min-h-0">
+                <div className="max-w-2xl mx-auto space-y-6 pt-6 animate-in fade-in slide-in-from-top-4 duration-500 fill-mode-both">
+                  {/* 1. O Comando (Input Rápido com Autocomplete) */}
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="quick_condition"
+                      className="text-sm font-medium text-center block text-primary"
+                    >
+                      Digite os prazos
+                    </Label>
+                    <div className="relative max-w-md mx-auto">
+                      <Input
+                        id="quick_condition"
+                        placeholder="ex: 30/60/90"
+                        value={quickCondition}
+                        onChange={(e) => {
+                          setQuickCondition(e.target.value)
+                          setIsUpdatingFromQuick(true)
+                          setIrregularPatternWarning(null)
+                        }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => {
+                          // Delay para permitir clique nas sugestões
+                          setTimeout(() => {
+                            setShowSuggestions(false)
+                            handleQuickConditionBlur()
+                          }, 150)
+                        }}
+                        className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                          irregularPatternWarning
+                            ? 'border-amber-400 focus-visible:border-amber-500'
+                            : 'border-primary/20 focus-visible:border-primary'
+                        }`}
+                      />
+
+                      {/* Autocomplete Dropdown */}
+                      {showSuggestions && filteredSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                          {filteredSuggestions.map((suggestion, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                              onMouseDown={(e) => {
+                                e.preventDefault()
+                                handleSelectSuggestion(suggestion.value)
+                              }}
+                            >
+                              <span className="font-medium">{suggestion.label}</span>
+                              {suggestion.description && (
+                                <span className="text-xs text-muted-foreground">
+                                  {suggestion.description}
+                                </span>
+                              )}
+                            </button>
+                          ))}
                         </div>
-
-                        {/* 2. A Conexão */}
-                        <div className="flex items-center justify-center gap-4 text-muted-foreground/30">
-                            <div className="h-px bg-border flex-1"></div>
-                            <div className="text-xs font-semibold">Detalhes do Prazo</div>
-                            <div className="h-px bg-border flex-1"></div>
-                        </div>
-
-                        {/* 3. A Mecânica (Box Técnico) */}
-                        <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                                Número de Parcelas
-                                </Label>
-                                <NumberStepper
-                                  value={Number(installments) || 1}
-                                  onChange={(val) => {
-                                    setInstallments(val)
-                                    setHasChangedSteppers(true)
-                                  }}
-                                  min={1}
-                                  max={24}
-                                  step={1}
-                                  size="sm"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                                Intervalo em dias
-                                </Label>
-                                <NumberStepper
-                                  value={Number(interval) || 30}
-                                  onChange={(val) => {
-                                    setInterval(val)
-                                    setHasChangedSteppers(true)
-                                  }}
-                                  min={1}
-                                  step={5}
-                                  size="sm"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">
-                                1ª Parcela em Dias
-                                </Label>
-                                <NumberStepper
-                                  value={Number(firstInstallmentDays) || 30}
-                                  onChange={(val) => {
-                                    setFirstInstallmentDays(val)
-                                    setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
-                                    setHasChangedSteppers(true)
-                                  }}
-                                  min={0}
-                                  step={5}
-                                  size="sm"
-                                />
-                            </div>
-                        </div>
-
-                        {/* 4. O Resultado (Lista Limpa e Primária) */}
-                        {installmentDates && (
-                            <div className="pt-4 pb-6">
-                                <Label className="text-sm font-semibold block mb-4 text-center">
-                                    Previsão de Recebimento
-                                </Label>
-                                <div className="bg-card rounded-lg border shadow-sm divide-y">
-                                    {(() => {
-                                        const safeInstallments = getSafeNumber(installments, 1);
-                                        const safeInterval = getSafeNumber(interval, 30);
-                                        const safeFirstDays = getSafeNumber(firstInstallmentDays, 30);
-                                        const installmentValue = totalValue > 0 ? totalValue / safeInstallments : 0;
-                                        
-                                        const dates = [];
-                                        const baseDate = firstInstallmentDate ? new Date(firstInstallmentDate + 'T12:00:00') : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00');
-                                        
-                                        for(let i=0; i < Math.min(safeInstallments, 4); i++) {
-                                            const d = new Date(baseDate);
-                                            d.setDate(d.getDate() + (i * safeInterval));
-                                            dates.push(d);
-                                        }
-
-                                        return (
-                                            <>
-                                                {dates.map((date, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center p-3 hover:bg-muted/20 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                                                                {idx + 1}
-                                                            </span>
-                                                            <span className="text-sm font-medium">
-                                                                {new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }).format(date)}
-                                                            </span>
-                                                        </div>
-                                                        <span className="font-bold text-sm">
-                                                            {installmentValue > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(installmentValue) : '-'}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                                
-                                                {safeInstallments > 4 && (
-                                                    <div className="p-2 bg-muted/20 text-center">
-                                                        <Button
-                                                            type="button"
-                                                            variant="link"
-                                                            size="sm"
-                                                            className="text-xs h-auto py-1"
-                                                            onClick={() => setInstallmentsSheetOpen(true)}
-                                                        >
-                                                            <Eye className="h-3 w-3 mr-1" />
-                                                            Ver mais {safeInstallments - 4} parcelas...
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-                        )}
+                      )}
                     </div>
+
+                    {/* Alerta de Padrão Irregular */}
+                    {irregularPatternWarning && (
+                      <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <svg
+                          className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
+                          <button
+                            type="button"
+                            className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
+                            onClick={() => setIrregularPatternWarning(null)}
+                          >
+                            Entendi, continuar assim
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 2. A Conexão */}
+                  <div className="flex items-center justify-center gap-4 text-muted-foreground/30">
+                    <div className="h-px bg-border flex-1"></div>
+                    <div className="text-xs font-semibold">Detalhes do Prazo</div>
+                    <div className="h-px bg-border flex-1"></div>
+                  </div>
+
+                  {/* 3. A Mecânica (Box Técnico) */}
+                  <div className="bg-muted/40 rounded-xl p-6 border border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[12px] uppercase text-foreground/50 font-bold mb-1 block px-1">
+                        Número de Parcelas
+                      </Label>
+                      <NumberStepper
+                        value={Number(installments) || 1}
+                        onChange={(val) => {
+                          setInstallments(val)
+                          setHasChangedSteppers(true)
+                        }}
+                        min={1}
+                        max={24}
+                        step={1}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[12px] uppercase text-foreground/50 font-bold mb-1 block px-1">
+                        Intervalo em dias
+                      </Label>
+                      <NumberStepper
+                        value={Number(interval) || 30}
+                        onChange={(val) => {
+                          setInterval(val)
+                          setHasChangedSteppers(true)
+                        }}
+                        min={1}
+                        step={5}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[12px] uppercase text-foreground/50 font-bold mb-1 block px-1">
+                        1ª Parcela em Dias
+                      </Label>
+                      <NumberStepper
+                        value={Number(firstInstallmentDays) || 30}
+                        onChange={(val) => {
+                          setFirstInstallmentDays(val)
+                          setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                          setHasChangedSteppers(true)
+                        }}
+                        min={0}
+                        step={5}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4. O Resultado (Lista Limpa e Primária) */}
+                  {installmentDates && (
+                    <div className="pt-4 pb-6">
+                      <Label className="text-sm font-semibold block mb-4 text-center">
+                        Previsão de Recebimento
+                      </Label>
+                      <div className="bg-card rounded-lg border shadow-sm divide-y">
+                        {(() => {
+                          const safeInstallments = getSafeNumber(installments, 1)
+                          const safeInterval = getSafeNumber(interval, 30)
+                          const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
+                          const installmentValue =
+                            totalValue > 0 ? totalValue / safeInstallments : 0
+
+                          const dates = []
+                          const baseDate = firstInstallmentDate
+                            ? new Date(firstInstallmentDate + 'T12:00:00')
+                            : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
+
+                          for (let i = 0; i < Math.min(safeInstallments, 4); i++) {
+                            const d = new Date(baseDate)
+                            d.setDate(d.getDate() + i * safeInterval)
+                            dates.push(d)
+                          }
+
+                          return (
+                            <>
+                              {dates.map((date, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between items-center p-3 hover:bg-muted/20 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                                      {idx + 1}
+                                    </span>
+                                    <span className="text-sm font-medium">
+                                      {new Intl.DateTimeFormat('pt-BR', {
+                                        day: '2-digit',
+                                        month: 'long',
+                                        year: 'numeric',
+                                      }).format(date)}
+                                    </span>
+                                  </div>
+                                  <span className="font-bold text-sm">
+                                    {installmentValue > 0
+                                      ? new Intl.NumberFormat('pt-BR', {
+                                          style: 'currency',
+                                          currency: 'BRL',
+                                        }).format(installmentValue)
+                                      : '-'}
+                                  </span>
+                                </div>
+                              ))}
+
+                              {safeInstallments > 4 && (
+                                <div className="p-2 bg-muted/20 text-center">
+                                  <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="text-xs h-auto py-1"
+                                    onClick={() => setInstallmentsSheetOpen(true)}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    Ver mais {safeInstallments - 4} parcelas...
+                                  </Button>
+                                </div>
+                              )}
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1447,8 +1668,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         </div>
       </form>
 
-      <Dialog open={productSearchOpen.open} onOpenChange={(open) => setProductSearchOpen({ open, entryId: productSearchOpen.entryId })}>
-        <DialogContent 
+      <Dialog
+        open={productSearchOpen.open}
+        onOpenChange={(open) => setProductSearchOpen({ open, entryId: productSearchOpen.entryId })}
+      >
+        <DialogContent
           className="max-w-md w-full p-0 gap-0 overflow-hidden rounded-3xl"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -1464,12 +1688,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               />
             </div>
           </DialogHeader>
-          
+
           <div className="p-4 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
               {selectedProducts
-                .filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
-                .map(product => (
+                .filter((p) => p.name.toLowerCase().includes(productSearchQuery.toLowerCase()))
+                .map((product) => (
                   <button
                     key={product.id}
                     type="button"
@@ -1477,38 +1701,50 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     onClick={() => {
                       if (!productSearchOpen.entryId) return
                       const eid = productSearchOpen.entryId
-                      setValueEntries(prev => prev.map(entry => {
-                        if (entry.id === eid) {
-                          return {
-                            ...entry,
-                            productId: product.id,
-                            productName: product.name,
-                            grossValue: product.unit_price?.toString() || entry.grossValue,
+                      setValueEntries((prev) =>
+                        prev.map((entry) => {
+                          if (entry.id === eid) {
+                            return {
+                              ...entry,
+                              productId: product.id,
+                              productName: product.name,
+                              grossValue: product.unit_price?.toString() || entry.grossValue,
+                            }
                           }
-                        }
-                        return entry
-                      }))
+                          return entry
+                        })
+                      )
                       setProductSearchOpen({ open: false })
                       toast.success(`Item ${product.name} selecionado`)
                     }}
                   >
                     <span className="font-bold text-foreground">{product.name}</span>
                     <div className="flex gap-4 mt-1">
-                      {product.unit_price && <span className="text-xs text-muted-foreground">Preço: R$ {product.unit_price.toFixed(2).replace('.', ',')}</span>}
+                      {product.unit_price && (
+                        <span className="text-xs text-muted-foreground">
+                          Preço: R$ {product.unit_price.toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
                     </div>
                   </button>
                 ))}
-              
-              {selectedProducts.filter(p => p.name.toLowerCase().includes(productSearchQuery.toLowerCase())).length === 0 && (
+
+              {selectedProducts.filter((p) =>
+                p.name.toLowerCase().includes(productSearchQuery.toLowerCase())
+              ).length === 0 && (
                 <div className="py-12 text-center text-muted-foreground italic">
                   Nenhum item encontrado para este fornecedor.
                 </div>
               )}
             </div>
           </div>
-          
+
           <DialogFooter className="p-6 bg-muted/20 border-t">
-            <Button variant="outline" onClick={() => setProductSearchOpen({ open: false })} className="w-full rounded-xl h-12 font-bold border-2">
+            <Button
+              variant="outline"
+              onClick={() => setProductSearchOpen({ open: false })}
+              className="w-full rounded-xl h-12 font-bold border-2"
+            >
               Fechar
             </Button>
           </DialogFooter>
@@ -1540,32 +1776,43 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       />
 
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent side="right" className={cn(
-          "w-full h-full p-0 flex flex-col overflow-hidden transition-all duration-300"
-        )}>
+        <SheetContent
+          side="right"
+          className={cn(
+            'w-full h-full p-0 flex flex-col overflow-hidden transition-all duration-300'
+          )}
+        >
           <SheetHeader className="p-6 pb-2 border-b">
             <SheetTitle className="text-xl font-bold">
               {editingEntryId ? 'Editar Item' : 'Adicionar Item'}
             </SheetTitle>
           </SheetHeader>
-          
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
-            {editingEntryId && valueEntries.find(e => e.id === editingEntryId) && (
+
+          <div className={cn(
+            "flex-1 overflow-y-auto p-6 space-y-6 pb-24",
+            !informItems && "flex flex-col items-center justify-start pt-[12vh]"
+          )}>
+            {editingEntryId && valueEntries.find((e) => e.id === editingEntryId) && (
               <div className="space-y-6">
                 {informItems && (
-                  <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-semibold">Item</Label>
+                  <div className="space-y-3 w-full">
+                    <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
+                      Item
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"
                       className={cn(
-                        "h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base",
-                        valueEntries.find(e => e.id === editingEntryId)?.productId ? 'border-border' : 'border-dashed border-primary/30 text-muted-foreground'
+                        'h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base',
+                        valueEntries.find((e) => e.id === editingEntryId)?.productId
+                          ? 'border-border'
+                          : 'border-dashed border-primary/30 text-muted-foreground'
                       )}
                       onClick={() => setProductSearchOpen({ open: true, entryId: editingEntryId })}
                     >
                       <span className="truncate font-semibold">
-                        {valueEntries.find(e => e.id === editingEntryId)?.productName || "Selecionar item..."}
+                        {valueEntries.find((e) => e.id === editingEntryId)?.productName ||
+                          'Selecionar item...'}
                       </span>
                       <Search className="h-5 w-5 shrink-0 opacity-50" />
                     </Button>
@@ -1573,12 +1820,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 )}
 
                 {/* Qntd e Preço em 2 colunas ou Preço Único */}
-                <div className={cn("grid gap-4", informItems ? "grid-cols-2" : "grid-cols-1")}>
+                <div className={cn('grid gap-6 w-full', informItems ? 'grid-cols-2' : 'grid-cols-1')}>
                   {informItems && (
                     <div className="space-y-3">
-                      <Label className="text-[10px] text-muted-foreground font-semibold">Quantidade</Label>
+                      <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
+                        Quantidade
+                      </Label>
                       <CompactNumberInput
-                        value={valueEntries.find(e => e.id === editingEntryId)?.quantity || 1}
+                        value={valueEntries.find((e) => e.id === editingEntryId)?.quantity || 1}
                         onChange={(val) => handleUpdateValueEntry(editingEntryId, 'quantity', val)}
                         min={1}
                         step={1}
@@ -1587,60 +1836,92 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                       />
                     </div>
                   )}
-                  <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-semibold">
-                      {informItems ? "Preço Unitário" : "Valor Total"}
+                  <div className={cn(
+                    "space-y-3 transition-all duration-300",
+                    !informItems && "max-w-[280px] mx-auto w-full text-center"
+                  )}>
+                    <Label className={cn(
+                      "text-[13px] font-bold mb-1 block px-1",
+                      informItems ? "text-foreground/70" : "text-primary text-base uppercase tracking-wider"
+                    )}>
+                      {informItems ? 'Preço Unitário' : 'Valor Total'}
                     </Label>
                     <CurrencyInput
                       placeholder="0,00"
-                      value={valueEntries.find(e => e.id === editingEntryId)?.grossValue || ''}
+                      value={valueEntries.find((e) => e.id === editingEntryId)?.grossValue || ''}
                       onChange={(val) => handleUpdateValueEntry(editingEntryId, 'grossValue', val)}
-                      className="h-14 text-lg font-bold"
+                      className={cn(
+                        "font-bold transition-all duration-300",
+                        informItems ? "h-14 text-lg" : "h-20 text-3xl text-center rounded-3xl border-primary/20 shadow-xl shadow-primary/5 focus-visible:border-primary focus-visible:ring-primary/10"
+                      )}
                     />
                   </div>
                 </div>
-                
+
                 {/* Info Totalizador no Drawer (Apenas se Detalhado) */}
                 {informItems && (
                   <div className="bg-muted/30 rounded-2xl p-4 flex justify-between items-center border border-dashed mt-4">
-                    <span className="text-sm font-medium text-muted-foreground">Subtotal do Item</span>
+                    <span className="text-[13px] font-bold text-foreground/60 transition-colors">
+                      Subtotal do Item
+                    </span>
                     <span className="text-xl font-bold text-primary">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                        (valueEntries.find(e => e.id === editingEntryId)?.quantity || 0) * 
-                        (parseFloat(valueEntries.find(e => e.id === editingEntryId)?.grossValue || '0') || 0)
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(
+                        (valueEntries.find((e) => e.id === editingEntryId)?.quantity || 0) *
+                          (parseFloat(
+                            valueEntries.find((e) => e.id === editingEntryId)?.grossValue || '0'
+                          ) || 0)
                       )}
                     </span>
                   </div>
                 )}
 
                 {/* Impostos e Comissão */}
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className={cn(
+                  "grid gap-6 pt-2 w-full transition-all duration-300",
+                  informItems ? "grid-cols-2" : "grid-cols-1 max-w-[280px] mx-auto bg-muted/20 p-6 rounded-[3rem] border border-dashed"
+                )}>
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2">
-                      <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 text-[9px] px-1 py-0 h-4">Impostos</Badge>
+                    <Label className={cn(
+                      "text-muted-foreground font-semibold flex items-center gap-2 px-1",
+                      informItems ? "text-[10px]" : "text-[11px] justify-center"
+                    )}>
+                      {!informItems && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />}
+                      Impostos
                     </Label>
                     <CompactNumberInput
                       value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.taxRate || '0')}
                       onChange={(val) => handleUpdateValueEntry(editingEntryId, 'taxRate', String(val))}
                       min={0} max={100} step={0.5} decimals={2} suffix="%"
                       accentColor="#f59e0b"
-                      className="h-14 text-lg font-bold"
+                      className={cn(
+                        "font-bold transition-all",
+                        informItems ? "h-14 text-lg" : "h-16 text-xl bg-white border-2"
+                      )}
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2">
-                      <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-[9px] px-1 py-0 h-4">Comissão</Badge>
+                    <Label className={cn(
+                      "text-muted-foreground font-semibold flex items-center gap-2 px-1",
+                      informItems ? "text-[10px]" : "text-[11px] justify-center"
+                    )}>
+                      {!informItems && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                      Comissão
                     </Label>
                     <CompactNumberInput
                       value={parseFloat(valueEntries.find(e => e.id === editingEntryId)?.commissionRate || '0')}
                       onChange={(val) => handleUpdateValueEntry(editingEntryId, 'commissionRate', String(val))}
                       min={0} max={100} step={0.5} decimals={2} suffix="%"
                       accentColor="#67C23A"
-                      className="h-14 text-lg font-bold"
+                      className={cn(
+                        "font-bold transition-all",
+                        informItems ? "h-14 text-lg" : "h-16 text-xl bg-white border-2"
+                      )}
                     />
                   </div>
                 </div>
-
               </div>
             )}
           </div>
@@ -1648,23 +1929,23 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <SheetFooterUI className="p-6 border-t bg-background sticky bottom-0 mt-autos">
             <div className="flex gap-3 w-full">
               {editingEntryId && (
-                <Button 
-                  variant="destructive" 
+                <Button
+                  variant="destructive"
                   onClick={() => {
                     handleRemoveValueEntry(editingEntryId)
                     setIsDrawerOpen(false)
-                  }} 
+                  }}
                   className="h-14 rounded-2xl text-base font-bold flex-1"
                 >
                   <Trash2 className="h-5 w-5 mr-2" />
                   Excluir
                 </Button>
               )}
-              <Button 
-                onClick={() => setIsDrawerOpen(false)} 
+              <Button
+                onClick={() => setIsDrawerOpen(false)}
                 className={cn(
-                  "h-14 rounded-2xl text-base font-bold shadow-lg",
-                  editingEntryId ? "flex-1" : "w-full"
+                  'h-14 rounded-2xl text-base font-bold shadow-lg',
+                  editingEntryId ? 'flex-1' : 'w-full'
                 )}
               >
                 Confirmar
@@ -1673,8 +1954,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           </SheetFooterUI>
         </SheetContent>
       </Sheet>
-
-
     </>
   )
 }
