@@ -1,7 +1,6 @@
 export { MonthlyEvolutionChart } from './monthly-evolution-chart'
 export { PaymentPipelineChart } from './payment-pipeline-chart'
 export { MonthlyRhythmChart } from './monthly-rhythm-chart'
-export { CommissionGoalChart } from './commission-goal-chart'
 export { EvolutionChart } from './evolution-chart'
 export { CommissionPieChart } from './commission-pie-chart'
 export { SellerPerformanceChart } from './seller-performance-chart'

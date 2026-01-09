@@ -7,10 +7,14 @@ import {
   Wallet, 
   Calendar as CalendarIcon
 } from "lucide-react"
-import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart, CommissionGoalChart } from "@/components/dashboard"
+import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart } from "@/components/dashboard"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect, useCallback } from 'react'
+import { getPerformanceStats } from '@/app/actions/user-preferences'
+import { GoalDialog } from '@/components/dashboard/goal-dialog'
+import { formatCurrency } from '@/lib/utils'
 
 const clientsData = [
   { name: "Cliente VIP", value: 110000, fill: "#f59e0b" },
@@ -25,6 +29,29 @@ const foldersData = [
 ]
 
 export default function AnalyticsPage() {
+  const [stats, setStats] = useState<{
+    currentMonthCommission: number
+    goal: number
+    monthName: string
+  } | null>(null)
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
+
+  const fetchStats = useCallback(async () => {
+    const data = await getPerformanceStats()
+    if (data) {
+      setStats(data)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchStats()
+  }, [fetchStats])
+
+  const goal = stats?.goal || 0
+  const current = stats?.currentMonthCommission || 0
+  const progress = goal > 0 ? (current / goal) * 100 : 0
+  const remaining = Math.max(goal - current, 0)
+  const isGoalReached = current >= goal && goal > 0
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
       <PageHeader title="Analytics">
@@ -41,7 +68,6 @@ export default function AnalyticsPage() {
             label="Vendas Realizadas"
             value={124}
             icon={Layers}
-            density="regular"
             percentage={8.2}
             percentageLabel="vs. mês anterior"
           />
@@ -49,7 +75,6 @@ export default function AnalyticsPage() {
             label="Vendas Pagas"
             value={89}
             icon={CheckSquare}
-            density="regular"
             percentage={3.4}
             percentageLabel="vs. mês anterior"
           />
@@ -57,19 +82,19 @@ export default function AnalyticsPage() {
             label="Total em Vendas"
             value="R$ 158.400"
             icon={DollarSign}
-            density="regular"
             valueClassName="whitespace-nowrap"
             percentage={-0.2}
             percentageLabel="vs. mês anterior"
           />
           <StatCard
             label="Minha Comissão"
-            value="R$ 7.920"
+            value={formatCurrency(current)}
             icon={Wallet}
-            density="regular"
             valueClassName="whitespace-nowrap"
-            percentage={-1.2}
-            percentageLabel="vs. mês anterior"
+            progress={progress}
+            remainingLabel={goal > 0 ? (isGoalReached ? "Meta atingida!" : `Faltam ${formatCurrency(remaining)}`) : "Defina sua meta"}
+            showProgressBar={true}
+            onClick={() => setIsGoalDialogOpen(true)}
           />
         </div>
 
@@ -95,14 +120,12 @@ export default function AnalyticsPage() {
             <TabsContent value="cliente" className="h-full">
               <RankingCard
                 title="Faturamento por Cliente"
-                value="R$ 158.400"
                 data={clientsData}
               />
             </TabsContent>
             <TabsContent value="pasta" className="h-full">
               <RankingCard
                 title="Faturamento por Pasta"
-                value="R$ 158.400"
                 data={foldersData}
               />
             </TabsContent>
@@ -113,14 +136,12 @@ export default function AnalyticsPage() {
         <div className="hidden min-[1400px]:block">
           <RankingCard
             title="Faturamento por Cliente"
-            value="R$ 158.400"
             data={clientsData}
           />
         </div>
         <div className="hidden min-[1400px]:block">
           <RankingCard
             title="Faturamento por Pasta"
-            value="R$ 158.400"
             data={foldersData}
           />
         </div>
@@ -131,8 +152,14 @@ export default function AnalyticsPage() {
         <MonthlyEvolutionChart />
         <MonthlyRhythmChart />
         <PaymentPipelineChart />
-        <CommissionGoalChart />
       </div>
+
+      <GoalDialog 
+        open={isGoalDialogOpen}
+        onOpenChange={setIsGoalDialogOpen}
+        currentGoal={stats?.goal || 0}
+        onSuccess={fetchStats}
+      />
     </div>
   )
 }
