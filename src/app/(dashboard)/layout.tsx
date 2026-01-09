@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/header'
 import { TrialBanner } from '@/components/billing/trial-banner'
 import { BillingNotificationProvider } from '@/components/billing/billing-notification-provider'
 import { BottomNav } from '@/components/layout/bottom-nav'
+import { AiChatButton } from '@/components/ai-assistant'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarInset>
       </SidebarProvider>
       <BottomNav />
+      <AiChatButton />
     </>
   )
 }
