@@ -28,6 +28,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
@@ -51,6 +52,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
+    setIsStreaming(false)
     setError(null)
 
     try {
@@ -78,7 +80,8 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
       // Read the stream
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
-      let accumulatedText = ''
+      let fullText = ''
+      let displayedText = ''
       let assistantMessageId: string | null = null
 
       while (true) {
@@ -107,24 +110,32 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               }
 
               if (parsed.text) {
-                accumulatedText += parsed.text
-                
-                // Create assistant message on first chunk
+                // On first chunk, remove loading and create message
                 if (!assistantMessageId) {
+                  setIsLoading(false)
+                  setIsStreaming(true)
+                  
                   assistantMessageId = (Date.now() + 1).toString()
-                  const assistantMessage: Message = {
+                  const initialMessage: Message = {
                     id: assistantMessageId,
                     role: 'assistant',
-                    content: accumulatedText,
+                    content: '',
                   }
-                  setMessages((prev) => [...prev, assistantMessage])
-                } else {
-                  // Update existing assistant message
+                  setMessages((prev) => [...prev, initialMessage])
+                }
+                
+                // Add new characters from this chunk
+                const newText = parsed.text
+                fullText += newText
+                
+                // Type out each character quickly and uniformly
+                for (let i = 0; i < newText.length; i++) {
+                  await new Promise((resolve) => setTimeout(resolve, 8)) // 8ms per character (metade do tempo)
+                  displayedText += newText[i]
+                  
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId
-                        ? { ...msg, content: accumulatedText }
-                        : msg
+                      msg.id === assistantMessageId ? { ...msg, content: displayedText } : msg
                     )
                   )
                 }
@@ -138,7 +149,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
       }
 
       // If no message was created (empty response), show error
-      if (!assistantMessageId) {
+      if (!assistantMessageId || !displayedText) {
         throw new Error('Resposta vazia do servidor')
       }
     } catch (err) {
@@ -146,6 +157,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
       setError('Erro ao enviar mensagem. Tente novamente.')
     } finally {
       setIsLoading(false)
+      setIsStreaming(false)
     }
   }
 
@@ -221,17 +233,23 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                     )}
                   </div>
 
-                  {/* Message Bubble */}
-                  <div
-                    className={cn(
-                      'rounded-lg px-4 py-2 max-w-[80%]',
-                      message.role === 'assistant'
-                        ? 'bg-muted'
-                        : 'bg-primary text-primary-foreground'
-                    )}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
+                       {/* Message Bubble */}
+                       <div
+                         className={cn(
+                           'rounded-lg px-4 py-2 max-w-[80%]',
+                           message.role === 'assistant'
+                             ? 'bg-muted'
+                             : 'bg-primary text-primary-foreground'
+                         )}
+                       >
+                         <p className="text-sm whitespace-pre-wrap">
+                           {message.content}
+                           {/* Typing cursor for streaming messages */}
+                           {isStreaming && message.role === 'assistant' && message.id === messages[messages.length - 1]?.id && (
+                             <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
+                           )}
+                         </p>
+                       </div>
                 </div>
               ))}
 
@@ -280,10 +298,10 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
             <Button 
               type="submit" 
               size="icon" 
-              disabled={!input?.trim() || isLoading}
+              disabled={!input?.trim() || isLoading || isStreaming}
               className="shrink-0"
             >
-              {isLoading ? (
+              {isLoading || isStreaming ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
