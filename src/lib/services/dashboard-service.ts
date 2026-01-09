@@ -13,9 +13,10 @@ export interface HomeDashboardData {
       value: number
       trend: number
     }
-    sales_paid: {
-      value: number
-      trend: number
+    finance: {
+      received: number
+      pending: number
+      overdue: number
     }
     total_sales: {
       value: number
@@ -55,7 +56,7 @@ export class DashboardService {
     const startOfSixMonths = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
 
     // 2. Fetch Data
-    const [ { data: historicalSales }, { data: lastMonthSales }, { data: prefs } ] = await Promise.all([
+    const [ { data: historicalSales }, { data: lastMonthSales }, { data: prefs }, { data: receivablesData } ] = await Promise.all([
       supabase.from('personal_sales')
         .select('gross_value, commission_value, client_name, sale_date, supplier_id, personal_suppliers(name)')
         .eq('user_id', user.id)
@@ -69,7 +70,11 @@ export class DashboardService {
       supabase.from('user_preferences')
         .select('commission_goal')
         .eq('user_id', user.id)
-        .single()
+        .single(),
+      supabase.from('v_receivables')
+        .select('status, received_amount, installment_value, due_date, received_at')
+        .eq('user_id', user.id)
+        .or(`status.eq.overdue, status.eq.received, and(status.eq.pending, due_date.gte.${startOfMonth}, due_date.lte.${endOfMonth})`)
     ])
 
     const allSales = historicalSales || []
@@ -83,7 +88,7 @@ export class DashboardService {
     })
 
     const calculateTrend = (current: number, last: number) => {
-      if (last === 0) return 0
+      if (last === 0) return current > 0 ? 100 : 0
       return Math.round(((current - last) / last) * 100)
     }
 
@@ -96,8 +101,13 @@ export class DashboardService {
     currentSales.forEach(s => {
       clientMap.set(s.client_name, (clientMap.get(s.client_name) || 0) + (Number(s.gross_value) || 0))
     })
-    const topClients = Array.from(clientMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 5)
-    const topClientNames = topClients.map(c => c[0])
+    const sortedClients = Array.from(clientMap.entries()).sort((a,b) => b[1] - a[1]) as [string, number][]
+    const topClients = sortedClients.slice(0, 5)
+    if (sortedClients.length > 5) {
+      const othersValue = sortedClients.slice(5).reduce((sum, [, val]) => sum + val, 0)
+      topClients.push(['Outros', othersValue])
+    }
+    const topClientNames = topClients.filter(([name]) => name !== 'Outros').map(c => c[0])
 
     const supplierMap = new Map<string, number>()
     currentSales.forEach(s => {
@@ -105,8 +115,14 @@ export class DashboardService {
       const name = supplier?.name || 'Outras'
       supplierMap.set(name, (supplierMap.get(name) || 0) + (Number(s.gross_value) || 0))
     })
-    const topSuppliers = Array.from(supplierMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 5)
-    const topSupplierNames = topSuppliers.map(s => s[0])
+
+    const sortedSuppliers = Array.from(supplierMap.entries()).sort((a,b) => b[1] - a[1]) as [string, number][]
+    const topSuppliers = sortedSuppliers.slice(0, 5)
+    if (sortedSuppliers.length > 5) {
+      const othersValue = sortedSuppliers.slice(5).reduce((sum, [, val]) => sum + val, 0)
+      topSuppliers.push(['Outros', othersValue])
+    }
+    const topSupplierNames = topSuppliers.filter(([name]) => name !== 'Outros').map(s => s[0])
 
     // --- EVOLUTION ---
     const getMonthLabel = (date: Date) => date.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()
@@ -149,12 +165,22 @@ export class DashboardService {
           remaining: Math.max(0, goal - currentCommission)
         },
         sales_performed: { value: currentSales.length, trend: calculateTrend(currentSales.length, lastSales.length) },
-        sales_paid: { value: currentSales.length, trend: calculateTrend(currentSales.length, lastSales.length) },
+        finance: {
+          received: (receivablesData || [])
+            .filter(r => r.status === 'received' && r.received_at && new Date(r.received_at) >= new Date(startOfMonth))
+            .reduce((sum, r) => sum + (Number(r.received_amount) || 0), 0),
+          pending: (receivablesData || [])
+            .filter(r => r.status === 'pending')
+            .reduce((sum, r) => sum + (Number(r.installment_value) || 0), 0),
+          overdue: (receivablesData || [])
+            .filter(r => r.status === 'overdue')
+            .reduce((sum, r) => sum + (Number(r.installment_value) || 0), 0)
+        },
         total_sales: { value: currentGross, trend: calculateTrend(currentGross, lastGross) }
       },
       rankings: {
-        clients: topClients.map(([name, value]) => ({ name, value })),
-        folders: topSuppliers.map(([name, value]) => ({ name, value }))
+        clients: topClients.map(([name, value]) => ({ name, value: value as number })),
+        folders: topSuppliers.map(([name, value]) => ({ name, value: value as number }))
       },
       evolution_clients: evolutionClients,
       evolution_folders: evolutionFolders,

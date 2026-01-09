@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, LayoutDashboard, Wallet, Shield } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -65,7 +65,7 @@ const personalMenuSections: MenuSection[] = [
   {
     label: 'Vendas',
     items: [
-      { title: 'Analytics', url: '/home', icon: LayoutDashboard },
+      { title: 'Home', url: '/home', icon: Home },
       { title: 'Minhas Vendas', url: '/minhasvendas', icon: ShoppingCart, actionUrl: '/minhasvendas/nova' },
     ],
   },

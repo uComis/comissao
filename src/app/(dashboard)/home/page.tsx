@@ -10,11 +10,11 @@ import { HomeDashboardData } from '@/lib/services/dashboard-service'
 import { GoalDialog } from '@/components/dashboard/goal-dialog'
 import { formatCurrency } from '@/lib/utils'
 import { 
-  Layers, 
-  CheckSquare, 
-  DollarSign, 
-  Wallet, 
-  Calendar as CalendarIcon
+  Target,
+  ShoppingCart,
+  DollarSign,
+  Calendar as CalendarIcon,
+  HandCoins
 } from "lucide-react"
 
 
@@ -47,12 +47,17 @@ export default function AnalyticsPage() {
 
   const cards = data?.cards
   const rankings = data?.rankings
+  const now = new Date()
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const dateRange = `${firstDay.toLocaleDateString('pt-BR')} - ${lastDay.toLocaleDateString('pt-BR')}`
+
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
-      <PageHeader title="Analytics">
+      <PageHeader title="Resumo de Performance 🚀">
         <Button variant="outline" className="datepicker-trigger flex items-center gap-2">
           <CalendarIcon className="h-4 w-4" />
-          01.12.2025 - 27.12.2025
+          {dateRange}
         </Button>
       </PageHeader>
 
@@ -62,7 +67,7 @@ export default function AnalyticsPage() {
           <StatCard
             label="Minha Comissão"
             value={formatCurrency(cards?.commission.current || 0)}
-            icon={Wallet}
+            icon={Target}
             valueClassName="whitespace-nowrap"
             progress={cards?.commission.progress}
             remainingLabel={cards?.commission.goal && cards.commission.goal > 0 ? (cards.commission.current >= cards.commission.goal ? "Meta atingida!" : `Faltam ${formatCurrency(cards.commission.remaining)}`) : "Defina sua meta"}
@@ -80,16 +85,20 @@ export default function AnalyticsPage() {
           <StatCard
             label="Vendas Realizadas"
             value={cards?.sales_performed.value || 0}
-            icon={Layers}
+            icon={ShoppingCart}
             percentage={cards?.sales_performed.trend}
             percentageLabel="vs. mês anterior"
           />
           <StatCard
-            label="Vendas Pagas"
-            value={cards?.sales_paid.value || 0}
-            icon={CheckSquare}
-            percentage={cards?.sales_paid.trend}
-            percentageLabel="vs. mês anterior"
+            label="Recebimentos"
+            value={formatCurrency(data?.cards.finance.received || 0)}
+            icon={HandCoins}
+            valueClassName="whitespace-nowrap"
+            remainingLabel={data?.cards.finance && (data.cards.finance.pending > 0 || data.cards.finance.overdue > 0) 
+              ? `Pendente: ${formatCurrency(data.cards.finance.pending)}${data.cards.finance.overdue > 0 ? ` (+${formatCurrency(data.cards.finance.overdue)} atrasado)` : ''}`
+              : "Tudo em dia!"}
+            percentage={data?.cards.finance && data.cards.finance.overdue > 0 ? -1 : undefined}
+            percentageLabel={data?.cards.finance && data.cards.finance.overdue > 0 ? "Atrasado" : undefined}
           />
         </div>
 
