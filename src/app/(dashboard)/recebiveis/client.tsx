@@ -210,7 +210,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatCard
             label="Total Projetado"
-            value={formatCurrency(stats.totalPending + stats.totalReceived)}
+            value={formatCurrency(stats.totalPending + stats.totalOverdue + stats.totalReceived)}
             icon={DollarSign}
             subtitle={`${stats.countPending + stats.countOverdue + stats.countReceived} parcelas`}
             onClick={() => setFilterStatus('all')}
