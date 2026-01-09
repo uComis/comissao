@@ -25,6 +25,8 @@ import { InstallmentsSheet } from './installments-sheet'
 import { ClientPicker, ClientDialog } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
 import { DatePicker } from '@/components/ui/date-picker'
+import { PersonalSaleItemSimple } from './personal-sale-item-simple'
+import { PersonalSaleItemDetailed } from './personal-sale-item-detailed'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { updateProduct } from '@/app/actions/products'
 import { updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
@@ -1095,100 +1097,28 @@ export function PersonalSaleForm({
                 <div className="md:hidden flex flex-col w-full gap-2">
                   {valueEntries
                     .filter((e) => e.productName || parseFloat(e.grossValue) > 0)
-                    .map((entry, index) => {
-                      const entryTotal = (entry.quantity || 1) * (parseFloat(entry.grossValue) || 0)
+                    .map((entry) => {
                       const isSwiped = swipedItemId === entry.id
+                      const ItemComponent = informItems ? PersonalSaleItemDetailed : PersonalSaleItemSimple
 
                       return (
-                        <div
+                        <ItemComponent
                           key={entry.id}
-                          className="relative overflow-hidden rounded-xl"
-                          onTouchStart={(e) => {
-                            onTouchStart(e)
+                          entry={entry}
+                          isSwiped={isSwiped}
+                          onTouchStart={onTouchStart}
+                          onTouchMove={onTouchMove}
+                          onTouchEnd={() => onTouchEnd(entry.id)}
+                          onClick={() => {
+                            if (isSwiped) {
+                              setSwipedItemId(null)
+                            } else {
+                              setEditingEntryId(entry.id)
+                              setIsDrawerOpen(true)
+                            }
                           }}
-                          onTouchMove={(e) => {
-                            onTouchMove(e)
-                          }}
-                          onTouchEnd={(e) => {
-                            onTouchEnd(entry.id)
-                          }}
-                        >
-                          {/* Delete background revealed on swipe */}
-                          <div
-                            className={cn(
-                              'absolute inset-0 bg-destructive transition-opacity duration-200',
-                              isSwiped ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-
-                          {/* Main item content */}
-                          <div
-                            className={cn(
-                              'py-4 pl-3 pr-40 bg-card border border-border/60 rounded-xl transition-transform duration-200 relative min-h-[72px] shadow-sm',
-                              isSwiped ? '-translate-x-12' : 'translate-x-0'
-                            )}
-                            onClick={() => {
-                              if (isSwiped) {
-                                setSwipedItemId(null)
-                              } else {
-                                setEditingEntryId(entry.id)
-                                setIsDrawerOpen(true)
-                              }
-                            }}
-                          >
-                            {/* Left side: Item info */}
-                            <div className="flex flex-col gap-1.5">
-                              <h3 className="font-semibold text-sm text-foreground leading-snug pr-4">
-                                {informItems
-                                  ? entry.productName || 'Selecionar produto...'
-                                  : 'Lançamento Manual'}
-                              </h3>
-                              <span className="text-xs text-muted-foreground">
-                                {informItems
-                                  ? `${entry.quantity} un × ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(entry.grossValue) || 0)}`
-                                  : `Taxa: ${entry.taxRate}%`}
-                              </span>
-                            </div>
-
-                            {/* Right side - Absolute positioned */}
-                            {/* Tax% - top right (orange) */}
-                            <div className="absolute top-4 right-36">
-                              <span className="text-xs font-bold text-orange-600">
-                                {entry.taxRate || '0'}%
-                              </span>
-                            </div>
-
-                            {/* Commission% - bottom right (green) */}
-                            <div className="absolute bottom-4 right-36">
-                              <span className="text-xs font-bold text-green-600">
-                                {entry.commissionRate || '0'}%
-                              </span>
-                            </div>
-
-                            {/* Total - vertically centered on the right */}
-                            <div className="absolute top-1/2 -translate-y-1/2 right-4 z-10">
-                              <span className="text-sm font-bold whitespace-nowrap text-foreground">
-                                {new Intl.NumberFormat('pt-BR', {
-                                  style: 'currency',
-                                  currency: 'BRL',
-                                }).format(entryTotal)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Confirm delete button when swiped - vertically centered */}
-                          {isSwiped && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleRemoveValueEntry(entry.id)
-                              }}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2"
-                            >
-                              <Trash2 className="h-5 w-5 text-white" />
-                            </button>
-                          )}
-                        </div>
+                          onDelete={() => handleRemoveValueEntry(entry.id)}
+                        />
                       )
                     })}
 
