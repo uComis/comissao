@@ -125,7 +125,16 @@ export function RankingCard({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="text-xs font-bold tabular-nums">{pctRounded}%</div>
+                      <div className="text-xs font-bold tabular-nums">
+                        {item.isPlaceholder
+                          ? '—'
+                          : item.value.toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            })}
+                      </div>
                     </div>
                   </div>
 

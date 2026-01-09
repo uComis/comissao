@@ -11,7 +11,6 @@ type StatCardProps = {
   subtitle?: string
   onClick?: () => void
   active?: boolean
-  density?: 'compact' | 'regular'
   valueClassName?: string
   iconClassName?: string
 }
@@ -25,7 +24,6 @@ export function StatCard({
   subtitle,
   onClick,
   active,
-  density = 'compact',
   valueClassName,
   iconClassName
 }: StatCardProps) {
@@ -38,42 +36,38 @@ export function StatCard({
       : "0"
   const showTrend = percentage !== undefined && percentageLabel !== undefined
 
-  const isRegular = density === 'regular'
 
   const cardContent = (
     <Card className={cn(
-      "h-full py-3 @container/stat-card",
-      isRegular ? "@[320px]/stat-card:py-6" : "@[360px]/stat-card:py-6",
+      "h-full py-4",
       onClick ? "transition-all duration-200" : "border-none shadow-sm",
       active ? "border-2 border-primary/50 shadow-md scale-[1.02]" : onClick ? "border-2 border-transparent opacity-80 hover:opacity-100" : ""
     )}>
       <CardHeader className={cn(
-        "flex flex-row items-center justify-between space-y-0 pb-0 px-3",
-        isRegular ? "@[320px]/stat-card:pb-2 @[320px]/stat-card:px-6" : "@[360px]/stat-card:pb-2 @[360px]/stat-card:px-6"
+        "flex flex-row items-center justify-between space-y-0 pb-2 px-6"
       )}>
         <CardTitle className={cn(
           "font-medium text-muted-foreground",
-          onClick ? "text-xs uppercase tracking-wider" : (isRegular ? "text-sm @[320px]/stat-card:text-base" : "text-sm @[360px]/stat-card:text-base")
+          onClick ? "text-xs uppercase tracking-wider" : "text-sm"
         )}>{label}</CardTitle>
         <Icon className={cn(
-          isRegular ? "h-5 w-5 @[320px]/stat-card:h-6 @[320px]/stat-card:w-6" : "h-5 w-5 @[360px]/stat-card:h-6 @[360px]/stat-card:w-6",
+          "h-5 w-5",
           "text-muted-foreground/50",
           iconClassName
         )} />
       </CardHeader>
       <CardContent className={cn(
-        "px-3 pt-0 mt-auto",
-        isRegular ? "@[320px]/stat-card:px-6 @[320px]/stat-card:pt-0" : "@[360px]/stat-card:px-6 @[360px]/stat-card:pt-0"
+        "px-6 pt-0 mt-auto"
       )}>
         <div className={cn(
-          isRegular ? "text-2xl @[320px]/stat-card:text-4xl font-bold leading-none @[320px]/stat-card:leading-tight" : "text-2xl @[360px]/stat-card:text-4xl font-bold leading-none @[360px]/stat-card:leading-tight",
+          "text-3xl font-bold leading-tight",
           valueClassName
         )}>{value}</div>
         {showTrend ? (
           <div className="flex items-center gap-1 mt-2">
             <span className={cn(
               "flex items-center font-medium",
-              isRegular ? "text-xs @[320px]/stat-card:text-sm" : "text-xs @[360px]/stat-card:text-sm",
+              "text-xs",
               isPositive ? 'text-green-500' : 'text-red-500'
             )}>
               {isPositive ? (
