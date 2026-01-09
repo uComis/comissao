@@ -65,6 +65,16 @@ export default function AnalyticsPage() {
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}
         <div className="grid grid-cols-2 gap-4 lg:col-span-2">
           <StatCard
+            label="Minha Comissão"
+            value={formatCurrency(current)}
+            icon={Wallet}
+            valueClassName="whitespace-nowrap"
+            progress={progress}
+            remainingLabel={goal > 0 ? (isGoalReached ? "Meta atingida!" : `Faltam ${formatCurrency(remaining)}`) : "Defina sua meta"}
+            showProgressBar={true}
+            onClick={() => setIsGoalDialogOpen(true)}
+          />
+          <StatCard
             label="Vendas Realizadas"
             value={124}
             icon={Layers}
@@ -85,16 +95,6 @@ export default function AnalyticsPage() {
             valueClassName="whitespace-nowrap"
             percentage={-0.2}
             percentageLabel="vs. mês anterior"
-          />
-          <StatCard
-            label="Minha Comissão"
-            value={formatCurrency(current)}
-            icon={Wallet}
-            valueClassName="whitespace-nowrap"
-            progress={progress}
-            remainingLabel={goal > 0 ? (isGoalReached ? "Meta atingida!" : `Faltam ${formatCurrency(remaining)}`) : "Defina sua meta"}
-            showProgressBar={true}
-            onClick={() => setIsGoalDialogOpen(true)}
           />
         </div>
 

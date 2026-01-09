@@ -65,15 +65,14 @@ export function StatCard({
       "h-full py-4 relative overflow-hidden",
       showProgressBar && "pb-5",
       onClick ? "transition-all duration-200" : "border-none shadow-sm",
-      active ? "border-2 border-primary/50 shadow-md scale-[1.02]" : onClick ? "border-2 border-transparent opacity-80 hover:opacity-100" : ""
+      active ? "border-2 border-primary/50 shadow-md scale-[1.02]" : onClick ? "border-2 border-transparent hover:bg-accent/50" : ""
     )}>
       <CardHeader className={cn(
         "flex flex-row items-center justify-between space-y-0 pb-2 px-6"
       )}>
-        <CardTitle className={cn(
-          "font-medium text-muted-foreground",
-          onClick ? "text-xs uppercase tracking-wider" : "text-sm"
-        )}>{label}</CardTitle>
+        <CardTitle className="font-medium text-muted-foreground text-sm">
+          {label}
+        </CardTitle>
         <Icon className={cn(
           "h-5 w-5",
           "text-muted-foreground/50",
