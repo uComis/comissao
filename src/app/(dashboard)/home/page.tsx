@@ -1,6 +1,6 @@
 'use client'
 
-import { StatCard, RankingCard, MonthlyEvolutionChart, MonthlyRhythmChart } from "@/components/dashboard"
+import { StatCard, RankingCard, CommissionEvolutionChart } from "@/components/dashboard"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -142,10 +142,20 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Cards Secundários */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-[1500px]:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10">
-        <MonthlyEvolutionChart />
-        <MonthlyRhythmChart />
+      {/* Gráficos de Evolução */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10">
+        <CommissionEvolutionChart 
+          title="Comissão por Pasta (6 Meses)"
+          description="Histórico das 5 pastas com maior rendimento este mês"
+          data={data?.evolution_folders || []}
+          names={data?.evolution_names?.folders || []}
+        />
+        <CommissionEvolutionChart 
+          title="Comissão por Cliente (6 Meses)"
+          description="Histórico dos 5 clientes com maior rendimento este mês"
+          data={data?.evolution_clients || []}
+          names={data?.evolution_names?.clients || []}
+        />
       </div>
 
       <GoalDialog 
