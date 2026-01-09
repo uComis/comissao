@@ -176,6 +176,36 @@ src/
 
 **Regra:** Se amanhã você criar outro projeto que usa Pipedrive, copia `lib/clients/pipedrive/`. O service não, porque usa `Sale`, `saleRepository`, etc.
 
+## Cache e Performance
+
+Para garantir dashboards instantâneos mesmo com milhões de registros, o sistema utiliza uma camada de cache persistente no banco de dados.
+
+### 1. Camada de Cache (app_cache)
+
+Tabela genérica `Key/Value` enriquecida com `user_id` e `TTL` (Time To Live).
+
+- **Tabela:** `public.app_cache`
+- **Colunas:** `user_id`, `cache_key`, `data` (JSONB), `expires_at` (nullable).
+- **Segurança:** Row Level Security (RLS) garante que cada usuário só acesse seu próprio cache.
+
+### 2. Dashboard Service (Single Request Pattern)
+
+Em vez de múltiplas chamadas individuais, o Dashboard é carregado via um único objeto JSON consolidado.
+
+- **Fluxo:** `Componente` → `Action` → `DashboardService` → `CacheService`.
+- **Lógica Cache-First:**
+  1. Tenta ler do `app_cache`.
+  2. Se expirar ou não existir (Cache Miss), executa as queries pesadas (SUM, COUNT, Rankings).
+  3. Salva o resultado no cache (JSONB) e entrega ao front.
+
+### 3. Invalidação Automática (Triggers)
+
+O cache é invalidado em tempo real via gatilhos no PostgreSQL.
+
+- **Trigger:** `dashboard_cache_invalidation_trigger` nas tabelas `personal_sales` e `user_preferences`.
+- **Ação:** Qualquer `INSERT`, `UPDATE` ou `DELETE` apaga o cache do usuário correspondente.
+- **Resultado:** O dado só é recalculado no primeiro acesso após uma alteração, mantendo as leituras subsequentes instantâneas.
+
 ## Fluxo de Dados
 
 ```

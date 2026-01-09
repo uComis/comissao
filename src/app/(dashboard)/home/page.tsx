@@ -1,6 +1,6 @@
 'use client'
 
-import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart } from "@/components/dashboard"
+import { StatCard, RankingCard, MonthlyEvolutionChart, MonthlyRhythmChart } from "@/components/dashboard"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -146,7 +146,6 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-[1500px]:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10">
         <MonthlyEvolutionChart />
         <MonthlyRhythmChart />
-        <PaymentPipelineChart />
       </div>
 
       <GoalDialog 
