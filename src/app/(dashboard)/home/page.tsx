@@ -1,5 +1,14 @@
 'use client'
 
+import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart } from "@/components/dashboard"
+import { PageHeader } from "@/components/layout"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect, useCallback } from 'react'
+import { getHomeAnalyticsAction } from '@/app/actions/dashboard'
+import { HomeDashboardData } from '@/lib/services/dashboard-service'
+import { GoalDialog } from '@/components/dashboard/goal-dialog'
+import { formatCurrency } from '@/lib/utils'
 import { 
   Layers, 
   CheckSquare, 
@@ -7,51 +16,37 @@ import {
   Wallet, 
   Calendar as CalendarIcon
 } from "lucide-react"
-import { StatCard, RankingCard, MonthlyEvolutionChart, PaymentPipelineChart, MonthlyRhythmChart } from "@/components/dashboard"
-import { PageHeader } from "@/components/layout"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useState, useEffect, useCallback } from 'react'
-import { getPerformanceStats } from '@/app/actions/user-preferences'
-import { GoalDialog } from '@/components/dashboard/goal-dialog'
-import { formatCurrency } from '@/lib/utils'
 
-const clientsData = [
-  { name: "Cliente VIP", value: 110000, fill: "#f59e0b" },
-  { name: "Cliente Varejo", value: 3000, fill: "#fbbf24" },
-  { name: "Outros", value: 45400, fill: "#fef3c7" },
-]
-
-const foldersData = [
-  { name: "Pasta Principal", value: 100000, fill: "#3b82f6" },
-  { name: "Pasta Secundária", value: 40000, fill: "#93c5fd" },
-  { name: "Outras", value: 18400, fill: "#bfdbfe" },
-]
 
 export default function AnalyticsPage() {
-  const [stats, setStats] = useState<{
-    currentMonthCommission: number
-    goal: number
-    monthName: string
-  } | null>(null)
+  const [data, setData] = useState<HomeDashboardData | null>(null)
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const fetchStats = useCallback(async () => {
-    const data = await getPerformanceStats()
-    if (data) {
-      setStats(data)
+  const loadData = useCallback(async () => {
+    // setLoading(true) // Removido pois já inicia como true
+    const result = await getHomeAnalyticsAction()
+    if (result) {
+      setData(result)
     }
+    setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchStats()
-  }, [fetchStats])
+    loadData()
+  }, [loadData])
 
-  const goal = stats?.goal || 0
-  const current = stats?.currentMonthCommission || 0
-  const progress = goal > 0 ? (current / goal) * 100 : 0
-  const remaining = Math.max(goal - current, 0)
-  const isGoalReached = current >= goal && goal > 0
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8 items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-sm text-muted-foreground">Carregando dashboard...</p>
+      </div>
+    )
+  }
+
+  const cards = data?.cards
+  const rankings = data?.rankings
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
       <PageHeader title="Analytics">
@@ -66,34 +61,34 @@ export default function AnalyticsPage() {
         <div className="grid grid-cols-2 gap-4 lg:col-span-2">
           <StatCard
             label="Minha Comissão"
-            value={formatCurrency(current)}
+            value={formatCurrency(cards?.commission.current || 0)}
             icon={Wallet}
             valueClassName="whitespace-nowrap"
-            progress={progress}
-            remainingLabel={goal > 0 ? (isGoalReached ? "Meta atingida!" : `Faltam ${formatCurrency(remaining)}`) : "Defina sua meta"}
+            progress={cards?.commission.progress}
+            remainingLabel={cards?.commission.goal && cards.commission.goal > 0 ? (cards.commission.current >= cards.commission.goal ? "Meta atingida!" : `Faltam ${formatCurrency(cards.commission.remaining)}`) : "Defina sua meta"}
             showProgressBar={true}
             onClick={() => setIsGoalDialogOpen(true)}
           />
           <StatCard
+            label="Vendas"
+            value={formatCurrency(cards?.total_sales.value || 0)}
+            icon={DollarSign}
+            valueClassName="whitespace-nowrap"
+            percentage={cards?.total_sales.trend}
+            percentageLabel="vs. mês anterior"
+          />
+          <StatCard
             label="Vendas Realizadas"
-            value={124}
+            value={cards?.sales_performed.value || 0}
             icon={Layers}
-            percentage={8.2}
+            percentage={cards?.sales_performed.trend}
             percentageLabel="vs. mês anterior"
           />
           <StatCard
             label="Vendas Pagas"
-            value={89}
+            value={cards?.sales_paid.value || 0}
             icon={CheckSquare}
-            percentage={3.4}
-            percentageLabel="vs. mês anterior"
-          />
-          <StatCard
-            label="Total em Vendas"
-            value="R$ 158.400"
-            icon={DollarSign}
-            valueClassName="whitespace-nowrap"
-            percentage={-0.2}
+            percentage={cards?.sales_paid.trend}
             percentageLabel="vs. mês anterior"
           />
         </div>
@@ -120,13 +115,13 @@ export default function AnalyticsPage() {
             <TabsContent value="cliente" className="h-full">
               <RankingCard
                 title="Faturamento por Cliente"
-                data={clientsData}
+                data={rankings?.clients || []}
               />
             </TabsContent>
             <TabsContent value="pasta" className="h-full">
               <RankingCard
                 title="Faturamento por Pasta"
-                data={foldersData}
+                data={rankings?.folders || []}
               />
             </TabsContent>
           </Tabs>
@@ -136,13 +131,13 @@ export default function AnalyticsPage() {
         <div className="hidden min-[1400px]:block">
           <RankingCard
             title="Faturamento por Cliente"
-            data={clientsData}
+            data={rankings?.clients || []}
           />
         </div>
         <div className="hidden min-[1400px]:block">
           <RankingCard
             title="Faturamento por Pasta"
-            data={foldersData}
+            data={rankings?.folders || []}
           />
         </div>
       </div>
@@ -157,8 +152,8 @@ export default function AnalyticsPage() {
       <GoalDialog 
         open={isGoalDialogOpen}
         onOpenChange={setIsGoalDialogOpen}
-        currentGoal={stats?.goal || 0}
-        onSuccess={fetchStats}
+        currentGoal={cards?.commission.goal || 0}
+        onSuccess={loadData}
       />
     </div>
   )
