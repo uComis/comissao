@@ -797,11 +797,11 @@ export function PersonalSaleForm({
                 <div
                   className={cn(
                     'gap-4 w-full pr-8 mb-0.5',
-                    isIntermediate || !informItems ? 'hidden' : 'hidden md:grid',
+                    isIntermediate ? 'hidden' : 'hidden md:grid',
                     informItems &&
                       !isIntermediate &&
                       'max-w-none grid-cols-[1.5fr_100px_1.2fr_0.8fr_1.2fr]',
-                    !informItems && 'max-w-2xl mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]'
+                    !informItems && !isIntermediate && 'max-w-2xl mx-auto md:grid-cols-[1.5fr_0.8fr_1.2fr]'
                   )}
                 >
                   {informItems && (
