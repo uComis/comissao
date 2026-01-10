@@ -58,18 +58,26 @@ Se não tiver certeza, seja honesto e diga que precisa de mais informações.`
     })
 
     // Format messages for Gemini API
-    const formattedMessages = messages.map((msg: { role: string; content: string }) => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
-    }))
+    // Include system prompt as the first message
+    const formattedMessages = [
+      {
+        role: 'user',
+        parts: [{ text: systemPrompt }],
+      },
+      {
+        role: 'model',
+        parts: [{ text: 'Entendido! Estou pronto para ajudar com suas dúvidas sobre vendas e comissões.' }],
+      },
+      ...messages.map((msg: { role: string; content: string }) => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      }))
+    ]
 
     // Generate content with streaming
     const response = ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: formattedMessages,
-      systemInstruction: {
-        parts: [{ text: systemPrompt }],
-      },
     })
 
     // Create a readable stream for Server-Sent Events

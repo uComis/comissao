@@ -52,6 +52,7 @@ export default function MinhaContaPage() {
   const [userMode, setUserMode] = useState<'personal' | 'organization' | null>(null)
   const [isUpdatingMode, setIsUpdatingMode] = useState(false)
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
 
   const identities = user?.identities || []
   const hasGoogle = identities.some(id => id.provider === 'google')
