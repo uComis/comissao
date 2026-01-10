@@ -46,7 +46,7 @@ export function PlanosPageClient() {
     return acc
   }, 0)
 
-  const [hasEverSubscribed, setHasEverSubscribed] = useState(false)
+
 
   useEffect(() => {
     if (user) {
@@ -58,7 +58,6 @@ export function PlanosPageClient() {
           ])
           setPlans(plansData)
           setCurrentPlanId(subData?.plan_id || null)
-          setHasEverSubscribed(!!subData)
         } catch (error) {
           console.error('Error loading plans:', error)
         } finally {
@@ -74,6 +73,7 @@ export function PlanosPageClient() {
     .filter(p => p.interval === billingInterval || p.plan_group === 'free')
 
   const formatPrice = (price: number) => {
+    if (price === 0) return 'Grátis'
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -81,21 +81,8 @@ export function PlanosPageClient() {
   }
 
   const getPlanFeatures = (plan: Plan) => {
-    const planOrder = ['free', 'pro', 'pro_plus', 'ultra']
-    const planNames: Record<string, string> = {
-      'free': 'FREE',
-      'pro': 'PRO',
-      'pro_plus': 'PRO +',
-      'ultra': 'ULTRA'
-    }
-
     const features: string[] = []
-    const currentIndex = planOrder.indexOf(plan.plan_group)
     
-    if (currentIndex > 0) {
-      features.push(`Tudo do plano ${planNames[planOrder[currentIndex - 1]]}, mais:`)
-    }
-
     features.push(plan.max_users === 1 ? '1 Usuário (Solo)' : `${plan.max_users} Usuários`)
     features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} Pastas de organização`)
     features.push(plan.max_sales_month >= 99999 ? 'Vendas Ilimitadas' : `${plan.max_sales_month} vendas por mês`)
@@ -194,69 +181,80 @@ export function PlanosPageClient() {
           <div className="flex flex-wrap justify-center gap-6 py-4 w-full">
             {filteredPlans.map((plan) => {
                 const isCurrent = currentPlanId === plan.id
-                const isRecommended = plan.plan_group === 'pro_plus'
+                const isRecommended = plan.plan_group === 'pro' || plan.plan_group === 'pro_plus'
 
                 return (
                   <Card 
                     key={plan.id} 
-                    className={`flex flex-col relative transition-all duration-200 ${
-                      isRecommended ? 'border-primary border-2 shadow-xl' : 'hover:border-primary/40'
-                    }`}
+                    className={`flex flex-col relative transition-all duration-500 border-border/40 bg-card/40 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${
+                      isRecommended ? 'border-[#409eff]/40 shadow-[0_0_15px_rgba(64,158,255,0.05)]' : 'hover:border-primary/20'
+                    } ${isCurrent ? 'bg-brand/[0.02] border-brand/10' : ''}`}
                   >
                   {isRecommended && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge variant="default" className="bg-primary text-primary-foreground">
-                        Recomendado
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <Badge variant="secondary" className="bg-[#409eff] text-white hover:bg-[#409eff] flex items-center gap-1.5 px-4 py-1 text-[10px] tracking-widest uppercase font-black border-none shadow-[0_2px_10px_rgba(64,158,255,0.3)]">
+                        🔥 Popular
                       </Badge>
                     </div>
                   )}
-                  <CardHeader className="space-y-1 p-4 md:p-5">
-                    <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  <CardHeader className="space-y-1 p-8">
+                    {isCurrent && (
+                      <span className="text-[10.5px] text-brand/80 font-bold uppercase tracking-[0.15em] mb-3 block animate-in fade-in slide-in-from-top-1 duration-700">
+                        Este é o seu plano
+                      </span>
+                    )}
+                    <CardTitle className="text-xl flex items-center gap-2">
+                       {plan.name.replace(' Mensal', '').replace(' Anual', '')}
+                    </CardTitle>
                     <CardDescription className="line-clamp-1">{plan.description || 'Para impulsionar suas vendas'}</CardDescription>
-                    <div className="pt-3">
-                      <span className="text-2xl md:text-3xl font-bold tracking-tight">{formatPrice(plan.price)}</span>
-                      <span className="text-muted-foreground text-xs ml-1">/{plan.interval === 'month' ? 'mês' : 'ano'}</span>
+                    <div className="pt-4 flex flex-col gap-0.5">
+                      <div className="flex items-baseline gap-1 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden">
+                        <span className="text-3xl md:text-4xl font-bold tracking-tight">
+                          {billingInterval === 'year' && plan.price > 0 
+                            ? formatPrice(plan.price / 12) 
+                            : formatPrice(plan.price)}
+                        </span>
+                        {plan.price > 0 && (
+                          <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">/mês</span>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 p-4 md:p-5 pt-0 md:pt-0">
-                    <ul className="space-y-2.5 text-sm">
-                      {getPlanFeatures(plan).map((feature) => {
-                        const isHeader = feature.includes('Tudo do plano')
-                        
-                        return (
-                          <li key={feature} className={`flex items-start gap-2 leading-tight ${isHeader ? 'mb-1' : ''}`}>
-                            {isHeader ? (
-                              <Badge variant="outline" className="text-[10px] uppercase font-bold py-0 h-5 border-primary/30 text-primary bg-primary/5">PLUS</Badge>
-                            ) : (
-                              <Check className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                            )}
-                            <span className={isHeader ? 'font-bold text-foreground' : 'text-muted-foreground'}>
-                              {feature}
-                            </span>
-                          </li>
-                        )
-                      })}
+                  <CardContent className="flex-1 p-8 pt-2">
+                    <ul className="space-y-4 text-sm">
+                      {getPlanFeatures(plan).map((feature) => (
+                        <li key={feature} className="flex items-start gap-3 leading-snug">
+                          <Check className="h-4 w-4 text-brand shrink-0 mt-0.5" />
+                          <span className="text-muted-foreground/90 font-medium">
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
                     </ul>
                   </CardContent>
-                  <CardFooter className="p-4 md:p-5">
-                    <Button 
-                      className="w-full font-bold py-6" 
-                      variant={isRecommended ? 'default' : 'outline'}
-                      disabled={isCurrent || !!subscribingId}
-                      onClick={() => handleSubscribe(plan.id)}
-                    >
-                      {subscribingId === plan.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : isCurrent ? (
-                        'Plano Atual'
-                      ) : (
-                        `Assinar ${plan.name}`
-                      )}
-                    </Button>
-                  </CardFooter>
+                  {!isCurrent && (
+                    <CardFooter className="p-8 pt-0 mt-auto">
+                      <Button 
+                        className={`w-full font-bold py-6 transition-all duration-300 ${
+                          isRecommended 
+                            ? 'bg-[#409eff] text-white hover:bg-[#409eff]/90' 
+                            : 'bg-transparent border-border/40 hover:bg-muted/50'
+                        }`}
+                        variant={isRecommended ? 'default' : 'outline'}
+                        disabled={!!subscribingId}
+                        onClick={() => handleSubscribe(plan.id)}
+                      >
+                        {subscribingId === plan.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processando...
+                          </>
+                        ) : (
+                          `Escolher plano`
+                        )}
+                      </Button>
+                    </CardFooter>
+                  )}
                 </Card>
               )
             })}
