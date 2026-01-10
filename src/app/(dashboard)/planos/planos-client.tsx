@@ -182,18 +182,23 @@ export function PlanosPageClient() {
             {filteredPlans.map((plan) => {
                 const isCurrent = currentPlanId === plan.id
                 const isRecommended = plan.plan_group === 'pro' || plan.plan_group === 'pro_plus'
+                const isUltra = plan.plan_group === 'ultra'
 
                 return (
                   <Card 
                     key={plan.id} 
-                    className={`flex flex-col relative transition-all duration-500 border-border/40 bg-card/40 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${
-                      isRecommended ? 'border-[#409eff]/40 shadow-[0_0_15px_rgba(64,158,255,0.05)]' : 'hover:border-primary/20'
+                    className={`flex flex-col relative transition-all duration-500 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${
+                      isRecommended 
+                        ? 'border-[#409eff]/40 bg-gradient-to-b from-[#409eff]/5 via-white to-white dark:from-[#409eff]/15 dark:via-[#1a1a2e]/40 dark:to-card/40 shadow-[0_0_40px_rgba(64,158,255,0.05)] dark:shadow-[0_0_40px_rgba(64,158,255,0.1)] dark:border-[#409eff]/50' 
+                        : isUltra
+                          ? 'border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-white dark:border-white/20 dark:from-white/10 dark:via-card/40 dark:to-card/40 shadow-[0_0_40px_rgba(0,0,0,0.03)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]'
+                          : 'border-border/40 bg-card/40 hover:border-primary/20'
                     } ${isCurrent ? 'bg-brand/[0.02] border-brand/10' : ''}`}
                   >
                   {isRecommended && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge variant="secondary" className="bg-[#409eff] text-white hover:bg-[#409eff] flex items-center gap-1.5 px-4 py-1 text-[10px] tracking-widest uppercase font-black border-none shadow-[0_2px_10px_rgba(64,158,255,0.3)]">
-                        🔥 Popular
+                      <Badge variant="secondary" className="bg-[#111] text-white hover:bg-[#111] flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
+                        <span className="text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]">🔥</span> Popular
                       </Badge>
                     </div>
                   )}
@@ -206,7 +211,11 @@ export function PlanosPageClient() {
                     <CardTitle className="text-xl flex items-center gap-2">
                        {plan.name.replace(' Mensal', '').replace(' Anual', '')}
                     </CardTitle>
-                    <CardDescription className="line-clamp-1">{plan.description || 'Para impulsionar suas vendas'}</CardDescription>
+                    <CardDescription className="line-clamp-1">
+                      {plan.description === 'Para representante profissional e equipes' 
+                        ? 'Para representante multipasta' 
+                        : (plan.description || 'Para impulsionar suas vendas')}
+                    </CardDescription>
                     <div className="pt-4 flex flex-col gap-0.5">
                       <div className="flex items-baseline gap-1 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden">
                         <span className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -237,10 +246,12 @@ export function PlanosPageClient() {
                       <Button 
                         className={`w-full font-bold py-6 transition-all duration-300 ${
                           isRecommended 
-                            ? 'bg-[#409eff] text-white hover:bg-[#409eff]/90' 
-                            : 'bg-transparent border-border/40 hover:bg-muted/50'
+                            ? 'bg-zinc-900 text-white hover:bg-black dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200' 
+                            : isUltra
+                              ? 'bg-primary text-primary-foreground hover:opacity-90 dark:bg-white dark:text-black dark:hover:bg-white/90'
+                              : 'bg-transparent border-zinc-200 hover:bg-zinc-50 dark:border-border/40 dark:hover:bg-muted/50'
                         }`}
-                        variant={isRecommended ? 'default' : 'outline'}
+                        variant={isRecommended || isUltra ? 'default' : 'outline'}
                         disabled={!!subscribingId}
                         onClick={() => handleSubscribe(plan.id)}
                       >
