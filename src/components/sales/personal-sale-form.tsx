@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientDialog } from '@/components/clients'
 import { SupplierDialog } from '@/components/suppliers'
+import { ProductDialog } from '@/components/products'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { updateProduct } from '@/app/actions/products'
 import { updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
@@ -169,6 +170,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
   const [supplierInitialName, setSupplierInitialName] = useState('')
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
+  const [productDialogOpen, setProductDialogOpen] = useState(false)
+  const [productRefreshTrigger, setProductRefreshTrigger] = useState(0)
 
   const selectedProducts = supplierId ? productsBySupplier[supplierId] || [] : []
 
@@ -406,6 +409,39 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     setTimeout(() => {
       setSupplierId(supplier.id)
     }, 0)
+  }
+
+  function handleProductCreated(product: Product) {
+    // Auto-select the newly created product in the current entry
+    if (productSearchOpen.entryId) {
+      const entryId = productSearchOpen.entryId
+      setValueEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id === entryId) {
+            return {
+              ...entry,
+              productId: product.id,
+              productName: product.name,
+              grossValue: product.unit_price?.toString() || entry.grossValue,
+            }
+          }
+          return entry
+        })
+      )
+      toast.success(`Item ${product.name} criado e selecionado`)
+    }
+    
+    // Trigger refresh of products list
+    setProductRefreshTrigger((prev) => prev + 1)
+    router.refresh()
+  }
+
+  function handleAddNewProduct() {
+    if (!supplierId) {
+      toast.error('Selecione um fornecedor primeiro')
+      return
+    }
+    setProductDialogOpen(true)
   }
 
   const handleFirstDateChange = (date: string) => {
@@ -761,6 +797,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                       setProductSearchOpen({ open: false })
                       toast.success(`Item ${product.name} selecionado`)
                     }}
+        onAddNewProduct={handleAddNewProduct}
       />
 
       <ClientDialog
@@ -776,6 +813,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         onSuccess={handleSupplierCreated}
         initialName={supplierInitialName}
       />
+
+      {supplierId && (
+        <ProductDialog
+          open={productDialogOpen}
+          onOpenChange={setProductDialogOpen}
+          supplierId={supplierId}
+          onProductCreated={handleProductCreated}
+          showSku={false}
+        />
+      )}
 
       <InstallmentsSheet
         open={installmentsSheetOpen}
