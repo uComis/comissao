@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
             label="Minha Comissão"
             value={formatCurrency(cards?.commission.current || 0)}
             icon={Target}
-            valueClassName="whitespace-nowrap"
+            valueClassName="truncate max-w-full"
             progress={cards?.commission.progress}
             remainingLabel={cards?.commission.goal && cards.commission.goal > 0 ? (cards.commission.current >= cards.commission.goal ? "Meta atingida!" : `Faltam ${formatCurrency(cards.commission.remaining)}`) : "Defina sua meta"}
             showProgressBar={true}
@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
             label="Vendas"
             value={formatCurrency(cards?.total_sales.value || 0)}
             icon={DollarSign}
-            valueClassName="whitespace-nowrap"
+            valueClassName="truncate max-w-full"
             percentage={cards?.total_sales.trend}
             percentageLabel="vs. mês anterior"
           />

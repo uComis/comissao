@@ -1,6 +1,16 @@
+'use client'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, TrendingDown, LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
+import { formatCurrencyAbbreviated, formatCurrencyNoCents, estimateTextWidth } from '@/lib/format-utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 type StatCardProps = {
   label: string
@@ -59,6 +69,76 @@ export function StatCard({
   const progressColorClass = progress !== undefined ? getProgressColor(progress) : ''
   const progressBgClass = progress !== undefined ? getProgressBgColor(progress) : ''
 
+  // Smart value formatting based on available width
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [displayValue, setDisplayValue] = useState<string>(value.toString())
+  const [fontSize, setFontSize] = useState<'text-3xl' | 'text-2xl' | 'text-xl'>('text-3xl')
+  const [tooltipContent, setTooltipContent] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!contentRef.current) return
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const availableWidth = entry.contentRect.width - 32 // padding
+        const valueStr = value.toString()
+
+        // Font size mappings (desktop sizes)
+        const fontSizes = [
+          { class: 'text-3xl', px: 30 },
+          { class: 'text-2xl', px: 24 },
+          { class: 'text-xl', px: 20 }
+        ] as const
+
+        let fitted = false
+
+        // Try each font size
+        for (const { class: fontClass, px } of fontSizes) {
+          const estimatedWidth = estimateTextWidth(valueStr, px)
+          
+          if (estimatedWidth <= availableWidth) {
+            setDisplayValue(valueStr)
+            setFontSize(fontClass)
+            setTooltipContent(null)
+            fitted = true
+            break
+          }
+        }
+
+        // If still doesn't fit, try removing cents
+        if (!fitted && typeof value === 'string' && value.includes(',')) {
+          const noCents = formatCurrencyNoCents(valueStr)
+          const estimatedWidth = estimateTextWidth(noCents, 20) // text-xl
+          
+          if (estimatedWidth <= availableWidth) {
+            setDisplayValue(noCents)
+            setFontSize('text-xl')
+            setTooltipContent(valueStr)
+            fitted = true
+          }
+        }
+
+        // Last resort: abbreviate
+        if (!fitted && typeof value === 'string' && value.startsWith('R$')) {
+          // Extract numeric value from formatted string
+          const numericValue = parseFloat(
+            valueStr.replace('R$', '').replace(/\./g, '').replace(',', '.')
+          )
+          
+          if (!isNaN(numericValue)) {
+            const { short, full, abbreviated } = formatCurrencyAbbreviated(numericValue)
+            setDisplayValue(short)
+            setFontSize('text-xl')
+            setTooltipContent(abbreviated ? full : null)
+          }
+        }
+      }
+    })
+
+    observer.observe(contentRef.current)
+    return () => observer.disconnect()
+  }, [value])
+
 
   const cardContent = (
     <Card className={cn(
@@ -68,54 +148,75 @@ export function StatCard({
       active ? "border-2 border-primary/50 shadow-md scale-[1.02]" : onClick ? "border-2 border-transparent hover:bg-accent/50" : ""
     )}>
       <CardHeader className={cn(
-        "flex flex-row items-center justify-between space-y-0 pb-2 px-6"
+        "flex flex-row items-center justify-between space-y-0 pb-2",
+        "px-4 sm:px-6" // Mobile: px-4, Desktop: px-6
       )}>
         <CardTitle className="font-medium text-muted-foreground text-sm">
           {label}
         </CardTitle>
-        <Icon className={cn(
-          "h-5 w-5",
-          "text-muted-foreground/50",
-          iconClassName
-        )} />
+        
+        {/* Show circular progress in header if exists, otherwise show icon */}
+        {progress !== undefined ? (
+          <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
+            <svg className="h-full w-full -rotate-90">
+              <circle
+                cx="20"
+                cy="20"
+                r="16"
+                fill="transparent"
+                stroke="currentColor"
+                strokeWidth="4"
+                className="text-muted/20"
+              />
+              <circle
+                cx="20"
+                cy="20"
+                r="16"
+                fill="transparent"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeDasharray={100}
+                strokeDashoffset={100 - progress}
+                strokeLinecap="round"
+                className={cn("transition-all duration-500", progressColorClass)}
+              />
+            </svg>
+            <span className={cn("absolute text-[10px] font-bold", progressColorClass)}>{Math.round(progress)}%</span>
+          </div>
+        ) : (
+          <Icon className={cn(
+            "h-5 w-5",
+            "text-muted-foreground/50",
+            iconClassName
+          )} />
+        )}
       </CardHeader>
-      <CardContent className={cn(
-        "px-6 pt-0 mt-auto"
+      <CardContent ref={contentRef} className={cn(
+        "px-4 sm:px-6 pt-0 mt-auto" // Mobile: px-4, Desktop: px-6
       )}>
         <div className="flex items-end justify-between gap-2">
-          <div className={cn(
-            "text-3xl font-bold leading-tight",
-            valueClassName
-          )}>{value}</div>
-          
-          {progress !== undefined && (
-            <div className="relative h-10 w-10 shrink-0 mb-1 lg:flex hidden items-center justify-center">
-              <svg className="h-full w-full -rotate-90">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  className="text-muted/20"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeDasharray={100}
-                  strokeDashoffset={100 - progress}
-                  strokeLinecap="round"
-                  className={cn("transition-all duration-500", progressColorClass)}
-                />
-              </svg>
-              <span className={cn("absolute text-[10px] font-bold", progressColorClass)}>{Math.round(progress)}%</span>
-            </div>
-          )}
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className={cn(
+                  "font-bold leading-tight cursor-default",
+                  fontSize, // Dynamic font size based on available space
+                  valueClassName
+                )}>
+                  {displayValue}
+                </div>
+              </TooltipTrigger>
+              {tooltipContent && (
+                <TooltipContent 
+                  side="top" 
+                  className="text-sm font-semibold"
+                  sideOffset={5}
+                >
+                  {tooltipContent}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
         
         {remainingLabel && (
