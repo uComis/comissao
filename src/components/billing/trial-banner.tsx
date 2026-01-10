@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { AlertCircle, X } from 'lucide-react'
-import { PlanSelectionDialog } from './plan-selection-dialog'
 import { getBillingUsage } from '@/app/actions/billing'
 import { differenceInDays, parseISO } from 'date-fns'
 
 export function TrialBanner() {
+  const router = useRouter()
   const [isVisible, setIsVisible] = useState(true)
   const [isClosing, setIsClosing] = useState(false)
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [trialData, setTrialData] = useState<{
     daysLeft: number
@@ -64,8 +64,8 @@ export function TrialBanner() {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>
               {daysLeft <= 3 
-                ? <>Atenção: Seu teste termina em {daysLeft} dias! Para manter seu acesso, <button onClick={() => setIsPlanModalOpen(true)} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
-                : <>Você possui {daysLeft} dias de teste full, <button onClick={() => setIsPlanModalOpen(true)} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>}
+                ? <>Atenção: Seu teste termina em {daysLeft} dias! Para manter seu acesso, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
+                : <>Você possui {daysLeft} dias de teste full, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>}
             </span>
           </div>
           <button 
@@ -79,11 +79,6 @@ export function TrialBanner() {
           </button>
         </div>
       </div>
-
-      <PlanSelectionDialog 
-        open={isPlanModalOpen} 
-        onOpenChange={setIsPlanModalOpen} 
-      />
     </>
   )
 }

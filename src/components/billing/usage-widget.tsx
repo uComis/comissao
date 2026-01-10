@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Sparkles } from 'lucide-react'
-import { PlanSelectionDialog } from './plan-selection-dialog'
 import { getBillingUsage } from '@/app/actions/billing'
 
 export function UsageWidget() {
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [usage, setUsage] = useState<{
     plan: string
@@ -77,7 +77,7 @@ export function UsageWidget() {
           size="sm" 
           variant="default" 
           className="w-full h-7 text-[10px] bg-amber-600 hover:bg-amber-700 text-white"
-          onClick={() => setIsPlanModalOpen(true)}
+          onClick={() => router.push('/planos')}
         >
           Fazer Upgrade
         </Button>
@@ -86,17 +86,12 @@ export function UsageWidget() {
           size="sm" 
           variant="outline" 
           className="w-full h-7 text-[10px] border-primary/20 hover:border-primary/50"
-          onClick={() => setIsPlanModalOpen(true)}
+          onClick={() => router.push('/planos')}
         >
           <Sparkles className="h-3 w-3 mr-1 text-primary" />
           Ver Planos
         </Button>
       )}
-
-      <PlanSelectionDialog 
-        open={isPlanModalOpen} 
-        onOpenChange={setIsPlanModalOpen} 
-      />
     </div>
   )
 }

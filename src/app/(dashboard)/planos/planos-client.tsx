@@ -1,21 +1,15 @@
 'use client'
 
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, ArrowLeft } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getPlans, getSubscription, createSubscriptionAction } from '@/app/actions/billing'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { ProfileCompletionDialog } from './profile-completion-dialog'
+import { ProfileCompletionDialog } from '@/components/billing/profile-completion-dialog'
 
 interface Plan {
   id: string
@@ -30,14 +24,9 @@ interface Plan {
   features: Record<string, unknown>
 }
 
-interface PlanSelectionDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogProps) {
+export function PlanosPageClient() {
+  const router = useRouter()
   const { user } = useAuth()
-  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<Plan[]>([])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
@@ -45,10 +34,6 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
   const [subscribingId, setSubscribingId] = useState<string | null>(null)
   const [showProfileDialog, setShowProfileDialog] = useState(false)
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const maxDiscount = plans.reduce((acc, plan) => {
     if (plan.interval === 'year') {
@@ -64,7 +49,7 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
   const [hasEverSubscribed, setHasEverSubscribed] = useState(false)
 
   useEffect(() => {
-    if (open && user) {
+    if (user) {
       async function loadData() {
         try {
           const [plansData, subData] = await Promise.all([
@@ -73,7 +58,6 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
           ])
           setPlans(plansData)
           setCurrentPlanId(subData?.plan_id || null)
-          // Se tem assinatura ativa/past_due, já assinou alguma vez
           setHasEverSubscribed(!!subData)
         } catch (error) {
           console.error('Error loading plans:', error)
@@ -83,7 +67,7 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
       }
       loadData()
     }
-  }, [open, user])
+  }, [user])
 
   // Filtra por intervalo, mas sempre mostra FREE (que só existe como mensal)
   const filteredPlans = plans
@@ -108,7 +92,6 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     const features: string[] = []
     const currentIndex = planOrder.indexOf(plan.plan_group)
     
-    // Adiciona o prefixo de hierarquia se não for o primeiro plano
     if (currentIndex > 0) {
       features.push(`Tudo do plano ${planNames[planOrder[currentIndex - 1]]}, mais:`)
     }
@@ -131,7 +114,6 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
       if (result.success) {
         toast.success('Fatura gerada! Redirecionando para central de cobranças...')
         
-        // Redireciona para a página de cobranças com os parâmetros para abrir o bridge modal
         const params = new URLSearchParams()
         if (result.invoiceId) params.append('invoice_id', result.invoiceId)
         if (result.invoiceUrl) params.append('url', result.invoiceUrl)
@@ -154,20 +136,29 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
     }
   }
 
-  if (!mounted) return null
-
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] lg:max-w-7xl overflow-x-auto overflow-y-auto max-h-[95vh] p-4 md:p-8">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-2xl md:text-4xl text-center font-bold">Escolha seu Plano</DialogTitle>
-          <DialogDescription className="text-center text-lg max-w-2xl mx-auto">
-            Selecione a melhor opção para o seu momento e escale sua operação com controle total.
-          </DialogDescription>
-        </DialogHeader>
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-10">
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.back()}
+            className="shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-4xl font-bold">Escolha seu Plano</h1>
+            <p className="text-muted-foreground mt-2 text-lg">
+              Selecione a melhor opção para o seu momento e escale sua operação com controle total.
+            </p>
+          </div>
+        </div>
 
-        <div className="flex justify-center items-center gap-4 mb-8">
+        {/* Billing Interval Toggle */}
+        <div className="flex justify-center items-center gap-4">
           <button 
             onClick={() => setBillingInterval('month')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
@@ -194,23 +185,24 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
           </button>
         </div>
 
+        {/* Plans Grid */}
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 py-4 min-w-max lg:min-w-0 justify-center items-stretch">
+          <div className="flex flex-wrap justify-center gap-6 py-4 w-full">
             {filteredPlans.map((plan) => {
-              const isCurrent = currentPlanId === plan.id
-              const isRecommended = plan.plan_group === 'pro_plus'
+                const isCurrent = currentPlanId === plan.id
+                const isRecommended = plan.plan_group === 'pro_plus'
 
-              return (
-                <Card 
-                  key={plan.id} 
-                  className={`flex flex-col relative transition-all duration-200 w-full sm:w-[300px] lg:w-full lg:min-w-[260px] xl:min-w-[280px] ${
-                    isRecommended ? 'border-primary shadow-2xl ring-2 ring-primary ring-offset-4 ring-offset-background z-10' : 'hover:border-primary/40'
-                  }`}
-                >
+                return (
+                  <Card 
+                    key={plan.id} 
+                    className={`flex flex-col relative transition-all duration-200 ${
+                      isRecommended ? 'border-primary border-2 shadow-xl' : 'hover:border-primary/40'
+                    }`}
+                  >
                   {isRecommended && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge variant="default" className="bg-primary text-primary-foreground">
@@ -270,18 +262,16 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
             })}
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
 
-    <ProfileCompletionDialog 
-      open={showProfileDialog}
-      onOpenChange={setShowProfileDialog}
-      onSuccess={() => {
-        setShowProfileDialog(false)
-        if (pendingPlanId) handleSubscribe(pendingPlanId)
-      }}
-    />
+      <ProfileCompletionDialog 
+        open={showProfileDialog}
+        onOpenChange={setShowProfileDialog}
+        onSuccess={() => {
+          setShowProfileDialog(false)
+          if (pendingPlanId) handleSubscribe(pendingPlanId)
+        }}
+      />
     </>
   )
 }
-

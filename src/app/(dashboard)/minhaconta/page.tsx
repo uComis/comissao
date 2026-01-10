@@ -7,7 +7,6 @@ import { useUser } from '@/contexts/user-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check, ArrowRight, Shield, Mail, Lock, Link as LinkIcon } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { PlanSelectionDialog } from '@/components/billing/plan-selection-dialog'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
@@ -43,7 +42,6 @@ export default function MinhaContaPage() {
   const { profile } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [envVars, setEnvVars] = useState<EnvironmentVariable[]>([])
   const [envVarsLoading, setEnvVarsLoading] = useState(false)
@@ -477,11 +475,6 @@ export default function MinhaContaPage() {
           </Button>
         </CardContent>
       </Card>
-
-      <PlanSelectionDialog 
-        open={isPlanModalOpen} 
-        onOpenChange={setIsPlanModalOpen} 
-      />
     </div>
   )
 }
