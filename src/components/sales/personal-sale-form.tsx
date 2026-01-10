@@ -781,6 +781,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         onProductSelect={(product) => {
                       if (!productSearchOpen.entryId) return
                       const eid = productSearchOpen.entryId
+                      
+                      // Calculate rates for the selected product
+                      const newCommissionRate = getEffectiveRate(eid, 'commission', product.unit_price?.toString(), product.id)
+                      const newTaxRate = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
+                      
                       setValueEntries((prev) =>
                         prev.map((entry) => {
                           if (entry.id === eid) {
@@ -789,6 +794,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                               productId: product.id,
                               productName: product.name,
                               grossValue: product.unit_price?.toString() || entry.grossValue,
+                              commissionRate: String(newCommissionRate),
+                              taxRate: String(newTaxRate),
                             }
                           }
                           return entry
