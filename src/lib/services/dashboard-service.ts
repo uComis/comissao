@@ -1,5 +1,6 @@
 import { createClient } from '../supabase-server'
 import { CacheService } from './cache-service'
+import { getDataRetentionFilter } from '../../app/actions/billing'
 
 export interface HomeDashboardData {
   cards: {
@@ -47,6 +48,9 @@ export class DashboardService {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
+    // Aplicar filtro de retenção
+    const minDate = await getDataRetentionFilter(user.id)
+
     // 1. Data ranges
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
@@ -55,12 +59,17 @@ export class DashboardService {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString()
     const startOfSixMonths = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
 
+    // Se houver retenção, aplicar o limite mais restritivo
+    const effectiveStartDate = minDate && new Date(minDate) > new Date(startOfSixMonths)
+      ? minDate.toISOString()
+      : startOfSixMonths
+
     // 2. Fetch Data
     const [ { data: historicalSales }, { data: lastMonthSales }, { data: prefs }, { data: receivablesData } ] = await Promise.all([
       supabase.from('personal_sales')
         .select('gross_value, commission_value, client_name, sale_date, supplier_id, personal_suppliers(name)')
         .eq('user_id', user.id)
-        .gte('sale_date', startOfSixMonths)
+        .gte('sale_date', effectiveStartDate)
         .lte('sale_date', endOfMonth),
       supabase.from('personal_sales')
         .select('gross_value, commission_value')

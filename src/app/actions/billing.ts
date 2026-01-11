@@ -117,6 +117,34 @@ export async function getUsageStats(userId: string): Promise<UsageStats | null> 
 }
 
 /**
+ * Retorna a data mínima permitida para consulta de vendas baseada no plano do usuário.
+ * - null ou -1 = sem restrição (ilimitado)
+ * - > 0 = limitar às vendas dos últimos N dias
+ * 
+ * @returns Date (data mínima) ou null (sem limite)
+ */
+export async function getDataRetentionFilter(userId: string): Promise<Date | null> {
+  const subscription = await getSubscription(userId)
+  if (!subscription) return null
+
+  const retentionDays = subscription.plan_snapshot.features?.data_retention_days
+  
+  // null, undefined ou -1 = ilimitado
+  if (retentionDays === null || retentionDays === undefined || retentionDays === -1) {
+    return null
+  }
+
+  // > 0 = aplicar filtro
+  if (typeof retentionDays === 'number' && retentionDays > 0) {
+    const minDate = new Date()
+    minDate.setDate(minDate.getDate() - retentionDays)
+    return minDate
+  }
+
+  return null
+}
+
+/**
  * Cria uma assinatura trial para um novo usuário.
  */
 export async function setupTrialSubscription(userId: string) {

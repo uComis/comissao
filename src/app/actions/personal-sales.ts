@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { commissionEngine } from '@/lib/commission-engine'
-import { checkLimit, incrementUsage, decrementUsage } from './billing'
+import { checkLimit, incrementUsage, decrementUsage, getDataRetentionFilter } from './billing'
 import type { PersonalSale, PersonalSaleWithItems, CreatePersonalSaleInput } from '@/types'
 
 // Schemas
@@ -52,7 +52,10 @@ export async function getPersonalSales(): Promise<PersonalSale[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('User not authenticated')
 
-  const { data, error } = await supabase
+  // Aplicar filtro de retenção
+  const minDate = await getDataRetentionFilter(user.id)
+  
+  let query = supabase
     .from('personal_sales')
     .select(`
       *,
@@ -60,7 +63,13 @@ export async function getPersonalSales(): Promise<PersonalSale[]> {
       client:personal_clients(id, name)
     `)
     .eq('user_id', user.id)
-    .order('sale_date', { ascending: false })
+
+  // Se houver limite de retenção, aplicar filtro
+  if (minDate) {
+    query = query.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data, error } = await query.order('sale_date', { ascending: false })
 
   if (error) throw error
   return data || []
@@ -72,7 +81,10 @@ export async function getPersonalSalesBySupplier(supplierId: string): Promise<Pe
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('User not authenticated')
 
-  const { data, error } = await supabase
+  // Aplicar filtro de retenção
+  const minDate = await getDataRetentionFilter(user.id)
+  
+  let query = supabase
     .from('personal_sales')
     .select(`
       *,
@@ -81,7 +93,13 @@ export async function getPersonalSalesBySupplier(supplierId: string): Promise<Pe
     `)
     .eq('user_id', user.id)
     .eq('supplier_id', supplierId)
-    .order('sale_date', { ascending: false })
+
+  // Se houver limite de retenção, aplicar filtro
+  if (minDate) {
+    query = query.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data, error } = await query.order('sale_date', { ascending: false })
 
   if (error) throw error
   return data || []
@@ -539,10 +557,20 @@ export async function getPersonalSalesStats() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('User not authenticated')
 
-  const { data, error } = await supabase
+  // Aplicar filtro de retenção
+  const minDate = await getDataRetentionFilter(user.id)
+  
+  let query = supabase
     .from('personal_sales')
     .select('gross_value, net_value, commission_value, sale_date')
     .eq('user_id', user.id)
+
+  // Se houver limite de retenção, aplicar filtro
+  if (minDate) {
+    query = query.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
 

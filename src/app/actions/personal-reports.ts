@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase-server'
 import { subMonths, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { getDataRetentionFilter } from './billing'
 
 export type ReportEvolution = {
   period: string
@@ -50,13 +51,20 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('User not authenticated')
 
-  // 1. Evolução Mensal (Últimos 6 meses)
+  // Aplicar filtro de retenção
+  const minDate = await getDataRetentionFilter(user.id)
+  
+  // 1. Evolução Mensal (Últimos 6 meses OU limitado pelo plano)
   const sixMonthsAgo = format(subMonths(new Date(), 5), 'yyyy-MM-01')
+  const effectiveStartDate = minDate 
+    ? (new Date(minDate) > new Date(sixMonthsAgo) ? minDate.toISOString().split('T')[0] : sixMonthsAgo)
+    : sixMonthsAgo
+
   const { data: evolutionData, error: evolutionError } = await supabase
     .from('personal_sales')
     .select('gross_value, commission_value, sale_date')
     .eq('user_id', user.id)
-    .gte('sale_date', sixMonthsAgo)
+    .gte('sale_date', effectiveStartDate)
 
   if (evolutionError) throw evolutionError
 
@@ -78,7 +86,7 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
   }, []).sort((a, b) => a.period.localeCompare(b.period))
 
   // 2. Ranking de Fornecedores
-  const { data: supplierData, error: supplierError } = await supabase
+  let supplierQuery = supabase
     .from('personal_sales')
     .select(`
       gross_value, 
@@ -86,6 +94,13 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
       supplier:personal_suppliers(name)
     `)
     .eq('user_id', user.id)
+
+  // Aplicar filtro de retenção
+  if (minDate) {
+    supplierQuery = supplierQuery.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data: supplierData, error: supplierError } = await supplierQuery
 
   if (supplierError) throw supplierError
 
@@ -103,7 +118,7 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
   }, []).sort((a, b) => b.comissao - a.comissao)
 
   // 3. Curva ABC de Clientes
-  const { data: clientData, error: clientError } = await supabase
+  let clientQuery = supabase
     .from('personal_sales')
     .select(`
       gross_value,
@@ -111,6 +126,13 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
       sale_date
     `)
     .eq('user_id', user.id)
+
+  // Aplicar filtro de retenção
+  if (minDate) {
+    clientQuery = clientQuery.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data: clientData, error: clientError } = await clientQuery
 
   if (clientError) throw clientError
 
@@ -130,15 +152,23 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
   }, []).sort((a, b) => b.total - a.total)
 
   // 4. Mix de Produtos (Top 10)
-  const { data: productData, error: productError } = await supabase
+  // Para produtos, precisamos fazer join com personal_sales e aplicar o filtro lá
+  let productQuery = supabase
     .from('personal_sale_items')
     .select(`
       product_name,
       total_price,
       quantity,
-      personal_sales!inner(user_id)
+      personal_sales!inner(user_id, sale_date)
     `)
     .eq('personal_sales.user_id', user.id)
+
+  // Aplicar filtro de retenção nos itens também
+  if (minDate) {
+    productQuery = productQuery.gte('personal_sales.sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data: productData, error: productError } = await productQuery
 
   if (productError) throw productError
 
@@ -155,13 +185,21 @@ export async function getPersonalReportsData(): Promise<ReportsData> {
   }, []).sort((a, b) => b.total - a.total).slice(0, 10)
 
   // 5. Funil de Comissão (Simplificado)
-  const { data: receivedData } = await supabase
+  // Para received_payments, também precisamos filtrar por data da venda
+  let receivedQuery = supabase
     .from('received_payments')
     .select(`
       received_amount,
-      personal_sales!inner(user_id)
+      personal_sales!inner(user_id, sale_date)
     `)
     .eq('personal_sales.user_id', user.id)
+
+  // Aplicar filtro de retenção
+  if (minDate) {
+    receivedQuery = receivedQuery.gte('personal_sales.sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data: receivedData } = await receivedQuery
 
   const totalGross = (evolutionData || []).reduce((sum, s) => sum + Number(s.gross_value), 0)
   const totalEstimated = (evolutionData || []).reduce((sum, s) => sum + Number(s.commission_value), 0)

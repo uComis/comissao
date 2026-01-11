@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getPlans, getSubscription, createSubscriptionAction } from '@/app/actions/billing'
+import { getSubscription, createSubscriptionAction } from '@/app/actions/billing'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ProfileCompletionDialog } from '@/components/billing/profile-completion-dialog'
@@ -16,37 +16,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-
-const faqData = [
-  {
-    question: "O pagamento é seguro? Como funciona a cobrança?",
-    answer: "Sim, utilizamos o Asaas, uma das maiores e mais seguras plataformas de pagamento do Brasil. O pagamento é processado por eles e reconhecido automaticamente pelo nosso sistema em instantes, liberando seu acesso de forma imediata e segura."
-  },
-  {
-    question: "Alguém pode ver minha venda além de mim? Como meus dados são utilizados?",
-    answer: "Sua privacidade é nossa prioridade. Seus dados são criptografados e apenas você tem acesso às suas vendas e comissões. Não compartilhamos suas informações com terceiros; elas são utilizadas exclusivamente para gerar seus relatórios e cálculos de comissão."
-  },
-  {
-    question: "Posso trocar de plano a qualquer momento?",
-    answer: "Com certeza! Você pode fazer o upgrade ou downgrade do seu plano a qualquer momento diretamente pela plataforma. No caso de upgrade, a diferença de valor será calculada proporcionalmente."
-  },
-  {
-    question: "Quais são os limites de vendas e pastas de fornecedores?",
-    answer: "O plano Free possui um limite de 30 vendas por mês e 1 pasta de fornecedor. Já os planos pagos (Pro e Ultra) não possuem limite de vendas, permitindo que você escale sua operação sem restrições. O limite de pastas varia conforme o plano escolhido (1 para Pro e ilimitadas para Ultra)."
-  },
-  {
-    question: "Existe algum período de fidelidade ou taxa de cancelamento?",
-    answer: "Não, você tem total liberdade. Não exigimos fidelidade e você pode cancelar sua assinatura a qualquer momento sem qualquer taxa oculta ou multa."
-  },
-  {
-    question: "Quais são as formas de pagamento aceitas?",
-    answer: "Aceitamos Pix, Cartão de Crédito, Cartão de Débito e Boleto Bancário. No caso do Pix e Cartão, a ativação do seu plano é instantânea após a aprovação."
-  },
-  {
-    question: "Como funciona o suporte se eu precisar de ajuda?",
-    answer: "Oferecemos suporte completo para você. Você pode contar com nossa IA treinada, disponível 24/7 para tirar qualquer dúvida instantaneamente. Se preferir algo mais específico, poderá nos enviar um e-mail diretamente pelo sistema através da nossa página de contato."
-  }
-]
 
 interface Plan {
   id: string
@@ -61,16 +30,53 @@ interface Plan {
   features: Record<string, unknown>
 }
 
-export function PlanosPageClient() {
+interface PlanosPageClientProps {
+  initialPlans: Plan[]
+}
+
+export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const router = useRouter()
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [plans, setPlans] = useState<Plan[]>([])
+  const [plans, setPlans] = useState<Plan[]>(initialPlans || [])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month')
   const [subscribingId, setSubscribingId] = useState<string | null>(null)
   const [showProfileDialog, setShowProfileDialog] = useState(false)
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+
+  // Buscar plano FREE para usar nos FAQs (fallback para valores padrão)
+  const freePlan = plans?.find(p => p.plan_group === 'free')
+  const faqData = [
+    {
+      question: "O pagamento é seguro? Como funciona a cobrança?",
+      answer: "Sim, utilizamos o Asaas, uma das maiores e mais seguras plataformas de pagamento do Brasil. O pagamento é processado por eles e reconhecido automaticamente pelo nosso sistema em instantes, liberando seu acesso de forma imediata e segura."
+    },
+    {
+      question: "Alguém pode ver minha venda além de mim? Como meus dados são utilizados?",
+      answer: "Sua privacidade é nossa prioridade. Seus dados são criptografados e apenas você tem acesso às suas vendas e comissões. Não compartilhamos suas informações com terceiros; elas são utilizadas exclusivamente para gerar seus relatórios e cálculos de comissão."
+    },
+    {
+      question: "Posso trocar de plano a qualquer momento?",
+      answer: "Com certeza! Você pode fazer o upgrade ou downgrade do seu plano a qualquer momento diretamente pela plataforma. No caso de upgrade, a diferença de valor será calculada proporcionalmente."
+    },
+    {
+      question: "Quais são os limites de vendas e pastas de fornecedores?",
+      answer: `O plano Free possui um limite de ${freePlan?.max_sales_month || 30} vendas por mês e ${freePlan?.max_suppliers || 1} pasta de fornecedor. Já os planos pagos (Pro e Ultra) não possuem limite de vendas, permitindo que você escale sua operação sem restrições. O limite de pastas varia conforme o plano escolhido (1 para Pro e ilimitadas para Ultra).`
+    },
+    {
+      question: "Existe algum período de fidelidade ou taxa de cancelamento?",
+      answer: "Não, você tem total liberdade. Não exigimos fidelidade e você pode cancelar sua assinatura a qualquer momento sem qualquer taxa oculta ou multa."
+    },
+    {
+      question: "Quais são as formas de pagamento aceitas?",
+      answer: "Aceitamos Pix, Cartão de Crédito, Cartão de Débito e Boleto Bancário. No caso do Pix e Cartão, a ativação do seu plano é instantânea após a aprovação."
+    },
+    {
+      question: "Como funciona o suporte se eu precisar de ajuda?",
+      answer: "Oferecemos suporte completo para você. Você pode contar com nossa IA treinada, disponível 24/7 para tirar qualquer dúvida instantaneamente. Se preferir algo mais específico, poderá nos enviar um e-mail diretamente pelo sistema através da nossa página de contato."
+    }
+  ]
 
   const maxDiscount = plans.reduce((acc, plan) => {
     if (plan.interval === 'year') {
@@ -89,14 +95,10 @@ export function PlanosPageClient() {
     if (user) {
       async function loadData() {
         try {
-          const [plansData, subData] = await Promise.all([
-            getPlans(),
-            getSubscription(user!.id)
-          ])
-          setPlans(plansData)
+          const subData = await getSubscription(user!.id)
           setCurrentPlanId(subData?.plan_id || null)
         } catch (error) {
-          console.error('Error loading plans:', error)
+          console.error('Error loading subscription:', error)
         } finally {
           setLoading(false)
         }
@@ -123,15 +125,15 @@ export function PlanosPageClient() {
     features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} ${plan.max_suppliers === 1 ? 'Pasta de fornecedor' : 'Pastas de fornecedor'}`)
     features.push(plan.max_sales_month >= 99999 ? 'Vendas Ilimitadas' : `${plan.max_sales_month} vendas por mês`)
     
-    // Data retention: 60 days for FREE, unlimited for paid plans
-    if (plan.plan_group === 'free') {
-      features.push('Dados mantidos por 60 dias')
+    // Data retention: specific days for FREE, unlimited for paid plans
+    const retentionDays = plan.features.data_retention_days as number | null | undefined
+    if (retentionDays && retentionDays > 0) {
+      features.push(`Dados mantidos por ${retentionDays} dias`)
     } else {
       features.push('Histórico ilimitado de dados')
     }
     
     if (plan.features.custom_reports) features.push('Relatórios Avançados')
-    if (plan.features.api_access && plan.plan_group !== 'ultra') features.push('Acesso via API')
     
     return features
   }
