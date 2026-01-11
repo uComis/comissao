@@ -151,31 +151,36 @@ export function PlanosPageClient() {
         </div>
 
         {/* Billing Interval Toggle */}
-        <div className="flex justify-center items-center gap-4">
-          <button 
-            onClick={() => setBillingInterval('month')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              billingInterval === 'month' 
-                ? 'bg-primary text-primary-foreground shadow-sm' 
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            Mensal
-          </button>
-          <button 
-            onClick={() => setBillingInterval('year')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              billingInterval === 'year' 
-                ? 'bg-primary text-primary-foreground shadow-sm' 
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-            }`}
-          >
-            Anual {maxDiscount > 0 && (
-              <Badge className="ml-1 bg-emerald-600 text-white hover:bg-emerald-600 border-none shadow-sm">
-                -{maxDiscount}%
-              </Badge>
-            )}
-          </button>
+        <div className="flex justify-center">
+          <Card className="p-1 w-fit">
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => setBillingInterval('month')}
+                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${
+                  billingInterval === 'month' 
+                    ? 'bg-primary text-primary-foreground shadow-sm' 
+                    : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                Mensal
+              </button>
+              <button 
+                onClick={() => setBillingInterval('year')}
+                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] flex items-center justify-center gap-1 ${
+                  billingInterval === 'year' 
+                    ? 'bg-primary text-primary-foreground shadow-sm' 
+                    : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <span>Anual</span>
+                {maxDiscount > 0 && (
+                  <Badge className="bg-emerald-600 text-white hover:bg-emerald-600 border-none shadow-sm">
+                    -{maxDiscount}%
+                  </Badge>
+                )}
+              </button>
+            </div>
+          </Card>
         </div>
 
         {/* Plans Grid */}
