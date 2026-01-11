@@ -307,6 +307,67 @@ export async function checkAndHandleExpiredTrial(userId: string) {
 }
 
 /**
+ * Verifica quais pastas (fornecedores) estão bloqueadas pelo limite do plano.
+ * Retorna IDs das pastas que excedem o limite permitido.
+ * 
+ * Estratégia: Primeiras N pastas (por created_at) são acessíveis, resto bloqueado.
+ * 
+ * @returns { allowedCount, blockedCount, blockedSupplierIds }
+ */
+export async function getBlockedSuppliers(userId?: string): Promise<{
+  allowedCount: number
+  blockedCount: number
+  blockedSupplierIds: string[]
+}> {
+  const supabase = await createClient()
+  
+  // Se não passou userId, pegar do usuário atual
+  let effectiveUserId = userId
+  if (!effectiveUserId) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { allowedCount: 0, blockedCount: 0, blockedSupplierIds: [] }
+    }
+    effectiveUserId = user.id
+  }
+  
+  const subscription = await getSubscription(effectiveUserId)
+  
+  if (!subscription) {
+    return { allowedCount: 0, blockedCount: 0, blockedSupplierIds: [] }
+  }
+
+  const maxSuppliers = subscription.plan_snapshot.max_suppliers || 1
+
+  // Buscar todas as pastas do usuário, ordenadas por data de criação (mais antigas primeiro)
+  const { data: suppliers, error } = await supabase
+    .from('personal_suppliers')
+    .select('id, created_at')
+    .eq('user_id', effectiveUserId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+
+  if (error || !suppliers) {
+    return { allowedCount: 0, blockedCount: 0, blockedSupplierIds: [] }
+  }
+
+  const totalSuppliers = suppliers.length
+  const allowedCount = Math.min(totalSuppliers, maxSuppliers)
+  const blockedCount = Math.max(0, totalSuppliers - maxSuppliers)
+  
+  // Pastas além do limite ficam bloqueadas
+  const blockedSupplierIds = suppliers
+    .slice(maxSuppliers)
+    .map(s => s.id)
+
+  return {
+    allowedCount,
+    blockedCount,
+    blockedSupplierIds
+  }
+}
+
+/**
  * Helper para verificar limites antes de uma ação.
  * Se o usuário não tiver assinatura/usage, cria automaticamente (defensive).
  */

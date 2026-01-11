@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { commissionEngine } from '@/lib/commission-engine'
-import { checkLimit, incrementUsage, decrementUsage, getDataRetentionFilter } from './billing'
+import { checkLimit, incrementUsage, decrementUsage, getDataRetentionFilter, getBlockedSuppliers } from './billing'
 import type { PersonalSale, PersonalSaleWithItems, CreatePersonalSaleInput } from '@/types'
 
 // Schemas
@@ -169,7 +169,19 @@ export async function createPersonalSale(
       return { success: false, error: limitCheck.error || 'Limite de vendas atingido' }
     }
 
-    const { supplier_id, client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
+    // Extrair supplier_id para validação
+    const { supplier_id } = parsed.data
+
+    // Verificar se a pasta está bloqueada
+    const { blockedSupplierIds } = await getBlockedSuppliers(user.id)
+    if (blockedSupplierIds.includes(supplier_id)) {
+      return { 
+        success: false, 
+        error: 'Esta pasta está bloqueada. Faça upgrade do seu plano para criar vendas nesta pasta.' 
+      }
+    }
+
+    const { client_id, client_name, sale_date, payment_condition, first_installment_date, notes, items = [], gross_value, tax_rate, commission_rate: manual_commission_rate } = parsed.data
 
     // Calcular totais (incluindo comissão por item)
     const itemsWithTotal = items.map(item => {

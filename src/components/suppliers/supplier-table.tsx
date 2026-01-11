@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -28,8 +28,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { MoreHorizontal, Pencil, Trash2, FileText, Percent } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { MoreHorizontal, Pencil, Trash2, FileText, Percent, Lock } from 'lucide-react'
 import { deletePersonalSupplier, type PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
+import { getBlockedSuppliers } from '@/app/actions/billing'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { CommissionRule } from '@/types'
@@ -64,6 +66,24 @@ export function SupplierTable({ suppliers }: Props) {
   const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [blockedSupplierIds, setBlockedSupplierIds] = useState<string[]>([])
+
+  useEffect(() => {
+    async function loadBlockedSuppliers() {
+      try {
+        const result = await getBlockedSuppliers('')
+        setBlockedSupplierIds(result.blockedSupplierIds)
+      } catch (error) {
+        console.error('Error loading blocked suppliers:', error)
+      }
+    }
+    
+    if (suppliers.length > 0) {
+      loadBlockedSuppliers()
+    }
+  }, [suppliers])
+
+  const isBlocked = (supplierId: string) => blockedSupplierIds.includes(supplierId)
 
   async function handleDelete() {
     if (!deleteId) return
@@ -142,41 +162,53 @@ export function SupplierTable({ suppliers }: Props) {
     return (
       <>
         <div className="space-y-3">
-          {suppliers.map((supplier) => (
-            <Card
-              key={supplier.id}
-              className="p-4 active:scale-[0.98] transition-transform"
-              onClick={() => handleEdit(supplier.id)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0 space-y-2">
-                  {/* Nome */}
-                  <div className="font-medium truncate">
-                    {supplier.name}
+          {suppliers.map((supplier) => {
+            const blocked = isBlocked(supplier.id)
+            
+            return (
+              <Card
+                key={supplier.id}
+                className={`p-4 transition-transform ${blocked ? 'opacity-60' : 'active:scale-[0.98]'}`}
+                onClick={() => !blocked && handleEdit(supplier.id)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    {/* Nome */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium truncate">{supplier.name}</span>
+                      {blocked && (
+                        <Badge variant="secondary" className="shrink-0 text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Bloqueado
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* CNPJ */}
+                    {supplier.cnpj && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-mono text-xs">{formatCnpj(supplier.cnpj)}</span>
+                      </div>
+                    )}
+
+                    {/* Comissão */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Percent className="h-3.5 w-3.5 shrink-0" />
+                      <span className="text-xs">{getRuleDescription(supplier.default_rule || null)}</span>
+                    </div>
                   </div>
 
-                  {/* CNPJ */}
-                  {supplier.cnpj && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileText className="h-3.5 w-3.5 shrink-0" />
-                      <span className="font-mono text-xs">{formatCnpj(supplier.cnpj)}</span>
+                  {/* Menu de ações */}
+                  {!blocked && (
+                    <div className="-mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
+                      <ActionMenu supplier={supplier} />
                     </div>
                   )}
-
-                  {/* Comissão */}
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Percent className="h-3.5 w-3.5 shrink-0" />
-                    <span className="text-xs">{getRuleDescription(supplier.default_rule || null)}</span>
-                  </div>
                 </div>
-
-                {/* Menu de ações */}
-                <div className="-mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
-                  <ActionMenu supplier={supplier} />
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            )
+          })}
         </div>
         <DeleteDialog />
       </>
@@ -196,18 +228,32 @@ export function SupplierTable({ suppliers }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {suppliers.map((supplier) => (
-              <TableRow key={supplier.id}>
-                <TableCell className="font-medium">{supplier.name}</TableCell>
-                <TableCell className="text-muted-foreground font-mono text-sm">
-                  {formatCnpj(supplier.cnpj || '')}
-                </TableCell>
-                <TableCell>{getRuleDescription(supplier.default_rule || null)}</TableCell>
-                <TableCell>
-                  <ActionMenu supplier={supplier} />
-                </TableCell>
-              </TableRow>
-            ))}
+            {suppliers.map((supplier) => {
+              const blocked = isBlocked(supplier.id)
+              
+              return (
+                <TableRow key={supplier.id} className={blocked ? 'opacity-60' : ''}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {supplier.name}
+                      {blocked && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Bloqueado
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-sm">
+                    {formatCnpj(supplier.cnpj || '')}
+                  </TableCell>
+                  <TableCell>{getRuleDescription(supplier.default_rule || null)}</TableCell>
+                  <TableCell>
+                    {!blocked && <ActionMenu supplier={supplier} />}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
       </Table>
       <DeleteDialog />

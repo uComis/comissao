@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, ChevronDown, Plus, Search } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Check, ChevronDown, Plus, Search, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getBlockedSuppliers } from '@/app/actions/billing'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
