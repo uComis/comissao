@@ -10,6 +10,43 @@ import { getPlans, getSubscription, createSubscriptionAction } from '@/app/actio
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ProfileCompletionDialog } from '@/components/billing/profile-completion-dialog'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+
+const faqData = [
+  {
+    question: "O pagamento é seguro? Como funciona a cobrança?",
+    answer: "Sim, utilizamos o Asaas, uma das maiores e mais seguras plataformas de pagamento do Brasil. O pagamento é processado por eles e reconhecido automaticamente pelo nosso sistema em instantes, liberando seu acesso de forma imediata e segura."
+  },
+  {
+    question: "Alguém pode ver minha venda além de mim? Como meus dados são utilizados?",
+    answer: "Sua privacidade é nossa prioridade. Seus dados são criptografados e apenas você tem acesso às suas vendas e comissões. Não compartilhamos suas informações com terceiros; elas são utilizadas exclusivamente para gerar seus relatórios e cálculos de comissão."
+  },
+  {
+    question: "Posso trocar de plano a qualquer momento?",
+    answer: "Com certeza! Você pode fazer o upgrade ou downgrade do seu plano a qualquer momento diretamente pela plataforma. No caso de upgrade, a diferença de valor será calculada proporcionalmente."
+  },
+  {
+    question: "Quais são os limites de vendas e pastas de fornecedores?",
+    answer: "O plano Free possui um limite de 30 vendas por mês e 1 pasta de fornecedor. Já os planos pagos (Pro e Ultra) não possuem limite de vendas, permitindo que você escale sua operação sem restrições. O limite de pastas varia conforme o plano escolhido (1 para Pro e ilimitadas para Ultra)."
+  },
+  {
+    question: "Existe algum período de fidelidade ou taxa de cancelamento?",
+    answer: "Não, você tem total liberdade. Não exigimos fidelidade e você pode cancelar sua assinatura a qualquer momento sem qualquer taxa oculta ou multa."
+  },
+  {
+    question: "Quais são as formas de pagamento aceitas?",
+    answer: "Aceitamos Pix, Cartão de Crédito, Cartão de Débito e Boleto Bancário. No caso do Pix e Cartão, a ativação do seu plano é instantânea após a aprovação."
+  },
+  {
+    question: "Como funciona o suporte se eu precisar de ajuda?",
+    answer: "Oferecemos suporte completo para você. Você pode contar com nossa IA treinada, disponível 24/7 para tirar qualquer dúvida instantaneamente. Se preferir algo mais específico, poderá nos enviar um e-mail diretamente pelo sistema através da nossa página de contato."
+  }
+]
 
 interface Plan {
   id: string
@@ -282,6 +319,35 @@ export function PlanosPageClient() {
             })}
           </div>
         )}
+
+        {/* FAQ Section */}
+        <div className="pt-20 pb-20 space-y-8 max-w-4xl mx-auto">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-bold tracking-tight">Dúvidas Frequentes</h2>
+            <p className="text-muted-foreground text-lg">
+              Tudo o que você precisa saber sobre nossos planos e o funcionamento da plataforma.
+            </p>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full space-y-4">
+            {faqData.map((item, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`}
+                className="border border-border/40 bg-card/40 backdrop-blur-sm rounded-2xl overflow-hidden transition-all hover:border-primary/30 hover:bg-card/60 data-[state=open]:border-primary/40 data-[state=open]:bg-card/80 group"
+              >
+                <AccordionTrigger className="text-base font-semibold hover:no-underline px-6 py-6 [&[data-state=open]]:pb-4">
+                  <span className="group-hover:text-primary transition-colors">{item.question}</span>
+                </AccordionTrigger>
+                <AccordionContent className="text-foreground text-lg leading-relaxed px-6 pb-8">
+                  <div className="pt-2 border-t border-border/10">
+                    {item.answer}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
       </div>
 
       <ProfileCompletionDialog 
