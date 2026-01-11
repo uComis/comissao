@@ -83,12 +83,18 @@ export function PlanosPageClient() {
   const getPlanFeatures = (plan: Plan) => {
     const features: string[] = []
     
-    features.push(plan.max_users === 1 ? '1 Usuário (Solo)' : `${plan.max_users} Usuários`)
-    features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} Pastas de organização`)
+    features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} ${plan.max_suppliers === 1 ? 'Pasta de fornecedor' : 'Pastas de fornecedor'}`)
     features.push(plan.max_sales_month >= 99999 ? 'Vendas Ilimitadas' : `${plan.max_sales_month} vendas por mês`)
     
+    // Data retention: 60 days for FREE, unlimited for paid plans
+    if (plan.plan_group === 'free') {
+      features.push('Dados mantidos por 60 dias')
+    } else {
+      features.push('Histórico ilimitado de dados')
+    }
+    
     if (plan.features.custom_reports) features.push('Relatórios Avançados')
-    if (plan.features.api_access) features.push('Acesso via API')
+    if (plan.features.api_access && plan.plan_group !== 'ultra') features.push('Acesso via API')
     
     return features
   }
