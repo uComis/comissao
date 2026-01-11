@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { checkAndHandleExpiredTrial } from './app/actions/billing'
 
 // Rotas exclusivas de vendedor (modo personal)
 const PERSONAL_ROUTES = ['/home', '/minhasvendas', '/fornecedores', '/recebiveis']
@@ -77,6 +78,11 @@ export async function middleware(request: NextRequest) {
 
   // Se está logado
   if (user) {
+    // Verificar e processar trial expirado (não bloqueia a request)
+    checkAndHandleExpiredTrial(user.id).catch(err => {
+      console.error('Error handling expired trial:', err)
+    })
+
     // Se está na página de login, verificar modo e redirecionar
     if (isAuthPage) {
       // Buscar preferência do usuário

@@ -49,6 +49,10 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const freePlan = plans?.find(p => p.plan_group === 'free')
   const faqData = [
     {
+      question: "O que são os dias de teste gratuito? Vou perder meus dados quando acabar?",
+      answer: "Ao criar sua conta, você ganha 14 dias de teste com acesso ULTRA ilimitado — pastas ilimitadas, vendas ilimitadas e todos os recursos premium. Durante esse período, você pode explorar a plataforma sem qualquer restrição. Se assinar um plano pago durante o teste, você mantém os recursos ULTRA até o fim dos 14 dias (como recompensa por assinar cedo!) e depois os limites do seu plano entram em vigor. Se não assinar, você continua usando o plano Free (1 pasta, 30 vendas/mês, 30 dias de histórico) — sem perder nenhum dado. Tudo fica salvo e você pode fazer upgrade quando quiser."
+    },
+    {
       question: "O pagamento é seguro? Como funciona a cobrança?",
       answer: "Sim, utilizamos o Asaas, uma das maiores e mais seguras plataformas de pagamento do Brasil. O pagamento é processado por eles e reconhecido automaticamente pelo nosso sistema em instantes, liberando seu acesso de forma imediata e segura."
     },

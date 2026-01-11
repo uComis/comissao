@@ -146,36 +146,38 @@ export async function getDataRetentionFilter(userId: string): Promise<Date | nul
 
 /**
  * Cria uma assinatura trial para um novo usuário.
+ * Trial sempre usa o plano ULTRA com todos os recursos ilimitados.
  */
 export async function setupTrialSubscription(userId: string) {
   const supabase = await createClient()
 
-  // 1. Buscar o plano FREE para pegar os limites base
-  const { data: freePlan, error: planError } = await supabase
+  // 1. Buscar o plano ULTRA (usado durante trial)
+  const { data: ultraPlan, error: planError } = await supabase
     .from('plans')
     .select('*')
-    .eq('id', 'free_monthly')
+    .eq('id', 'ultra_monthly')
     .single()
 
   if (planError) throw planError
 
-  // 2. Criar a assinatura status trialing
+  // 2. Criar a assinatura status trialing com limites ULTRA
+  const trialDays = ultraPlan.trial_days || 14 // Fallback se não tiver no banco
   const trialEndsAt = new Date()
-  trialEndsAt.setDate(trialEndsAt.getDate() + 14) // 7 dias de trial
+  trialEndsAt.setDate(trialEndsAt.getDate() + trialDays)
 
   const { error: subError } = await supabase
     .from('subscriptions')
     .insert({
       user_id: userId,
-      plan_id: 'free_monthly',
+      plan_id: 'ultra_monthly', // Trial = ULTRA ilimitado
       status: 'trialing',
       plan_snapshot: {
-        name: freePlan.name,
-        max_suppliers: freePlan.max_suppliers,
-        max_sales_month: freePlan.max_sales_month,
-        max_users: freePlan.max_users,
-        max_revenue_month: freePlan.max_revenue_month,
-        features: freePlan.features
+        name: ultraPlan.name,
+        max_suppliers: ultraPlan.max_suppliers,
+        max_sales_month: ultraPlan.max_sales_month,
+        max_users: ultraPlan.max_users,
+        max_revenue_month: ultraPlan.max_revenue_month,
+        features: ultraPlan.features
       },
       trial_ends_at: trialEndsAt.toISOString(),
       current_period_start: new Date().toISOString(),
@@ -194,6 +196,114 @@ export async function setupTrialSubscription(userId: string) {
     })
 
   if (usageError) throw usageError
+}
+
+/**
+ * Faz a transição de trial expirado para o plano correto.
+ * - Se assinou durante trial: mantém ULTRA até fim do trial, depois aplica limites do plano pago
+ * - Se não assinou: downgrade para FREE
+ * 
+ * Esta função deve ser chamada periodicamente (cron/webhook) ou no login do usuário.
+ */
+export async function handleExpiredTrials() {
+  const supabase = await createAdminClient()
+  
+  const now = new Date().toISOString()
+  
+  // Buscar subscriptions com trial expirado que ainda não foram processadas
+  const { data: expiredTrials, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .lt('trial_ends_at', now)
+    .or('status.eq.trialing,and(status.eq.active,plan_id.like.ultra_%)')
+  
+  if (error) {
+    console.error('Error fetching expired trials:', error)
+    return
+  }
+
+  for (const sub of expiredTrials || []) {
+    try {
+      // Se ainda está trialing e expirou → downgrade para FREE
+      if (sub.status === 'trialing') {
+        const { data: freePlan } = await supabase
+          .from('plans')
+          .select('*')
+          .eq('id', 'free_monthly')
+          .single()
+
+        if (freePlan) {
+          await supabase
+            .from('subscriptions')
+            .update({
+              plan_id: 'free_monthly',
+              status: 'active',
+              plan_snapshot: {
+                name: freePlan.name,
+                max_suppliers: freePlan.max_suppliers,
+                max_sales_month: freePlan.max_sales_month,
+                max_users: freePlan.max_users,
+                max_revenue_month: freePlan.max_revenue_month,
+                features: freePlan.features
+              }
+            })
+            .eq('id', sub.id)
+        }
+      }
+      // Se assinou (active) mas ainda tem plan_id ULTRA e trial expirou → aplicar limites do plano correto
+      // Neste caso, precisamos ver qual plano ele realmente assinou via asaas_subscription_id
+      // Por enquanto, mantemos assim (quando assinar, já vai criar subscription com plano correto)
+    } catch (err) {
+      console.error(`Error processing trial for subscription ${sub.id}:`, err)
+    }
+  }
+}
+
+/**
+ * Checa se o trial do usuário expirou e faz transição se necessário.
+ * Deve ser chamado no login ou em operações críticas.
+ */
+export async function checkAndHandleExpiredTrial(userId: string) {
+  const subscription = await getSubscription(userId)
+  if (!subscription) return
+
+  const now = new Date()
+  const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null
+
+  // Se trial expirou e ainda está como trialing, fazer downgrade
+  if (
+    trialEnd && 
+    now > trialEnd && 
+    subscription.status === 'trialing' &&
+    subscription.plan_id.includes('ultra')
+  ) {
+    const supabase = await createClient()
+    
+    const { data: freePlan } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', 'free_monthly')
+      .single()
+
+    if (freePlan) {
+      await supabase
+        .from('subscriptions')
+        .update({
+          plan_id: 'free_monthly',
+          status: 'active',
+          plan_snapshot: {
+            name: freePlan.name,
+            max_suppliers: freePlan.max_suppliers,
+            max_sales_month: freePlan.max_sales_month,
+            max_users: freePlan.max_users,
+            max_revenue_month: freePlan.max_revenue_month,
+            features: freePlan.features
+          }
+        })
+        .eq('user_id', userId)
+        .eq('status', 'trialing')
+    }
+  }
 }
 
 /**

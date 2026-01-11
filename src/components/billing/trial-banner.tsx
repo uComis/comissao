@@ -20,6 +20,7 @@ export function TrialBanner() {
     async function loadTrial() {
       try {
         const data = await getBillingUsage()
+        // Só mostra banner se está em trial (não mostra se já assinou algum plano pago)
         if (data && data.status === 'trialing' && data.trialEndsAt) {
           const daysLeft = differenceInDays(parseISO(data.trialEndsAt), new Date())
           setTrialData({
@@ -64,8 +65,8 @@ export function TrialBanner() {
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>
               {daysLeft <= 3 
-                ? <>Atenção: Seu teste termina em {daysLeft} dias! Para manter seu acesso, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
-                : <>Você possui {daysLeft} dias de teste full, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>}
+                ? <>Atenção: Seu teste ULTRA termina em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}! Para manter acesso ilimitado, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
+                : <>Você possui {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} de teste ULTRA (ilimitado), <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>}
             </span>
           </div>
           <button 
