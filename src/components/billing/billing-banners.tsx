@@ -25,6 +25,8 @@ export default function BillingBanners() {
     }
 
     async function loadBillingData() {
+      if (!user) return
+      
       try {
         // ✅ Cache localStorage com TTL de 5 minutos
         const cacheKey = `billing_data_${user.id}`
@@ -72,7 +74,7 @@ export default function BillingBanners() {
   if (loading || !data) return null
 
   return (
-    <BillingNotificationProvider subscription={data.subscription}>
+    <BillingNotificationProvider>
       <TrialBanner />
       <BlockedSuppliersBanner />
     </BillingNotificationProvider>
