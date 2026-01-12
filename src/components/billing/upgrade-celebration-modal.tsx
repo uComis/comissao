@@ -25,11 +25,14 @@ export function UpgradeCelebrationModal({ subscription }: UpgradeCelebrationModa
   const router = useRouter()
 
   useEffect(() => {
-    // Só abre se estiver ativo e o plano atual for diferente do notificado
+    // Só abre se estiver ativo, o plano atual for diferente do notificado
+    // E for um plano PAGO (PRO/ULTRA) com pagamento real confirmado
     if (
       subscription && 
       subscription.status === 'active' && 
-      subscription.plan_id !== subscription.notified_plan_id
+      subscription.plan_id !== subscription.notified_plan_id &&
+      !subscription.plan_id.includes('free') && // NUNCA comemorar FREE
+      subscription.asaas_subscription_id !== null // GARANTIR que pagou
     ) {
       setIsOpen(true)
       

@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -63,8 +65,7 @@ function formatPaymentCondition(condition: string | null): string {
   return condition
 }
 
-export default async function VendaDetalhePage({ params }: Props) {
-  const { id } = await params
+async function VendaDetalheContent({ id }: { id: string }) {
   const sale = await getPersonalSaleById(id)
 
   if (!sale) {
@@ -201,3 +202,31 @@ export default async function VendaDetalhePage({ params }: Props) {
   )
 }
 
+function VendaDetalheLoading() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-10 w-10" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-8 w-[250px]" />
+          <Skeleton className="h-4 w-[350px]" />
+        </div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Skeleton className="h-[200px] w-full" />
+        <Skeleton className="h-[200px] w-full" />
+      </div>
+      <Skeleton className="h-[300px] w-full" />
+    </div>
+  )
+}
+
+export default async function VendaDetalhePage({ params }: Props) {
+  const { id } = await params
+
+  return (
+    <Suspense fallback={<VendaDetalheLoading />}>
+      <VendaDetalheContent id={id} />
+    </Suspense>
+  )
+}

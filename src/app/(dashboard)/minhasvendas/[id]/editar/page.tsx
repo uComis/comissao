@@ -1,17 +1,18 @@
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { PersonalSaleForm } from '@/components/sales'
 import { PageHeader } from '@/components/layout'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
   params: Promise<{ id: string }>
 }
 
-export default async function EditarVendaPage({ params }: Props) {
-  const { id } = await params
+async function EditarVendaContent({ id }: { id: string }) {
   const sale = await getPersonalSaleById(id)
 
   if (!sale) {
@@ -28,18 +29,41 @@ export default async function EditarVendaPage({ params }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <>
       <PageHeader 
         title="Editar Venda" 
         description="Altere os dados da venda"
       />
-
       <PersonalSaleForm
         suppliers={suppliers}
         productsBySupplier={productsBySupplier}
         sale={sale}
         mode="edit"
       />
+    </>
+  )
+}
+
+function EditarVendaLoading() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-[200px]" />
+        <Skeleton className="h-4 w-[300px]" />
+      </div>
+      <Skeleton className="h-[600px] w-full" />
+    </div>
+  )
+}
+
+export default async function EditarVendaPage({ params }: Props) {
+  const { id } = await params
+
+  return (
+    <div className="space-y-6">
+      <Suspense fallback={<EditarVendaLoading />}>
+        <EditarVendaContent id={id} />
+      </Suspense>
     </div>
   )
 }

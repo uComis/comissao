@@ -1,14 +1,16 @@
+import { Suspense } from 'react'
 import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { UsersClient } from './client'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata: Metadata = {
   title: 'Usuários | Admin',
   description: 'Gerenciamento de usuários do sistema',
 }
 
-export default async function AdminUsersPage() {
+async function AdminUsersContent() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -30,3 +32,22 @@ export default async function AdminUsersPage() {
   return <UsersClient />
 }
 
+function AdminUsersLoading() {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-[200px]" />
+        <Skeleton className="h-4 w-[300px]" />
+      </div>
+      <Skeleton className="h-[500px] w-full" />
+    </div>
+  )
+}
+
+export default function AdminUsersPage() {
+  return (
+    <Suspense fallback={<AdminUsersLoading />}>
+      <AdminUsersContent />
+    </Suspense>
+  )
+}
