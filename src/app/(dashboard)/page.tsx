@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
-import { useOrganization } from '@/contexts/organization-context'
+import { useOrganization } from '@/contexts/app-data-context'
 import { useAuth } from '@/contexts/auth-context'
 import { createClient } from '@/lib/supabase'
 import { getDashboardSummary, getDashboardHistory } from '@/app/actions/commissions'

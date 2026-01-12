@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useOrganization } from '@/contexts/organization-context'
+import { useOrganization } from '@/contexts/app-data-context'
 import { forceSyncSales, deleteSales, getSalesPeriods } from '@/app/actions/sales'
 import { getSalesWithCommissionsPaginated, getPeriodTotals, closePeriod, reverseCommissions } from '@/app/actions/commissions'
 import { SalesTable } from '@/components/sales'

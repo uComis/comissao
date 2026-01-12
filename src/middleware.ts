@@ -83,21 +83,38 @@ export async function middleware(request: NextRequest) {
       console.error('Error handling expired trial:', err)
     })
 
-    // Se está na página de login, verificar modo e redirecionar
-    if (isAuthPage) {
-      // Buscar preferência do usuário
+    // ✅ OTIMIZAÇÃO: Ler user_mode de cookie em vez de query ao banco
+    let userModeCookie = request.cookies.get('user_mode')?.value as 'personal' | 'organization' | undefined
+
+    // Se não existe cookie, busca do banco e salva no cookie
+    if (!userModeCookie) {
       const { data: pref } = await supabase
         .from('user_preferences')
         .select('user_mode')
         .eq('user_id', user.id)
         .single()
 
+      if (pref?.user_mode) {
+        userModeCookie = pref.user_mode
+        // Salva cookie para próximas requisições
+        supabaseResponse.cookies.set('user_mode', pref.user_mode, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 30, // 30 dias
+          path: '/'
+        })
+      }
+    }
+
+    // Se está na página de login, verificar modo e redirecionar
+    if (isAuthPage) {
       const url = request.nextUrl.clone()
 
-      if (!pref?.user_mode) {
+      if (!userModeCookie) {
         // Sem modo definido → onboarding
         url.pathname = '/onboarding'
-      } else if (pref.user_mode === 'personal') {
+      } else if (userModeCookie === 'personal') {
         url.pathname = '/home'
       } else {
         url.pathname = '/'
@@ -108,15 +125,8 @@ export async function middleware(request: NextRequest) {
 
     // Se está em página protegida (não é auth/onboarding)
     if (!isPublicAuthRoute) {
-      // Buscar preferência do usuário
-      const { data: pref } = await supabase
-        .from('user_preferences')
-        .select('user_mode')
-        .eq('user_id', user.id)
-        .single()
-
       // Se não tem modo definido, redireciona para onboarding
-      if (!pref?.user_mode && !isOnboardingPage) {
+      if (!userModeCookie && !isOnboardingPage) {
         const url = request.nextUrl.clone()
         url.pathname = '/onboarding'
         return NextResponse.redirect(url)
@@ -127,14 +137,14 @@ export async function middleware(request: NextRequest) {
       const isPersonalRoute = PERSONAL_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))
       const isOrgRoute = ORG_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))
 
-      if (!isNeutralRoute && pref?.user_mode === 'personal' && isOrgRoute) {
+      if (!isNeutralRoute && userModeCookie === 'personal' && isOrgRoute) {
         // Vendedor tentando acessar rota de empresa
         const url = request.nextUrl.clone()
         url.pathname = '/home'
         return NextResponse.redirect(url)
       }
 
-      if (!isNeutralRoute && pref?.user_mode === 'organization' && isPersonalRoute) {
+      if (!isNeutralRoute && userModeCookie === 'organization' && isPersonalRoute) {
         // Empresa tentando acessar rota de vendedor
         const url = request.nextUrl.clone()
         url.pathname = '/'

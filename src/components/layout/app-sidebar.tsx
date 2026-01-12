@@ -18,7 +18,7 @@ import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Sh
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
-import { useUser } from '@/contexts/user-context'
+import { useUser, useUserMode } from '@/contexts/app-data-context'
 import { createClient } from '@/lib/supabase'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
@@ -88,32 +88,14 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
   const { profile } = useUser()
+  const { userMode } = useUserMode() // ✅ Usa contexto global (sem query)
   const { resolvedTheme } = useTheme()
-  const [userMode, setUserMode] = useState<UserMode>(null)
   const [mounted, setMounted] = useState(false)
   const isSuperAdmin = profile?.is_super_admin === true
 
   useEffect(() => {
-    // eslint-disable-next-line
     setMounted(true)
-    
-    async function fetchUserMode() {
-      if (!user) return
-
-      const supabase = createClient()
-      if (!supabase) return
-
-      const { data } = await supabase
-        .from('user_preferences')
-        .select('user_mode')
-        .eq('user_id', user.id)
-        .single()
-
-      setUserMode(data?.user_mode || null)
-    }
-
-    fetchUserMode()
-  }, [user])
+  }, [])
 
   const menuSections = userMode === 'personal' ? personalMenuSections : orgMenuSections
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useOrganization } from '@/contexts/organization-context'
+import { useOrganization } from '@/contexts/app-data-context'
 import { getReportData } from '@/app/actions/commissions'
 import { getActiveSellers } from '@/app/actions/sellers'
 import { getSalesPeriods } from '@/app/actions/sales'

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { getProfile, updateProfile } from '@/app/actions/profiles'
 import { toast } from 'sonner'
 import { Loader2, Save } from 'lucide-react'
-import { useUser } from '@/contexts/user-context'
+import { useUser } from '@/contexts/app-data-context'
 
 interface ProfileFormProps {
   onSuccess?: () => void

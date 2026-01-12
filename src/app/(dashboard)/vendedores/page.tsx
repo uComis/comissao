@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useOrganization } from '@/contexts/organization-context'
+import { useOrganization } from '@/contexts/app-data-context'
 import { getSellersWithRules } from '@/app/actions/sellers'
 import { importPipedriveSellers, getPipedriveIntegration } from '@/app/actions/integrations'
 import { SellerTable, SellerDialog } from '@/components/sellers'
