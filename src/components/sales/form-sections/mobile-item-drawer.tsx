@@ -192,7 +192,7 @@ export function MobileItemDrawer({
                   accentColor="#f59e0b"
                   className={cn(
                     'font-bold transition-all',
-                    informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-white border-2'
+                    informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-background dark:bg-input/50 border-2'
                   )}
                 />
               </div>
@@ -219,7 +219,7 @@ export function MobileItemDrawer({
                   accentColor="#67C23A"
                   className={cn(
                     'font-bold transition-all',
-                    informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-white border-2'
+                    informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-background dark:bg-input/50 border-2'
                   )}
                 />
               </div>

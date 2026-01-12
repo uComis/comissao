@@ -306,16 +306,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleAddValueEntry() {
+    const newId = crypto.randomUUID()
     setValueEntries((prev) => [
       ...prev,
       {
-        id: crypto.randomUUID(),
+        id: newId,
         quantity: 1,
         grossValue: '',
         taxRate: '',
         commissionRate: '',
       },
     ])
+    return newId
+  }
+
+  function handleAddValueEntryAndEdit() {
+    const newId = handleAddValueEntry()
+    // Wait for state update, then open drawer
+    setTimeout(() => {
+      setEditingEntryId(newId)
+      setIsDrawerOpen(true)
+    }, 0)
   }
 
   function handleRemoveValueEntry(id: string) {
@@ -613,6 +624,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             selectedSupplier={selectedSupplier}
             onInformItemsChange={setInformItems}
             onAddValueEntry={handleAddValueEntry}
+            onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
             onRemoveValueEntry={handleRemoveValueEntry}
             onUpdateValueEntry={handleUpdateValueEntry}
             onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}
@@ -689,6 +701,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               selectedSupplier={selectedSupplier}
               onInformItemsChange={setInformItems}
               onAddValueEntry={handleAddValueEntry}
+              onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
               onRemoveValueEntry={handleRemoveValueEntry}
               onUpdateValueEntry={handleUpdateValueEntry}
               onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}

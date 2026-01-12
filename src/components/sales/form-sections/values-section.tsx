@@ -40,6 +40,7 @@ type ValuesSectionProps = {
   selectedSupplier: PersonalSupplierWithRules | undefined
   onInformItemsChange: (checked: boolean) => void
   onAddValueEntry: () => void
+  onAddValueEntryAndEdit?: () => void
   onRemoveValueEntry: (id: string) => void
   onUpdateValueEntry: (id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) => void
   onProductSearchClick: (entryId: string) => void
@@ -60,6 +61,7 @@ export function ValuesSection({
   selectedSupplier,
   onInformItemsChange,
   onAddValueEntry,
+  onAddValueEntryAndEdit,
   onRemoveValueEntry,
   onUpdateValueEntry,
   onProductSearchClick,
@@ -469,21 +471,11 @@ export function ValuesSection({
                     'h-16 text-base border-primary/50 bg-primary/[0.02]'
                 )}
                 onClick={() => {
-                  const newId = Math.random().toString(36).substr(2, 9)
-                  const newEntry: ValueEntry = {
-                    id: newId,
-                    quantity: 1,
-                    grossValue: '',
-                    taxRate: selectedSupplier
-                      ? String(selectedSupplier.default_tax_rate || 0)
-                      : '0',
-                    commissionRate: selectedSupplier
-                      ? String(selectedSupplier.default_commission_rate || 0)
-                      : '0',
-                    productName: '',
+                  if (onAddValueEntryAndEdit) {
+                    onAddValueEntryAndEdit()
+                  } else {
+                    onAddValueEntry()
                   }
-                  // Trigger add via parent
-                  onEditingEntryClick(newId)
                 }}
               >
                 <Plus className="h-5 w-5" />
