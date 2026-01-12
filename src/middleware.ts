@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { checkAndHandleExpiredTrial } from './app/actions/billing'
+import { startTimer, logDebug } from './lib/debug-timer'
 
 // Rotas exclusivas de vendedor (modo personal)
 const PERSONAL_ROUTES = ['/home', '/minhasvendas', '/fornecedores', '/recebiveis']
@@ -15,13 +16,15 @@ const NEUTRAL_ROUTES = ['/minhaconta']
 const PUBLIC_AUTH_ROUTES = ['/login', '/onboarding', '/auth/callback', '/reset-password', '/api/webhooks']
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const timer = startTimer(`MIDDLEWARE ${pathname}`)
+
   let supabaseResponse = NextResponse.next({
     request,
   })
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  const pathname = request.nextUrl.pathname
 
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:entry',message:'Middleware iniciado',data:{pathname,cookies:request.cookies.getAll().map(c=>c.name)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
@@ -58,9 +61,12 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  const authTimer = startTimer('AUTH getSession')
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
+  authTimer.end()
 
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'middleware.ts:getUser',message:'Resultado getUser',data:{hasUser:!!user,userId:user?.id,userEmail:user?.email,pathname,isPublicAuthRoute},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'C,D'})}).catch(()=>{});
@@ -85,14 +91,17 @@ export async function middleware(request: NextRequest) {
 
     // ✅ OTIMIZAÇÃO: Ler user_mode de cookie em vez de query ao banco
     let userModeCookie = request.cookies.get('user_mode')?.value as 'personal' | 'organization' | undefined
+    logDebug('COOKIE', `user_mode: ${userModeCookie || 'not found'}`)
 
     // Se não existe cookie, busca do banco e salva no cookie
     if (!userModeCookie) {
+      const dbTimer = startTimer('DB QUERY user_preferences')
       const { data: pref } = await supabase
         .from('user_preferences')
         .select('user_mode')
         .eq('user_id', user.id)
         .single()
+      dbTimer.end()
 
       if (pref?.user_mode) {
         userModeCookie = pref.user_mode
@@ -153,6 +162,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  timer.end()
   return supabaseResponse
 }
 
