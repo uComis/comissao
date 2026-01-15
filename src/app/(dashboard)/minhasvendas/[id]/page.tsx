@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { ArrowLeft, Pencil } from 'lucide-react'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
+import { getReceivables } from '@/app/actions/receivables'
 import { ReceivablesCard } from '@/components/sales'
 import { PageHeader } from '@/components/layout'
 
@@ -32,6 +34,21 @@ function formatCurrency(value: number | null): string {
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-'
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr + 'T00:00:00'))
+}
+
+function formatDateWithWeekday(dateStr: string | null): string {
+  if (!dateStr) return '-'
+  
+  const date = new Date(dateStr + 'T00:00:00')
+  const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  
+  const weekday = weekdays[date.getDay()]
+  const day = date.getDate()
+  const month = months[date.getMonth()]
+  const year = date.getFullYear()
+  
+  return `${weekday}, ${day} de ${month} ${year}`
 }
 
 function formatPaymentCondition(condition: string | null): string {
@@ -72,6 +89,43 @@ async function VendaDetalheContent({ id }: { id: string }) {
     notFound()
   }
 
+  // Buscar recebíveis desta venda para calcular status
+  const allReceivables = await getReceivables()
+  const saleReceivables = allReceivables.filter(r => r.personal_sale_id === id)
+  
+  const totalReceived = saleReceivables
+    .filter(r => r.status === 'received')
+    .reduce((sum, r) => sum + (r.received_amount || 0), 0)
+  
+  const totalOverdue = saleReceivables
+    .filter(r => r.status === 'overdue')
+    .reduce((sum, r) => sum + (r.expected_commission || 0), 0)
+  
+  const totalDue = saleReceivables
+    .filter(r => r.status === 'pending' || r.status === 'overdue')
+    .reduce((sum, r) => sum + (r.expected_commission || 0), 0)
+
+  // Calcular data da primeira parcela
+  const firstInstallment = saleReceivables.length > 0
+    ? saleReceivables.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]
+    : null
+
+  // Verificar se há itens detalhados ou apenas valor agregado
+  const hasDetailedItems = (() => {
+    if (!sale.items || sale.items.length === 0) return false
+    
+    // Verificar se TODOS os itens são valores agregados
+    // Um item é valor agregado se: product_name === 'Valor' E não tem product_id
+    const allItemsAreAggregated = sale.items.every(item => 
+      item.product_name === 'Valor' && !item.product_id
+    )
+    
+    // Se todos são valores agregados, não é detalhado
+    return !allItemsAreAggregated
+  })()
+  
+  const itemsTitle = hasDetailedItems ? 'Itens da Venda' : 'Valores da Venda'
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -95,109 +149,224 @@ async function VendaDetalheContent({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Informações Gerais */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Gerais</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Fornecedor</p>
-                <p className="font-medium">{sale.supplier?.name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cliente</p>
-                <p className="font-medium">{sale.client_name || '-'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Data da Venda</p>
-                <p className="font-medium">{formatDate(sale.sale_date)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Condição de Pagamento</p>
-                <p className="font-medium">{formatPaymentCondition(sale.payment_condition)}</p>
-              </div>
-            </div>
-            {sale.notes && (
-              <div>
-                <p className="text-sm text-muted-foreground">Observações</p>
-                <p className="text-sm mt-1">{sale.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
+        {/* Coluna Esquerda (maior) */}
+        <div className="space-y-6">
+          {/* Itens da Venda / Valores da Venda */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{itemsTitle}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {hasDetailedItems ? (
+                // Tabela para venda detalhada: preço, quantidade, taxa, comissão, total
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Quantidade</TableHead>
+                      <TableHead className="text-right">Taxa</TableHead>
+                      <TableHead className="text-right">Comissão</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sale.items && sale.items.length > 0 ? (
+                      sale.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.product_name}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(item.unit_price)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="font-mono">{formatCurrency(item.tax_amount)}</span>
+                              <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs px-1.5 py-0">
+                                {item.tax_rate?.toFixed(2) || '0.00'}%
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="font-mono text-green-600">{formatCurrency(item.commission_value)}</span>
+                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs px-1.5 py-0">
+                                {item.commission_rate?.toFixed(2) || '0.00'}%
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            {formatCurrency(item.total_price)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          Nenhum item cadastrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              ) : (
+                // Tabela para valores agregados: valor, taxa, comissão
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-center">Valor</TableHead>
+                      <TableHead className="text-center">Taxa</TableHead>
+                      <TableHead className="text-center">Comissão</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sale.items && sale.items.length > 0 ? (
+                      sale.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-center font-mono">
+                            {formatCurrency(item.total_price)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="font-mono">{formatCurrency(item.tax_amount)}</span>
+                              <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs px-1.5 py-0">
+                                {item.tax_rate?.toFixed(2) || '0.00'}%
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="font-mono text-green-600">{formatCurrency(item.commission_value)}</span>
+                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs px-1.5 py-0">
+                                {item.commission_rate?.toFixed(2) || '0.00'}%
+                              </Badge>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                          Nenhum item cadastrado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Valores */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Valores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-muted-foreground">Valor Bruto</span>
-                <span className="font-mono text-lg">{formatCurrency(sale.gross_value)}</span>
+          {/* Recebimentos */}
+          <ReceivablesCard
+            saleDate={sale.sale_date || new Date().toISOString().split('T')[0]}
+            paymentCondition={sale.payment_condition}
+            totalValue={sale.gross_value || 0}
+            commissionValue={sale.commission_value || 0}
+            commissionRate={sale.commission_rate || 0}
+          />
+        </div>
+
+        {/* Coluna Direita (menor) */}
+        <div className="space-y-6">
+          {/* Informações Gerais */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações Gerais</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Fornecedor</p>
+                  <p className="font-medium">{sale.supplier?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{sale.client_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Data da Venda</p>
+                  <p className="font-medium">{formatDateWithWeekday(sale.sale_date)}</p>
+                </div>
+                {firstInstallment && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Primeira Parcela</p>
+                    <p className="font-medium">{formatDateWithWeekday(firstInstallment.due_date)}</p>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-muted-foreground">Valor Líquido</span>
-                <span className="font-mono text-lg">{formatCurrency(sale.net_value)}</span>
+              {sale.notes && (
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-muted-foreground">Observações</p>
+                  <p className="text-sm mt-1">{sale.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Valores */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Valores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Comissão em destaque */}
+                <div className="pb-4 border-b">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                      Sua Comissão
+                    </span>
+                    <span className="font-mono text-2xl font-bold text-green-600">
+                      {formatCurrency(sale.commission_value)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {sale.commission_rate?.toFixed(2) || 0}% de comissão
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Valores auxiliares */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Valor Bruto</span>
+                    <span className="font-mono text-sm">{formatCurrency(sale.gross_value)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Valor Líquido</span>
+                    <span className="font-mono text-sm">{formatCurrency(sale.net_value)}</span>
+                  </div>
+                </div>
+
+                {/* Status */}
+                {saleReceivables.length > 0 && (
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Recebido</span>
+                      <span className="font-mono text-sm text-green-600 font-semibold">
+                        {formatCurrency(totalReceived)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Atrasado</span>
+                      <span className="font-mono text-sm text-red-600 font-semibold">
+                        {formatCurrency(totalOverdue)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Total Devido</span>
+                      <span className="font-mono text-sm font-semibold">
+                        {formatCurrency(totalDue)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">
-                  Comissão ({sale.commission_rate?.toFixed(2) || 0}%)
-                </span>
-                <span className="font-mono text-lg text-green-600 font-bold">
-                  {formatCurrency(sale.commission_value)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {/* Recebimentos */}
-      <ReceivablesCard
-        saleDate={sale.sale_date || new Date().toISOString().split('T')[0]}
-        paymentCondition={sale.payment_condition}
-        totalValue={sale.gross_value || 0}
-        commissionValue={sale.commission_value || 0}
-        commissionRate={sale.commission_rate || 0}
-      />
-
-      {/* Itens */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Itens da Venda</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="text-right">Quantidade</TableHead>
-                  <TableHead className="text-right">Preço Unitário</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sale.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.product_name}</TableCell>
-                    <TableCell className="text-right font-mono">{item.quantity}</TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(item.unit_price)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {formatCurrency(item.total_price)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   )
 }
