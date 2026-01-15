@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -56,6 +57,7 @@ export function PersonalSaleTable({ sales }: Props) {
   const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ sale: PersonalSale; x: number; y: number } | null>(null)
 
   async function handleDelete() {
     if (!deleteId) return
@@ -87,24 +89,32 @@ export function PersonalSaleTable({ sales }: Props) {
     return null
   }
 
+  const handleContextMenu = (e: React.MouseEvent, sale: PersonalSale) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ sale, x: e.clientX, y: e.clientY })
+  }
+
+  const closeContextMenu = () => setContextMenu(null)
+
   const ActionMenu = ({ sale }: { sale: PersonalSale }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleView(sale.id)}>
+        <DropdownMenuItem onClick={() => { handleView(sale.id); closeContextMenu() }}>
           <Eye className="h-4 w-4 mr-2" />
           Visualizar
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleViewReceivables(sale)}>
+        <DropdownMenuItem onClick={() => { handleViewReceivables(sale); closeContextMenu() }}>
           <Receipt className="h-4 w-4 mr-2" />
           Ver Recebíveis
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setDeleteId(sale.id)}
+          onClick={() => { setDeleteId(sale.id); closeContextMenu() }}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="h-4 w-4 mr-2" />
@@ -214,7 +224,12 @@ export function PersonalSaleTable({ sales }: Props) {
           </TableHeader>
           <TableBody>
             {sales.map((sale) => (
-              <TableRow key={sale.id}>
+              <TableRow 
+                key={sale.id}
+                className="cursor-pointer hover:bg-muted/50"
+                onClick={() => handleView(sale.id)}
+                onContextMenu={(e) => handleContextMenu(e, sale)}
+              >
                 <TableCell className="font-mono text-sm text-muted-foreground">
                   #{sale.sale_number}
                 </TableCell>
@@ -233,7 +248,7 @@ export function PersonalSaleTable({ sales }: Props) {
                 <TableCell className="text-right font-mono text-green-600">
                   {formatCurrency(sale.commission_value)}
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <ActionMenu sale={sale} />
                 </TableCell>
               </TableRow>
@@ -241,6 +256,44 @@ export function PersonalSaleTable({ sales }: Props) {
           </TableBody>
       </Table>
       <DeleteDialog />
+      
+      {/* Context Menu (Right Click) */}
+      {contextMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={closeContextMenu}
+            onContextMenu={(e) => { e.preventDefault(); closeContextMenu() }}
+          />
+          <DropdownMenu open={!!contextMenu} onOpenChange={(open) => !open && closeContextMenu()}>
+            <DropdownMenuContent 
+              align="start"
+              className="fixed z-50 min-w-[180px]"
+              style={{ 
+                left: contextMenu.x, 
+                top: contextMenu.y,
+                transform: 'none'
+              }}
+            >
+              <DropdownMenuItem onClick={() => { handleView(contextMenu.sale.id); closeContextMenu() }}>
+                <Eye className="h-4 w-4 mr-2" />
+                Visualizar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { handleViewReceivables(contextMenu.sale); closeContextMenu() }}>
+                <Receipt className="h-4 w-4 mr-2" />
+                Ver Recebíveis
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => { setDeleteId(contextMenu.sale.id); closeContextMenu() }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      )}
     </>
   )
 }

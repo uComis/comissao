@@ -37,7 +37,7 @@ async function SalesContent() {
     <div className="space-y-6">
       <PageHeader 
         title="Minhas Vendas" 
-        description="Gerencie suas vendas e acompanhe suas comissões"
+        description="Clique na linha para visualizar ou clique com o botão direito para mais opções"
       >
         <Button asChild>
           <Link href="/minhasvendas/nova">
