@@ -11,6 +11,7 @@ export type ReceivableRow = {
   id: string // composição: sale_id-installment_number
   user_id: string
   personal_sale_id: string
+  sale_number: number | null // Numeric ID for user-friendly filtering
   supplier_id: string | null
   installment_number: number
   total_installments: number
@@ -61,21 +62,28 @@ export async function getReceivables(): Promise<ReceivableRow[]> {
 
   if (error) throw error
 
-  // Buscar notes das vendas
+  // Buscar notes e sale_number das vendas
   const saleIds = [...new Set((data || []).map(r => r.personal_sale_id))]
   
-  if (saleIds.length === 0) return data || []
+  if (saleIds.length === 0) {
+    return (data || []).map(row => ({
+      ...row,
+      sale_number: null
+    }))
+  }
 
-  const { data: salesNotes } = await supabase
+  const { data: salesData } = await supabase
     .from('personal_sales')
-    .select('id, notes')
+    .select('id, notes, sale_number')
     .in('id', saleIds)
 
-  const notesMap = new Map(salesNotes?.map(s => [s.id, s.notes]) || [])
+  const notesMap = new Map(salesData?.map(s => [s.id, s.notes]) || [])
+  const saleNumberMap = new Map(salesData?.map(s => [s.id, s.sale_number]) || [])
 
   return (data || []).map(row => ({
     ...row,
-    notes: notesMap.get(row.personal_sale_id) || row.notes
+    notes: notesMap.get(row.personal_sale_id) || row.notes,
+    sale_number: saleNumberMap.get(row.personal_sale_id) ?? null
   }))
 }
 

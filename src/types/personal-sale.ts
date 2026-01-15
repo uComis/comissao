@@ -16,6 +16,7 @@ export type PersonalSaleItem = {
 
 export type PersonalSale = {
   id: string
+  sale_number: number
   user_id: string
   supplier_id: string | null
   client_id: string | null

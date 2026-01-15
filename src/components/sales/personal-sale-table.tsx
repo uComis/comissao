@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { MoreHorizontal, Eye, Trash2, Calendar, Building2, User } from 'lucide-react'
+import { MoreHorizontal, Eye, Trash2, Calendar, Building2, User, Receipt } from 'lucide-react'
 import { deletePersonalSale } from '@/app/actions/personal-sales'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -78,11 +78,16 @@ export function PersonalSaleTable({ sales }: Props) {
     router.push(`/minhasvendas/${id}`)
   }
 
+  function handleViewReceivables(sale: PersonalSale) {
+    // Use sale_number for user-friendly filtering
+    router.push(`/faturamento?saleId=${sale.sale_number}`)
+  }
+
   if (sales.length === 0) {
     return null
   }
 
-  const ActionMenu = ({ saleId }: { saleId: string }) => (
+  const ActionMenu = ({ sale }: { sale: PersonalSale }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -90,12 +95,16 @@ export function PersonalSaleTable({ sales }: Props) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleView(saleId)}>
+        <DropdownMenuItem onClick={() => handleView(sale.id)}>
           <Eye className="h-4 w-4 mr-2" />
           Visualizar
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleViewReceivables(sale)}>
+          <Receipt className="h-4 w-4 mr-2" />
+          Ver Recebíveis
+        </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setDeleteId(saleId)}
+          onClick={() => setDeleteId(sale.id)}
           className="text-destructive focus:text-destructive"
         >
           <Trash2 className="h-4 w-4 mr-2" />
@@ -141,9 +150,12 @@ export function PersonalSaleTable({ sales }: Props) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  {/* Cliente */}
-                  <div className="font-medium truncate">
-                    {sale.client_name || 'Cliente não informado'}
+                  {/* Sale Number + Cliente */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-muted-foreground">#{sale.sale_number}</span>
+                    <div className="font-medium truncate">
+                      {sale.client_name || 'Cliente não informado'}
+                    </div>
                   </div>
 
                   {/* Fornecedor */}
@@ -163,7 +175,7 @@ export function PersonalSaleTable({ sales }: Props) {
                 <div className="flex flex-col items-end gap-1">
                   {/* Menu de ações */}
                   <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
-                    <ActionMenu saleId={sale.id} />
+                    <ActionMenu sale={sale} />
                   </div>
 
                   {/* Valor bruto */}
@@ -191,6 +203,7 @@ export function PersonalSaleTable({ sales }: Props) {
       <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[80px]">#</TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Fornecedor</TableHead>
@@ -202,6 +215,9 @@ export function PersonalSaleTable({ sales }: Props) {
           <TableBody>
             {sales.map((sale) => (
               <TableRow key={sale.id}>
+                <TableCell className="font-mono text-sm text-muted-foreground">
+                  #{sale.sale_number}
+                </TableCell>
                 <TableCell className="font-mono text-sm">
                   {formatDate(sale.sale_date)}
                 </TableCell>
@@ -218,7 +234,7 @@ export function PersonalSaleTable({ sales }: Props) {
                   {formatCurrency(sale.commission_value)}
                 </TableCell>
                 <TableCell>
-                  <ActionMenu saleId={sale.id} />
+                  <ActionMenu sale={sale} />
                 </TableCell>
               </TableRow>
             ))}

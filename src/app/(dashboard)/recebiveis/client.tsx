@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -73,7 +74,20 @@ function getMonthYear(dateStr: string): string {
   return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date)
 }
 
+// Helper to check if a string looks like a UUID
+function isUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+  return uuidRegex.test(str.trim())
+}
+
+// Helper to check if a string is a number
+function isNumeric(str: string): boolean {
+  return /^\d+$/.test(str.trim())
+}
+
 export function ReceivablesClient({ receivables, stats, isHome }: Props) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showReceived, setShowReceived] = useState(false)
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'overdue' | 'received'>('all')
@@ -88,6 +102,14 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
   const today = new Date().toISOString().split('T')[0]
 
+  // Initialize searchTerm from URL parameter on mount
+  useEffect(() => {
+    const saleId = searchParams.get('saleId')
+    if (saleId) {
+      setSearchTerm(saleId)
+    }
+  }, [searchParams])
+
   const filteredReceivables = useMemo(() => {
     return receivables.filter(r => {
       const matchesStatus = filterStatus === 'all' || 
@@ -95,8 +117,26 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
         (filterStatus === 'overdue' && r.status === 'overdue') ||
         (filterStatus === 'received' && r.status === 'received')
       
+      if (!searchTerm) {
+        return matchesStatus
+      }
+
+      // If searchTerm is a number, filter by sale_number
+      if (isNumeric(searchTerm)) {
+        const saleNumber = parseInt(searchTerm.trim(), 10)
+        const matchesSaleNumber = r.sale_number === saleNumber
+        return matchesStatus && matchesSaleNumber
+      }
+
+      // If searchTerm looks like a UUID, filter by personal_sale_id
+      if (isUUID(searchTerm)) {
+        const matchesSaleId = r.personal_sale_id === searchTerm.trim()
+        return matchesStatus && matchesSaleId
+      }
+      
+      // Otherwise, search by client/supplier name (existing behavior)
       const searchLower = searchTerm.toLowerCase()
-      const matchesSearch = !searchTerm || 
+      const matchesSearch = 
         r.client_name?.toLowerCase().includes(searchLower) ||
         r.supplier_name?.toLowerCase().includes(searchLower)
       
@@ -247,10 +287,21 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Buscar cliente ou fornecedor..." 
+              placeholder="Buscar cliente, fornecedor ou ID da venda..." 
               className="pl-9 bg-background border-none shadow-sm focus-visible:ring-1"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                // Update URL parameter if it's a number or UUID, or remove it if cleared
+                const params = new URLSearchParams(searchParams.toString())
+                if (isNumeric(e.target.value) || isUUID(e.target.value)) {
+                  params.set('saleId', e.target.value.trim())
+                } else if (!e.target.value) {
+                  params.delete('saleId')
+                }
+                const newUrl = `/faturamento${params.toString() ? `?${params.toString()}` : ''}`
+                router.replace(newUrl, { scroll: false })
+              }}
             />
           </div>
           
@@ -258,7 +309,14 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => { setFilterStatus('all'); setSearchTerm('') }}
+              onClick={() => { 
+                setFilterStatus('all')
+                setSearchTerm('')
+                // Clear URL parameter
+                const params = new URLSearchParams(searchParams.toString())
+                params.delete('saleId')
+                router.push(`/faturamento${params.toString() ? `?${params.toString()}` : ''}`)
+              }}
               className="text-muted-foreground hover:text-primary"
             >
               <FilterX className="h-4 w-4 mr-2" />
