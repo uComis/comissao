@@ -160,15 +160,15 @@ async function VendaDetalheContent({ id }: { id: string }) {
             <CardContent>
               {hasDetailedItems ? (
                 // Tabela para venda detalhada: preço, quantidade, taxa, comissão, total
-                <Table>
-                  <TableHeader>
+                <Table className="border-0">
+                    <TableHeader>
                     <TableRow>
                       <TableHead>Produto</TableHead>
-                      <TableHead className="text-right">Preço</TableHead>
-                      <TableHead className="text-right">Quantidade</TableHead>
-                      <TableHead className="text-right">Taxa</TableHead>
-                      <TableHead className="text-right">Comissão</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead>Preço</TableHead>
+                      <TableHead>Quantidade</TableHead>
+                      <TableHead>Taxa</TableHead>
+                      <TableHead>Comissão</TableHead>
+                      <TableHead>Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -176,27 +176,27 @@ async function VendaDetalheContent({ id }: { id: string }) {
                       sale.items.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.product_name}</TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="font-mono">
                             {formatCurrency(item.unit_price)}
                           </TableCell>
-                          <TableCell className="text-right font-mono">{item.quantity}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          <TableCell className="font-mono">{item.quantity}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
                               <span className="font-mono">{formatCurrency(item.tax_amount)}</span>
                               <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs px-1.5 py-0">
                                 {item.tax_rate?.toFixed(2) || '0.00'}%
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          <TableCell>
+                            <div className="flex items-center gap-2">
                               <span className="font-mono text-green-600">{formatCurrency(item.commission_value)}</span>
                               <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs px-1.5 py-0">
                                 {item.commission_rate?.toFixed(2) || '0.00'}%
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="font-mono">
                             {formatCurrency(item.total_price)}
                           </TableCell>
                         </TableRow>
@@ -212,8 +212,8 @@ async function VendaDetalheContent({ id }: { id: string }) {
                 </Table>
               ) : (
                 // Tabela para valores agregados: valor, taxa, comissão
-                <Table>
-                  <TableHeader>
+                <Table className="border-0">
+                    <TableHeader>
                     <TableRow>
                       <TableHead className="text-center">Valor</TableHead>
                       <TableHead className="text-center">Taxa</TableHead>
@@ -308,22 +308,26 @@ async function VendaDetalheContent({ id }: { id: string }) {
           {/* Valores */}
           <Card>
             <CardHeader>
-              <CardTitle>Valores</CardTitle>
+              <CardTitle>Resumo Financeiro</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {/* Comissão em destaque */}
                 <div className="pb-4 border-b">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wide">
-                      Sua Comissão
-                    </span>
-                    <span className="font-mono text-2xl font-bold text-green-600">
-                      {formatCurrency(sale.commission_value)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {sale.commission_rate?.toFixed(2) || 0}% de comissão
-                    </span>
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium text-foreground">
+                        Sua Comissão
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {sale.commission_rate?.toFixed(2) || 0}% de comissão
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-mono text-xl font-bold text-green-600">
+                        {formatCurrency(sale.commission_value)}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 

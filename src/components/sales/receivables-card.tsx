@@ -139,14 +139,21 @@ export function ReceivablesCard({
         <CardContent className="space-y-4">
           {isVista ? (
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Pagamento à vista</p>
-              <div className="flex justify-between items-center py-2 px-3 rounded-md bg-muted/50">
-                <div>
-                  <p className="text-sm font-medium text-green-600 font-semibold">
-                    Comissão: {formatCurrency(commissionValue)}
+              <div className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 border-l-2 border-primary">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-primary font-medium w-6">
+                    1ª
+                  </span>
+                  <span className="text-sm font-medium">
+                    {formatDate(new Date(saleDate + 'T12:00:00'))}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-mono font-semibold text-green-600">
+                    {formatCurrency(commissionValue)}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Valor: {formatCurrency(totalValue)}
+                  <p className="text-xs font-mono text-muted-foreground">
+                    {formatCurrency(totalValue)}
                   </p>
                 </div>
               </div>

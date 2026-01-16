@@ -5,11 +5,20 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
+  const hasNoBorder = className?.includes('border-0') || className?.includes('no-border')
+  const cleanClassName = className?.replace('border-0', '').replace('no-border', '').trim()
+  
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto rounded-md border bg-card shadow-sm">
+    <div 
+      data-slot="table-container" 
+      className={cn(
+        'relative w-full overflow-x-auto rounded-md bg-card',
+        !hasNoBorder && 'border shadow-sm'
+      )}
+    >
       <table
         data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
+        className={cn('w-full caption-bottom text-sm', cleanClassName)}
         {...props}
       />
     </div>
