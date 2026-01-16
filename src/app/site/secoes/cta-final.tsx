@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -10,7 +11,7 @@ const BENEFICIOS = [
 
 export function CtaFinal() {
   return (
-    <section className="py-24 bg-gradient-to-br from-landing-gradient-start to-landing-gradient-end text-white">
+    <section id="precos" className="py-24 bg-gradient-to-br from-landing-gradient-start to-landing-gradient-end text-white">
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto text-center space-y-12">
           {/* Título */}
@@ -43,10 +44,11 @@ export function CtaFinal() {
           {/* CTA */}
           <div className="space-y-4">
             <Button
+              asChild
               size="lg"
               className="bg-white text-landing-primary hover:bg-white/90 text-xl px-12 py-8 h-auto font-bold shadow-2xl"
             >
-              Começar Auditoria Grátis
+              <Link href="/login">Começar Auditoria Grátis</Link>
             </Button>
             <p className="text-sm opacity-75">
               Cancele quando quiser. Sem pegadinhas.

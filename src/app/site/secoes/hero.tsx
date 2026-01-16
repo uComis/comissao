@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 const ROTATING_WORDS = ['tempo', 'dinheiro', 'foco', 'sono', 'lucro']
@@ -39,13 +40,14 @@ export function Hero() {
 
             <div className="flex gap-4 flex-wrap">
               <Button
+                asChild
                 size="lg"
                 className="bg-landing-primary hover:bg-landing-primary/90 text-white text-lg px-8 py-6"
               >
-                Começar Auditoria Grátis
+                <Link href="#precos">Começar Auditoria Grátis</Link>
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6">
-                Ver o uComis em Ação
+              <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6">
+                <Link href="#solucoes">Ver o uComis em Ação</Link>
               </Button>
             </div>
           </div>
