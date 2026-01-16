@@ -229,6 +229,34 @@
   }
 }
 
+/* Força light mode nas rotas do site */
+html[data-site="true"],
+html[data-site="true"] body,
+html[data-site="true"] * {
+  color-scheme: light !important;
+}
+
+html[data-site="true"].dark,
+html[data-site="true"] .dark {
+  --background: oklch(1 0 0) !important;
+  --foreground: oklch(0.145 0 0) !important;
+  --card: oklch(1 0 0) !important;
+  --card-foreground: oklch(0.145 0 0) !important;
+  --popover: oklch(1 0 0) !important;
+  --popover-foreground: oklch(0.145 0 0) !important;
+  --primary: oklch(0.145 0 0) !important;
+  --primary-foreground: oklch(0.985 0 0) !important;
+  --secondary: oklch(0.96 0 0) !important;
+  --secondary-foreground: oklch(0.145 0 0) !important;
+  --muted: oklch(0.96 0 0) !important;
+  --muted-foreground: oklch(0.556 0 0) !important;
+  --accent: oklch(0.96 0 0) !important;
+  --accent-foreground: oklch(0.145 0 0) !important;
+  --border: oklch(0.9 0 0) !important;
+  --input: oklch(0.9 0 0) !important;
+  --ring: oklch(0.145 0 0) !important;
+}
+
 /* Inputs/controles no header de página - fundo sólido para contraste */
 .page-header-actions input,
 .page-header-actions select,
@@ -291,5 +319,25 @@
   }
   to {
     grid-template-rows: 1fr;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

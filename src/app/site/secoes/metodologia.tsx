@@ -59,14 +59,6 @@ export function Metodologia() {
               );
             })}
           </div>
-
-          {/* Placeholder de Ícones */}
-          <div className="text-center p-8 rounded-xl bg-muted/30 border border-border">
-            <p className="text-sm text-muted-foreground">
-              Ícones minimalistas: ⚡ Raio (velocidade) • ⚙️ Engrenagem
-              (processamento) • 🔒 Cadeado (segurança)
-            </p>
-          </div>
         </div>
       </div>
     </section>
