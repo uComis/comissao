@@ -12,8 +12,8 @@ const BENEFICIOS = [
 export function CtaFinal() {
   return (
     <section id="precos" className="py-24 bg-gradient-to-br from-landing-gradient-start to-landing-gradient-end text-white">
-      <div className="container mx-auto px-6">
-        <div className="max-w-4xl mx-auto text-center space-y-12">
+      <div className="container mx-auto px-6 max-w-[1200px]">
+        <div className="text-center space-y-12">
           {/* Título */}
           <div className="space-y-6">
             <h2 className="text-4xl lg:text-6xl font-bold">

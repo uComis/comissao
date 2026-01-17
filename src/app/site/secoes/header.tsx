@@ -42,7 +42,7 @@ export function Header() {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white' : 'bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60'}`}>
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-6 max-w-[1200px]">
         <div className={`flex items-center transition-all duration-300 ${scrolled ? 'h-12' : 'h-20'}`}>
           {/* Logo e Menu agrupados - próximos da logo */}
           <div className="flex items-center gap-24">
@@ -65,12 +65,11 @@ export function Header() {
               </div>
             </Link>
 
-            {/* Menu Desktop - aparece em sequência */}
+            {/* Menu Desktop - aparece todos juntos */}
             <nav className="hidden md:flex items-center gap-8">
-            {MENU_ITEMS.map((item, index) => {
-              // Soluções: começa em 300ms, dura 400ms | Segurança: começa em 500ms (metade de Soluções), dura 400ms | Preços: começa em 700ms (metade de Segurança), dura 400ms
-              const delays = [200, 300, 400]; // Soluções, Segurança, Preços
+            {MENU_ITEMS.map((item) => {
               const animationDuration = 400;
+              const animationDelay = 200; // Todos aparecem ao mesmo tempo
               return (
                 <Link
                   key={item.href}
@@ -79,7 +78,7 @@ export function Header() {
                   style={mounted ? { 
                     opacity: 0,
                     animation: `fadeIn ${animationDuration}ms ease-out forwards`,
-                    animationDelay: `${delays[index]}ms`
+                    animationDelay: `${animationDelay}ms`
                   } : { opacity: 0 }}
                 >
                   {item.label}

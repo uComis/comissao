@@ -16,7 +16,7 @@ const REDES_SOCIAIS = [
 export function Footer() {
   return (
     <footer className="border-t bg-muted/30">
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-6 py-12 max-w-[1200px]">
         <div className="grid md:grid-cols-3 gap-8">
           {/* Informações Institucionais */}
           <div className="space-y-4">

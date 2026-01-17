@@ -19,7 +19,7 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-x-hidden bg-white">
-      <div className="container mx-auto px-6 py-24">
+      <div className="container mx-auto px-6 py-24 max-w-[1200px]">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Texto */}
           <div className="space-y-8">

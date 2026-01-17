@@ -58,8 +58,8 @@ export function Seguranca() {
       {/* Background decorativo sutil */}
       <div className="absolute inset-0 bg-gradient-to-b from-landing-primary/3 via-transparent to-transparent pointer-events-none" />
       
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-7xl mx-auto space-y-20">
+      <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
+        <div className="space-y-20">
           {/* Header */}
           <div className="text-center space-y-6 max-w-3xl mx-auto">
             

@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  FileSpreadsheet, 
-  CheckCircle2, 
+import {
+  FileSpreadsheet,
+  CheckCircle2,
   AlertTriangle,
   Clock,
   ShieldX,
@@ -60,19 +60,19 @@ export function Problema() {
           backgroundSize: '24px 24px'
         }} />
       </div>
-      
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-7xl mx-auto space-y-20">
+
+      <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
+        <div className="space-y-20">
           {/* Header */}
           <div className="text-center space-y-6 max-w-3xl mx-auto">
-              <h2 className="text-5xl lg:text-6xl font-bold tracking-tight">
-                Você não deveria ter que auditar o {' '}
-                <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
-                  próprio financeiro
-                </span>
-              </h2>
+            <h2 className="text-5xl lg:text-6xl font-bold tracking-tight">
+              Você não deveria ter que auditar o {' '}
+              <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
+                próprio financeiro
+              </span>
+            </h2>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Vendedores gastam horas tentando auditar vendas em planilhas manuais, 
+              Vendedores gastam horas tentando auditar vendas em planilhas manuais,
               complexas e, no final, <strong className="font-semibold">sempre falham</strong>. Não faça do controle um <strong className="font-semibold">segundo emprego</strong> não remunerado: <strong className="font-semibold bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">poupe tempo</strong> e foque no que realmente importa — suas vendas.
             </p>
           </div>
@@ -82,7 +82,7 @@ export function Problema() {
             {/* Excel - Design Neutro e Sofisticado */}
             <Card className="relative overflow-hidden border border-slate-200 bg-white/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 group">
               <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-slate-200/50 transition-colors" />
-              
+
               <CardContent className="p-10 space-y-8 relative">
                 {/* Header */}
                 <div className="flex items-center gap-4 pb-6 border-b border-slate-200">
@@ -125,7 +125,7 @@ export function Problema() {
             {/* uComis - Design Premium com Gradiente Sutil */}
             <Card className="relative overflow-hidden border-2 border-landing-primary/20 bg-gradient-to-br from-white via-landing-primary/5 to-landing-gradient-end/5 shadow-xl hover:shadow-2xl transition-all duration-500 group">
               <div className="absolute top-0 right-0 w-40 h-40 bg-landing-primary/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-landing-primary/30 transition-all duration-500" />
-              
+
               <CardContent className="p-10 space-y-8 relative">
                 {/* Header */}
                 <div className="flex items-center gap-4 pb-6 border-b border-landing-primary/20">

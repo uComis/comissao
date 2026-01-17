@@ -22,8 +22,8 @@ const PILARES = [
 export function Metodologia() {
   return (
     <section id="solucoes" className="py-24 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="max-w-5xl mx-auto space-y-16">
+      <div className="container mx-auto px-6 max-w-[1200px]">
+        <div className="space-y-16">
           {/* Título */}
           <div className="text-center space-y-4">
             <h2 className="text-4xl lg:text-5xl font-bold">

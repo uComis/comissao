@@ -1,8 +1,8 @@
 export function Kai() {
   return (
     <section className="py-24 bg-muted/30">
-      <div className="container mx-auto px-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="container mx-auto px-6 max-w-[1200px]">
+        <div>
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Texto */}
             <div className="space-y-6">
