@@ -30,23 +30,23 @@ export function Hero() {
           {/* Celulares à direita - composição com profundidade */}
           <div className="relative flex items-center justify-center lg:justify-end lg:col-span-2">
             {/* iPhone vertical (dark mode) - atrás, menor */}
-            <div className="relative z-10 w-[200px] lg:w-[240px] -mr-16 lg:-mr-24">
+            <div className="relative z-10 w-[280px] lg:w-[380px] -mr-20 lg:-mr-40">
               <Image
                 src="/images/landing/iphone-dark-vertical.png"
                 alt="uComis app modo escuro"
-                width={240}
-                height={500}
+                width={380}
+                height={800}
                 className="w-full h-auto"
                 priority
               />
             </div>
             {/* Celular diagonal (light mode) - na frente, maior */}
-            <div className="relative z-20 w-[360px] lg:w-[520px]">
+            <div className="relative z-20 w-[550px] lg:w-[1100px]">
               <Image
                 src="/images/landing/celular-diagonal-deitado.png"
                 alt="uComis app modo claro"
-                width={520}
-                height={350}
+                width={1100}
+                height={733}
                 className="w-full h-auto"
                 priority
               />
