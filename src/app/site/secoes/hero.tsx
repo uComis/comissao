@@ -6,22 +6,15 @@ export function Hero() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-x-hidden bg-white">
       <div className="container mx-auto px-6 py-24 max-w-[1200px]">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-5 gap-12 items-center">
           {/* Texto à esquerda */}
-          <div className="space-y-8 text-center lg:text-left">
-            <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-              Sua comissão não é uma promessa, é um{' '}
-              <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent font-bold">
-                fato
-              </span>
+          <div className="space-y-8 text-center lg:text-left lg:col-span-3 w-full">
+            <h1 className="text-4xl lg:text-6xl font-bold leading-none tracking-wide w-full">
+              O jeito certo de calcular suas comissoes
             </h1>
 
-            <p className="text-2xl lg:text-4xl text-gray-600">
-              Suas vendas em tempo real garantindo a{' '}
-              <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent font-semibold">
-                precisão absoluta
-              </span>{' '}
-              da sua receita
+            <p className="text-lg lg:text-xl text-gray-600">
+              Suas vendas em tempo real garantindo a precisão absoluta da sua receita
             </p>
             <div className="flex flex-col gap-4 items-center lg:items-start">
               <Button
@@ -34,26 +27,26 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Imagens dos celulares à direita - sobrepostos */}
-          <div className="relative flex items-center justify-center lg:justify-end min-h-[700px]">
-            {/* Celular 1 - esquerda (light mode, menor, atrás) */}
-            <div className="relative z-10 w-[260px] mr-16">
+          {/* Celulares à direita - composição com profundidade */}
+          <div className="relative flex items-center justify-center lg:justify-end min-h-[700px] lg:col-span-2">
+            {/* iPhone vertical (dark mode) - atrás, menor */}
+            <div className="relative z-10 w-[160px] lg:w-[180px] -mr-8 lg:-mr-12">
               <Image
-                src="/images/landing/mobile1.png"
-                alt="Mobile modo claro"
-                width={300}
-                height={600}
+                src="/images/landing/iphone-dark-vertical.png"
+                alt="uComis app modo escuro"
+                width={180}
+                height={400}
                 className="w-full h-auto"
                 priority
               />
             </div>
-            {/* Celular 2 - direita (dark mode, maior, na frente) */}
-            <div className="absolute z-20 w-[340px] top-12 -left-12">
+            {/* Celular diagonal (light mode) - na frente, maior */}
+            <div className="relative z-20 w-[280px] lg:w-[380px]">
               <Image
-                src="/images/landing/mobile2.png"
-                alt="Mobile modo escuro"
-                width={300}
-                height={600}
+                src="/images/landing/celular-diagonal-deitado.png"
+                alt="uComis app modo claro"
+                width={380}
+                height={250}
                 className="w-full h-auto"
                 priority
               />
