@@ -19,7 +19,8 @@ export function Problema() {
             </span>
           </h2>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            Horas perdidas em planilhas manuais. Erros que custam dinheiro.{' '}
+            Horas perdidas em planilhas manuais. Erros que custam dinheiro.
+            <br />
             <strong className="font-semibold">Não faça do controle um segundo emprego não remunerado.</strong>
           </p>
         </div>
