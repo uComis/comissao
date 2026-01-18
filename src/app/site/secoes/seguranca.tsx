@@ -29,7 +29,7 @@ export function Seguranca() {
               return (
                 <div
                   key={index}
-                  className="absolute opacity-60 hover:opacity-100 transition-opacity duration-300"
+                  className="absolute"
                   style={{
                     top: item.top,
                     left: item.left,
