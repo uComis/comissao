@@ -1,6 +1,6 @@
 export function Problema() {
   return (
-    <section className="py-32 bg-gradient-to-b from-background via-muted/20 to-background relative overflow-hidden">
+    <section className="py-32 bg-gray-50 relative overflow-hidden">
       {/* Elementos decorativos sutis */}
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <div className="absolute inset-0" style={{

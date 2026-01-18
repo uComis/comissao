@@ -24,8 +24,8 @@ export function Hero() {
   }, [])
 
   return (
-    <section className="relative overflow-x-hidden bg-white min-h-[60vh] flex items-center">
-      <div className="container mx-auto px-6 py-16 lg:py-24 max-w-[1200px] w-full">
+    <section className="relative overflow-x-hidden bg-white min-h-[60vh] flex items-center pt-24">
+      <div className="container mx-auto px-6 py-8 md:py-12 lg:py-16 max-w-[1200px] w-full">
         <div className="grid lg:grid-cols-5 gap-12 items-center">
           {/* Texto à esquerda */}
           <div className="space-y-8 text-center lg:text-left lg:col-span-3 w-full">
