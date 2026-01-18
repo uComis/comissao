@@ -30,51 +30,70 @@ export function FeaturesShowcase() {
         </h1>
 
         {/* 3 Colunas - Prints de Celular */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           {FEATURES.map((feature, index) => (
             <div
               key={index}
-              className="flex flex-col items-center gap-6"
+              className="relative flex flex-col bg-gray-100 rounded-lg overflow-hidden"
+              style={{ aspectRatio: '1 / 1' }}
             >
-              {/* Container do Celular - Topo ou parte inferior (centro) */}
-              <div className="relative w-full max-w-[380px] lg:max-w-[450px]">
-                <div 
-                  className="relative aspect-[381/751] overflow-hidden" 
-                  style={{ 
-                    clipPath: index === 1 ? 'inset(40% 0 0 0)' : 'inset(0 0 40% 0)' 
+              {/* Título no topo - apenas para esquerda e direita */}
+              {index !== 1 && (
+                <div className="pt-8 px-6 mb-6">
+                  <h3 className="text-3xl lg:text-4xl font-bold text-white text-center">
+                    {feature.label}
+                  </h3>
+                </div>
+              )}
+
+              {/* Celular - pequeno, 60% da largura do card */}
+              <div
+                className={`relative w-full flex justify-center ${index === 1 ? '' : 'flex-1 mt-auto'}`}
+              >
+                <div
+                  className="relative overflow-hidden w-[60%]"
+                  style={{
+                    aspectRatio: '381 / 450.6' // 60% da altura original (751 * 0.6)
                   }}
                 >
-                  {/* Moldura do celular - placeholder */}
-                  <div 
-                    className={`absolute inset-0 border-l-[8px] border-r-[8px] border-black shadow-2xl ${
-                      index === 1 
-                        ? 'rounded-b-[2.5rem] border-b-[8px]' 
-                        : 'rounded-t-[2.5rem] border-t-[8px]'
-                    }`}
-                  />
-                  
-                  {/* Imagem dentro do celular */}
-                  <div className={`absolute inset-[8px] overflow-hidden ${
-                    index === 1 ? 'rounded-b-[2rem]' : 'rounded-t-[2rem]'
-                  }`}>
-                    <Image
-                      src={feature.image}
-                      alt={feature.alt}
-                      fill
-                      className={`object-cover ${index === 1 ? 'object-bottom' : 'object-top'}`}
-                      sizes="(max-width: 768px) 380px, 450px"
-                    />
+                  {/* Celular completo dentro, cortado visualmente */}
+                  <div
+                    className={`absolute inset-0 w-full ${index === 1 ? 'bottom-0 top-auto' : 'top-0 bottom-auto'}`}
+                    style={{
+                      aspectRatio: '381 / 751',
+                      clipPath: index === 1 ? 'inset(40% 0 0 0)' : 'inset(0 0 40% 0)',
+                      height: '166.67%' // 100% / 0.6 para compensar clipPath
+                    }}
+                  >
+                    {/* Moldura do celular - placeholder */}
+                    {index === 1 ? (
+                      <div className="absolute inset-0 rounded-b-[2.5rem] border-b-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
+                    ) : (
+                      <div className="absolute inset-0 rounded-t-[2.5rem] border-t-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
+                    )}
+
+                    {/* Imagem dentro do celular */}
+                    <div className={`absolute inset-[8px] overflow-hidden ${index === 1 ? 'rounded-b-[2rem]' : 'rounded-t-[2rem]'}`}>
+                      <Image
+                        src={feature.image}
+                        alt={feature.alt}
+                        fill
+                        className={`object-cover ${index === 1 ? 'object-bottom' : 'object-top'}`}
+                        sizes="(max-width: 768px) 380px, 450px"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Label */}
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-landing-primary" />
-                <p className="text-lg font-medium text-foreground">
-                  {feature.label}
-                </p>
-              </div>
+              {/* Título embaixo - apenas para centro */}
+              {index === 1 && (
+                <div className="pb-8 px-6 mt-6">
+                  <h3 className="text-3xl lg:text-4xl font-bold text-white text-center">
+                    {feature.label}
+                  </h3>
+                </div>
+              )}
             </div>
           ))}
         </div>
