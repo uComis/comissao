@@ -5,12 +5,10 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Menu } from 'lucide-react';
 
 const MENU_ITEMS = [
@@ -43,7 +41,7 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white transition-all duration-300">
       <div className="container mx-auto px-6 max-w-[1200px]">
-        <div className={`flex items-center transition-all duration-300 ${scrolled ? 'h-12' : 'h-20'}`}>
+        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-12' : 'h-20'}`}>
           {/* Logo e Menu agrupados - próximos da logo */}
           <div className="flex items-center gap-24">
             {/* Logo - reserva espaço mesmo quando não carregada, anima mais devagar */}
@@ -88,83 +86,80 @@ export function Header() {
             </nav>
           </div>
 
-          {/* CTA Desktop - slide down quando Preços terminar (400ms início + 400ms duração = 800ms) */}
-          <div 
-            className="hidden md:flex items-center gap-3 ml-auto"
-            style={mounted ? { 
-              opacity: 0,
-              transform: 'translateY(-8px)',
-              animation: 'slideDown 500ms ease-out 500ms forwards'
-            } : { 
-              opacity: 0,
-              transform: 'translateY(-8px)'
-            }}
-          >
-            <Button
-              asChild
-              variant="ghost"
-              className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
+          {/* CTA Desktop e Menu Mobile */}
+          <div className="flex items-center gap-3">
+            {/* CTA Desktop - slide down quando Preços terminar (400ms início + 400ms duração = 800ms) */}
+            <div 
+              className="hidden md:flex items-center gap-3"
+              style={mounted ? { 
+                opacity: 0,
+                transform: 'translateY(-8px)',
+                animation: 'slideDown 500ms ease-out 500ms forwards'
+              } : { 
+                opacity: 0,
+                transform: 'translateY(-8px)'
+              }}
             >
-              <Link href="/login">Login</Link>
-            </Button>
-            <Button
-              asChild
-              className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
-            >
-              <Link href="#precos">Comece agora</Link>
-            </Button>
-          </div>
-
-          {/* Menu Mobile */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" aria-label="Toggle menu">
-                <Menu className="w-6 h-6" />
+              <Button
+                asChild
+                variant="ghost"
+                className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
+              >
+                <Link href="/login">Login</Link>
               </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px] bg-white border-gray-200">
-              <SheetHeader>
-                <SheetTitle>
-                  {mounted && (
-                    <Image
-                      src={logoSrc}
-                      alt="uComis"
-                      width={120}
-                      height={24}
-                      className="h-6 w-auto animate-in fade-in"
-                    />
-                  )}
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col gap-4 mt-8">
-                {MENU_ITEMS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-base font-medium text-gray-600 hover:text-gray-900 transition-colors py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                <Button
-                  asChild
-                  variant="ghost"
-                  className="w-full mt-4 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full px-3 text-sm h-8"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Link href="/login">Login</Link>
+              <Button
+                asChild
+                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+              >
+                <Link href="#precos">Comece agora</Link>
+              </Button>
+            </div>
+
+            {/* Menu Mobile */}
+            <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <PopoverTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" aria-label="Toggle menu">
+                  <Menu className="w-6 h-6" />
                 </Button>
-                <Button
-                  asChild
-                  className="w-full bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full px-3 text-sm h-8"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Link href="#precos">Comece agora</Link>
-                </Button>
-              </nav>
-            </SheetContent>
-          </Sheet>
+              </PopoverTrigger>
+              <PopoverContent 
+                side="bottom" 
+                align="end" 
+                className="w-[280px] p-4 bg-white border-gray-200 shadow-lg"
+                sideOffset={8}
+              >
+                <nav className="flex flex-col gap-3">
+                  {MENU_ITEMS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-1.5 text-center"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  <div className="flex items-center gap-2 mt-2">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      className="flex-1 text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full px-3 text-sm h-8"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Link href="/login">Login</Link>
+                    </Button>
+                    <Button
+                      asChild
+                      className="flex-1 bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full px-3 text-sm h-8"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Link href="#precos">Comece agora</Link>
+                    </Button>
+                  </div>
+                </nav>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
     </header>

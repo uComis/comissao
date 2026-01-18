@@ -24,15 +24,15 @@ export function Hero() {
   }, [])
 
   return (
-    <section className="relative overflow-x-hidden bg-white min-h-[60vh] flex items-center pt-24">
-      <div className="container mx-auto px-6 py-8 md:py-12 lg:py-16 max-w-[1200px] w-full">
-        <div className="grid lg:grid-cols-5 gap-12 items-center">
+    <section className="relative overflow-x-hidden bg-white min-h-[auto] lg:min-h-[60vh] flex items-center pt-28 pb-8 lg:pt-24">
+      <div className="container mx-auto px-4 sm:px-6 py-8 md:py-12 lg:py-16 max-w-[1200px] w-full">
+        <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12 items-center">
           {/* Texto à esquerda */}
-          <div className="space-y-8 text-center lg:text-left lg:col-span-3 w-full">
-            <h1 className="text-4xl lg:text-6xl font-bold leading-tight tracking-wide w-full">
+          <div className="space-y-6 lg:space-y-8 text-center lg:text-left lg:col-span-3 w-full">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-tight tracking-wide w-full">
               O jeito{' '}
               <span
-                className={`inline-block min-w-[200px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
+                className={`inline-block min-w-0 sm:min-w-[180px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
                   }`}
               >
                 <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
@@ -43,14 +43,14 @@ export function Hero() {
               de calcular suas comissoes
             </h1>
 
-            <p className="text-lg lg:text-xl text-gray-600">
-              Não faça do controle um segundo emprego não remunerado —<br />poupe tempo
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed">
+              Não faça do controle um segundo emprego não remunerado —<br className="hidden sm:block" />poupe tempo
             </p>
-            <div className="flex flex-col gap-4 items-center lg:items-start">
+            <div className="flex flex-col gap-4 items-center lg:items-start pt-2">
               <Button
                 asChild
                 size="lg"
-                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 text-lg px-4 py-2 w-fit"
+                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 text-base sm:text-lg px-6 py-2 w-fit"
               >
                 <Link href="#precos">Comece agora</Link>
               </Button>
@@ -58,9 +58,9 @@ export function Hero() {
           </div>
 
           {/* Celulares à direita - composição com profundidade */}
-          <div className="relative flex items-center justify-center lg:justify-end lg:col-span-2">
+          <div className="hidden lg:flex relative items-center justify-center lg:justify-end lg:col-span-2 w-full max-w-full overflow-hidden">
             {/* iPhone vertical (dark mode) - atrás, menor */}
-            <div className="relative z-10 w-[280px] lg:w-[380px] -mr-20 lg:-mr-40">
+            <div className="relative z-10 w-[200px] sm:w-[240px] lg:w-[380px] -mr-8 sm:-mr-12 lg:-mr-40">
               <Image
                 src="/images/landing/iphone-dark-vertical.png"
                 alt="uComis app modo escuro"
@@ -71,7 +71,7 @@ export function Hero() {
               />
             </div>
             {/* Celular diagonal (light mode) - na frente, maior */}
-            <div className="relative z-20 w-[550px] lg:w-[1100px]">
+            <div className="relative z-20 w-[300px] sm:w-[400px] lg:w-[1100px]">
               <Image
                 src="/images/landing/celular-diagonal-deitado.png"
                 alt="uComis app modo claro"

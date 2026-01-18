@@ -370,3 +370,13 @@ html[data-site="true"] .dark {
     left: var(--left-desktop) !important;
   }
 }
+
+.security-icon-mobile {
+  color: lab(98 0 -0.01 / 0.69);
+}
+
+@media (min-width: 1024px) {
+  .security-icon-mobile {
+    color: inherit;
+  }
+}
