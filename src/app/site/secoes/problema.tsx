@@ -12,7 +12,7 @@ export function Problema() {
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
         {/* Header */}
         <div className="text-center space-y-6 max-w-3xl mx-auto">
-          <h2 className="text-5xl lg:text-6xl font-bold tracking-tight">
+          <h2 className="text-5xl lg:text-6xl font-bold leading-tight tracking-wide">
             Você não deveria ter que auditar o {' '}
             <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
               próprio financeiro

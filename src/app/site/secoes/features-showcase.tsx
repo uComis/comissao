@@ -30,7 +30,7 @@ export function FeaturesShowcase() {
     <section className="py-32 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
-        <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-16 text-center text-foreground">
+        <h1 className="text-5xl lg:text-6xl font-bold leading-tight tracking-wide mb-16 text-center text-foreground">
           Tudo em um só lugar.
         </h1>
 

@@ -11,18 +11,26 @@ const BENEFICIOS = [
 
 export function CtaFinal() {
   return (
-    <section id="precos" className="py-24 bg-gradient-to-br from-landing-gradient-start to-landing-gradient-end text-white">
-      <div className="container mx-auto px-6 max-w-[1200px]">
+    <section id="precos" className="py-32 bg-gray-50 relative overflow-hidden">
+      {/* Elementos decorativos sutis - mesmo padrão do problema.tsx */}
+      <div className="absolute inset-0 opacity-40 pointer-events-none">
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0)',
+          backgroundSize: '24px 24px'
+        }} />
+      </div>
+
+      <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
         <div className="text-center space-y-12">
           {/* Título */}
-          <div className="space-y-6">
-            <h2 className="text-4xl lg:text-6xl font-bold">
+          <div className="space-y-6 max-w-3xl mx-auto">
+            <h2 className="text-5xl lg:text-6xl font-bold leading-tight tracking-wide">
               Pronto para recuperar sua{' '}
-              <span className="underline decoration-4 underline-offset-8">
+              <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
                 paz mental?
               </span>
             </h2>
-            <p className="text-xl lg:text-2xl opacity-90">
+            <p className="text-xl text-muted-foreground leading-relaxed">
               Pare de perder tempo com planilhas. Comece a confiar nos seus
               números hoje.
             </p>
@@ -33,10 +41,10 @@ export function CtaFinal() {
             {BENEFICIOS.map((beneficio, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 text-left bg-white/10 backdrop-blur-sm rounded-lg p-4"
+                className="flex items-center gap-3 text-left bg-white rounded-lg p-4 border border-gray-200 hover:border-landing-primary/30 hover:shadow-md transition-all"
               >
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm font-medium">{beneficio}</span>
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-landing-primary" />
+                <span className="text-sm font-medium text-foreground">{beneficio}</span>
               </div>
             ))}
           </div>
@@ -46,13 +54,10 @@ export function CtaFinal() {
             <Button
               asChild
               size="lg"
-              className="bg-white text-landing-primary hover:bg-white/90 text-xl px-12 py-8 h-auto font-bold shadow-2xl"
+              className="bg-landing-primary hover:bg-landing-primary/90 text-white text-lg px-6 py-3 h-auto font-bold shadow-xl rounded-full"
             >
-              <Link href="/login">Começar Auditoria Grátis</Link>
+              <Link href="/login">Comece agora grátis</Link>
             </Button>
-            <p className="text-sm opacity-75">
-              Cancele quando quiser. Sem pegadinhas.
-            </p>
           </div>
         </div>
       </div>

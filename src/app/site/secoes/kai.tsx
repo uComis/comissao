@@ -6,7 +6,7 @@ export function Kai() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Texto */}
             <div className="space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-bold">
+              <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
                 Dê um oi para o{' '}
                 <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
                   Kai
