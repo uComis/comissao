@@ -21,7 +21,7 @@ export function Seguranca() {
   return (
     <section id="seguranca" className="py-32 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="grid lg:grid-cols-[40%_60%] gap-16 items-center">
           {/* Ícones flutuantes */}
           <div className="relative flex items-center justify-center min-h-[400px]">
             {ICONES_SEGURANCA.map((item, index) => {
