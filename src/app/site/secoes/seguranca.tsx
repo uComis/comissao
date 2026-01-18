@@ -8,21 +8,21 @@ const RECURSOS_SEGURANCA = [
 ];
 
 const ICONES_SEGURANCA = [
-  { icon: Shield, size: 168, top: '30%', left: '40%', mobileTop: '15%', mobileLeft: '20%', rotation: -15, delay: 0 },
-  { icon: Lock, size: 134, top: '72%', left: '55%', mobileTop: '70%', mobileLeft: '63%', rotation: 15, delay: 1.5 },
-  { icon: Check, size: 46, top: '65%', left: '30%', mobileTop: '60%', mobileLeft: '15%', rotation: 0, delay: 1 },
+  { icon: Shield, size: 120, top: '20%', left: '10%', mobileTop: '15%', mobileLeft: '20%', rotation: -15, delay: 0 },
+  { icon: Lock, size: 95, top: '72%', left: '55%', mobileTop: '70%', mobileLeft: '63%', rotation: 15, delay: 1.5 },
+  { icon: Check, size: 46, top: '75%', left: '30%', mobileTop: '60%', mobileLeft: '15%', rotation: 0, delay: 1 },
   { icon: Database, size: 54, top: '45%', left: '50%', mobileTop: '40%', mobileLeft: '45%', rotation: 0, delay: 0.5 },
-  { icon: KeyRound, size: 48, top: '35%', left: '59%', mobileTop: '25%', mobileLeft: '67%', rotation: 0, delay: 0.8 },
+  { icon: KeyRound, size: 48, top: '35%', left: '70%', mobileTop: '25%', mobileLeft: '67%', rotation: 0, delay: 0.8 },
   { icon: Eye, size: 52, top: '60%', left: '45%', mobileTop: '70%', mobileLeft: '40%', rotation: 0, delay: 1.2 },
 ];
 
 export function Seguranca() {
   return (
-    <section id="seguranca" className="pt-12 pb-12 lg:py-32 bg-white relative overflow-hidden">
+    <section id="seguranca" className="pt-12 pb-12 lg:py-16 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
         <div className="flex flex-col lg:grid lg:grid-cols-[40%_60%] gap-8 lg:gap-16 items-center">
           {/* Ícones flutuantes */}
-          <div className="absolute lg:relative -top-[37px] -right-[90px] lg:top-0 lg:right-0 flex items-center justify-center h-[200px] lg:min-h-[400px] order-2 lg:order-1 w-full z-0 lg:z-auto">
+          <div className="absolute lg:relative -top-[37px] -right-[90px] lg:top-0 lg:right-0 lg:left-0 flex items-center justify-center h-[200px] lg:min-h-[400px] order-2 lg:order-1 w-full lg:w-auto z-0 lg:z-auto">
             {ICONES_SEGURANCA.map((item, index) => {
               const Icon = item.icon;
               const isShield = item.icon === Shield;
@@ -51,7 +51,7 @@ export function Seguranca() {
                   }}
                 >
                   <Icon
-                    className={`security-icon-mobile lg:text-landing-primary ${mobileSize} lg:w-auto lg:h-auto`}
+                    className={`security-icon-mobile-color ${mobileSize} lg:w-auto lg:h-auto`}
                     size={item.size}
                   />
                 </div>

@@ -371,12 +371,12 @@ html[data-site="true"] .dark {
   }
 }
 
-.security-icon-mobile {
+.security-icon-mobile-color {
   color: lab(98 0 -0.01 / 0.69);
 }
 
 @media (min-width: 1024px) {
-  .security-icon-mobile {
-    color: inherit;
+  .security-icon-mobile-color {
+    color: rgb(59 130 246) !important;
   }
 }
