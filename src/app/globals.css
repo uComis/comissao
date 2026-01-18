@@ -363,3 +363,10 @@ html[data-site="true"] .dark {
     transform: translateY(-8px) rotate(var(--rotation, 0deg));
   }
 }
+
+@media (min-width: 1024px) {
+  .security-icon {
+    top: var(--top-desktop) !important;
+    left: var(--left-desktop) !important;
+  }
+}

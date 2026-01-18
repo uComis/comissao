@@ -4,42 +4,54 @@ const RECURSOS_SEGURANCA = [
   'Conformidade LGPD',
   'Criptografia AES-256',
   'Dados Privados',
-  'Sem Acesso Não Autorizado',
   'Autenticação Forte',
 ];
 
 const ICONES_SEGURANCA = [
-  { icon: Shield, size: 84, top: '20%', left: '30%', rotation: -15, delay: 0 },
-  { icon: Lock, size: 58, top: '62%', left: '66%', rotation: 15, delay: 1.5 },
-  { icon: Check, size: 36, top: '55%', left: '35%', rotation: 0, delay: 1 },
-  { icon: Database, size: 44, top: '35%', left: '55%', rotation: 0, delay: 0.5 },
-  { icon: KeyRound, size: 38, top: '25%', left: '70%', rotation: 0, delay: 0.8 },
-  { icon: Eye, size: 42, top: '50%', left: '50%', rotation: 0, delay: 1.2 },
+  { icon: Shield, size: 168, top: '30%', left: '40%', mobileTop: '15%', mobileLeft: '20%', rotation: -15, delay: 0 },
+  { icon: Lock, size: 134, top: '72%', left: '55%', mobileTop: '80%', mobileLeft: '63%', rotation: 15, delay: 1.5 },
+  { icon: Check, size: 46, top: '65%', left: '30%', mobileTop: '60%', mobileLeft: '15%', rotation: 0, delay: 1 },
+  { icon: Database, size: 54, top: '45%', left: '50%', mobileTop: '40%', mobileLeft: '45%', rotation: 0, delay: 0.5 },
+  { icon: KeyRound, size: 48, top: '35%', left: '59%', mobileTop: '25%', mobileLeft: '67%', rotation: 0, delay: 0.8 },
+  { icon: Eye, size: 52, top: '60%', left: '45%', mobileTop: '70%', mobileLeft: '40%', rotation: 0, delay: 1.2 },
 ];
 
 export function Seguranca() {
   return (
-    <section id="seguranca" className="py-32 bg-white relative overflow-hidden">
+    <section id="seguranca" className="pt-12 pb-12 lg:py-32 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
-        <div className="grid lg:grid-cols-[40%_60%] gap-16 items-center">
+        <div className="flex flex-col lg:grid lg:grid-cols-[40%_60%] gap-8 lg:gap-16 items-center">
           {/* Ícones flutuantes */}
-          <div className="relative flex items-center justify-center min-h-[400px]">
+          <div className="relative flex items-center justify-center h-[200px] lg:min-h-[400px] order-2 lg:order-1 w-full">
             {ICONES_SEGURANCA.map((item, index) => {
               const Icon = item.icon;
+              const isShield = item.icon === Shield;
+              const isLock = item.icon === Lock;
+              const mobileSize = isShield ? 'w-16 h-16' : isLock ? 'w-12 h-12' : 'w-9 h-9';
               return (
                 <div
                   key={index}
-                  className="absolute"
+                  className="absolute security-icon"
                   style={{
-                    top: item.top,
-                    left: item.left,
+                    '--top-mobile': item.mobileTop || item.top,
+                    '--left-mobile': item.mobileLeft || item.left,
+                    '--top-desktop': item.top,
+                    '--left-desktop': item.left,
+                    top: `var(--top-mobile)`,
+                    left: `var(--left-mobile)`,
                     '--rotation': `${item.rotation}deg`,
                     animation: `floatRotate ${3 + index * 0.3}s ease-in-out infinite`,
                     animationDelay: `${item.delay}s`,
-                  } as React.CSSProperties}
+                  } as React.CSSProperties & {
+                    '--rotation': string;
+                    '--top-mobile': string;
+                    '--left-mobile': string;
+                    '--top-desktop': string;
+                    '--left-desktop': string;
+                  }}
                 >
                   <Icon
-                    className="text-landing-primary"
+                    className={`text-landing-primary ${mobileSize} lg:w-auto lg:h-auto`}
                     size={item.size}
                   />
                 </div>
@@ -48,7 +60,7 @@ export function Seguranca() {
           </div>
 
           {/* Conteúdo */}
-          <div className="space-y-6">
+          <div className="space-y-6 order-1 lg:order-2">
             <p className="text-sm font-medium text-landing-primary">Seguro</p>
 
             <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
@@ -63,11 +75,11 @@ export function Seguranca() {
             </p>
 
             {/* Lista de checks */}
-            <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-4">
               {RECURSOS_SEGURANCA.map((recurso, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-landing-primary flex-shrink-0" />
-                  <span className="text-lg text-landing-primary font-medium">{recurso}</span>
+                <div key={index} className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-landing-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm lg:text-lg text-landing-primary font-medium leading-tight">{recurso}</span>
                 </div>
               ))}
             </div>

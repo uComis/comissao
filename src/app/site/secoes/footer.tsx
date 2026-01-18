@@ -45,8 +45,8 @@ export function Footer() {
           </div>
 
           {/* Três colunas de links no centro */}
-          <div className="flex flex-wrap gap-8 md:gap-12 flex-1 justify-center">
-            {/* Coluna 1: Product */}
+          <div className="flex flex-wrap gap-8 md:gap-12 flex-1 justify-start md:justify-center">
+            {/* Coluna 1: Product - esquerda no mobile */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Product</h4>
               <nav className="flex flex-col gap-2">
@@ -62,7 +62,7 @@ export function Footer() {
               </nav>
             </div>
 
-            {/* Coluna 2: Resources */}
+            {/* Coluna 2: Resources - direita no mobile */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Resources</h4>
               <nav className="flex flex-col gap-2">
@@ -78,8 +78,8 @@ export function Footer() {
               </nav>
             </div>
 
-            {/* Coluna 3: Legal */}
-            <div className="space-y-3">
+            {/* Coluna 3: Legal - esquerda no mobile (quebra linha) */}
+            <div className="space-y-3 w-full md:w-auto">
               <h4 className="text-sm font-semibold text-foreground">Legal</h4>
               <nav className="flex flex-col gap-2">
                 {LINKS_LEGAL.map((link) => (
@@ -96,7 +96,7 @@ export function Footer() {
           </div>
 
           {/* Copyright e ícones sociais à direita */}
-          <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-col items-start md:items-end gap-3">
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()}
             </p>
