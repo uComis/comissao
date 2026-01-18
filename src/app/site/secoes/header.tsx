@@ -115,6 +115,23 @@ export function Header() {
               </Button>
             </div>
 
+            {/* CTA Mobile - botões no header */}
+            <div className="flex items-center gap-2 md:hidden">
+              <Button
+                asChild
+                variant="ghost"
+                className="text-gray-700 hover:text-gray-900 rounded-full transition-all duration-300 px-3 text-sm h-8"
+              >
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button
+                asChild
+                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
+              >
+                <Link href="#precos">Comece agora</Link>
+              </Button>
+            </div>
+
             {/* Menu Mobile */}
             <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <PopoverTrigger asChild className="md:hidden">
@@ -139,23 +156,6 @@ export function Header() {
                       {item.label}
                     </Link>
                   ))}
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="flex-1 text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full px-3 text-sm h-8"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Link href="/login">Login</Link>
-                    </Button>
-                    <Button
-                      asChild
-                      className="flex-1 bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full px-3 text-sm h-8"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <Link href="#precos">Comece agora</Link>
-                    </Button>
-                  </div>
                 </nav>
               </PopoverContent>
             </Popover>

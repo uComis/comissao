@@ -13,6 +13,7 @@
   /* Landing Page Colors */
   --color-landing-primary: var(--landing-primary);
   --color-landing-gradient-start: var(--landing-gradient-start);
+  --color-landing-gradient-middle: var(--landing-gradient-middle);
   --color-landing-gradient-end: var(--landing-gradient-end);
   /* Base Colors */
   --color-background: var(--background);
@@ -173,8 +174,9 @@
   --danger: #f56c6c;
   /* Landing Page Colors */
   --landing-primary: #409EFF;
-  --landing-gradient-start: #409EFF;
-  --landing-gradient-end: #db2777;
+  --landing-gradient-start: #60A5FA;
+  --landing-gradient-middle: #A78BFA;
+  --landing-gradient-end: #1E40AF;
 }
 
 .dark {

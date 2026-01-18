@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 
-const palavras = ['certo', 'rápido', 'confortável', 'preciso', 'seguro']
+const palavras = ['certo', 'rápido', 'simples', 'preciso', 'seguro']
 
 export function Hero() {
   const [palavraAtual, setPalavraAtual] = useState(0)
@@ -24,7 +24,7 @@ export function Hero() {
   }, [])
 
   return (
-    <section className="relative overflow-x-hidden bg-white min-h-[auto] lg:min-h-[60vh] flex items-center pt-28 pb-8 lg:pt-24">
+    <section className="relative overflow-x-hidden bg-white min-h-[75vh] lg:min-h-[60vh] flex items-center pt-28 pb-16 lg:pt-24">
       <div className="container mx-auto px-4 sm:px-6 py-8 md:py-12 lg:py-16 max-w-[1200px] w-full">
         <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12 items-center">
           {/* Texto à esquerda */}
@@ -32,10 +32,10 @@ export function Hero() {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-wide w-full">
               O jeito{' '}
               <span
-                className={`inline-block min-w-0 sm:min-w-[180px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
+                className={`inline-block w-[160px] sm:w-[200px] lg:w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
                   }`}
               >
-                <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
                   {palavras[palavraAtual]}
                 </span>
               </span>

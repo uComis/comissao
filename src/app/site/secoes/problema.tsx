@@ -1,20 +1,22 @@
 export function Problema() {
   return (
-    <section className="py-32 bg-gray-50 relative overflow-hidden">
-      {/* Elementos decorativos sutis */}
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0)',
-          backgroundSize: '24px 24px'
-        }} />
+    <section className="py-16 sm:py-20 bg-white relative overflow-hidden">
+      {/* Gradiente radial saindo do centro */}
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none" style={{ height: '100%' }}>
+        <div 
+          className="w-full max-w-4xl h-full rounded-full blur-2xl" 
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(229, 231, 235, 1) 0%, rgba(243, 244, 246, 0.7) 35%, rgba(249, 250, 251, 0.4) 60%, transparent 85%)'
+          }}
+        />
       </div>
 
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
         {/* Header */}
-        <div className="text-center space-y-6 max-w-3xl mx-auto">
+        <div className="text-center space-y-4 max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
             Você não deveria ter que auditar o {' '}
-            <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
               próprio financeiro
             </span>
           </h2>

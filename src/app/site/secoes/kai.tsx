@@ -8,7 +8,7 @@ export function Kai() {
             <div className="space-y-6">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
                 Dê um oi para o{' '}
-                <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
                   Kai
                 </span>
               </h2>
