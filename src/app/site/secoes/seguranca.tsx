@@ -2,7 +2,7 @@ import { Check, Shield, Lock, Database, KeyRound, Eye } from 'lucide-react';
 
 const RECURSOS_SEGURANCA = [
   'Conformidade LGPD',
-  'Criptografia AES-256',
+  'Dados Criptografados',
   'Dados Privados',
   'Autenticação Forte',
 ];
