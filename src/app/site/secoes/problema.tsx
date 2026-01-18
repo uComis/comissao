@@ -23,7 +23,11 @@ export function Problema() {
           <p className="text-xl text-muted-foreground leading-relaxed">
             Horas perdidas em planilhas manuais. Erros que custam dinheiro.
             <br />
-            <strong className="font-semibold">Não faça do controle um segundo emprego não remunerado.</strong>
+            <strong className="font-semibold">Não faça do controle um segundo emprego {' '}
+              <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
+                não remunerado
+              </span>.
+            </strong>
           </p>
         </div>
       </div>
