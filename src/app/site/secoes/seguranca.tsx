@@ -38,8 +38,8 @@ export function Seguranca() {
                     animationDelay: `${item.delay}s`,
                   } as React.CSSProperties}
                 >
-                  <Icon 
-                    className="text-landing-primary" 
+                  <Icon
+                    className="text-landing-primary"
                     size={item.size}
                   />
                 </div>
@@ -58,9 +58,8 @@ export function Seguranca() {
             </h2>
 
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Seu histórico de vendas e conquistas pertence exclusivamente a você. 
-              Nenhuma empresa, empregador ou terceiro pode acessar suas informações 
-              sem sua permissão explícita.
+              Seu histórico de vendas e conquistas pertence exclusivamente a você.
+              Nenhuma empresa, empregador ou terceiro pode acessar suas informações.
             </p>
 
             {/* Lista de checks */}
