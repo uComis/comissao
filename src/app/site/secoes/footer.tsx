@@ -45,7 +45,7 @@ export function Footer() {
           </div>
 
           {/* Três colunas de links no centro */}
-          <div className="flex flex-wrap gap-8 md:gap-12 flex-1 justify-center md:justify-start">
+          <div className="flex flex-wrap gap-8 md:gap-12 flex-1 justify-center">
             {/* Coluna 1: Product */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Product</h4>
