@@ -26,7 +26,7 @@ export function Metodologia() {
         <div className="space-y-16">
           {/* Título */}
           <div className="text-center space-y-4">
-            <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
               Conheça a{' '}
               <span className="bg-gradient-to-r from-landing-gradient-start to-landing-gradient-end bg-clip-text text-transparent">
                 Auditoria Cinética™

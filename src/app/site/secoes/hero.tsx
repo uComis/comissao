@@ -29,7 +29,7 @@ export function Hero() {
         <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12 items-center">
           {/* Texto à esquerda */}
           <div className="space-y-6 lg:space-y-8 text-center lg:text-left lg:col-span-3 w-full">
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-tight tracking-wide w-full">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-wide w-full">
               O jeito{' '}
               <span
                 className={`inline-block min-w-0 sm:min-w-[180px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'

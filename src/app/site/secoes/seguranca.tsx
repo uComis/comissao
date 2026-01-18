@@ -63,7 +63,7 @@ export function Seguranca() {
           <div className="space-y-6 order-1 lg:order-2 relative z-10">
             <p className="text-sm font-medium text-landing-primary">Seguro</p>
 
-            <h2 className="text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
               Proteção total.
               <br />
               Privacidade garantida.
