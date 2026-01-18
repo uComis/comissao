@@ -167,8 +167,8 @@
   --success: #67c23a;
   --danger: #f56c6c;
   /* Landing Page Colors */
-  --landing-primary: #2563eb;
-  --landing-gradient-start: #2563eb;
+  --landing-primary: #409EFF;
+  --landing-gradient-start: #409EFF;
   --landing-gradient-end: #db2777;
 }
 

@@ -41,7 +41,7 @@ export function Header() {
   const logoSrc = '/images/logo/uComis_black.svg';
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white' : 'bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60'}`}>
+    <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white transition-all duration-300">
       <div className="container mx-auto px-6 max-w-[1200px]">
         <div className={`flex items-center transition-all duration-300 ${scrolled ? 'h-12' : 'h-20'}`}>
           {/* Logo e Menu agrupados - próximos da logo */}

@@ -1,18 +1,25 @@
 import Image from 'next/image';
+import { PenSquare, BarChart3, SlidersHorizontal } from 'lucide-react';
 
 const FEATURES = [
   {
     label: 'Registre',
+    icon: PenSquare,
+    color: 'text-landing-primary', // Azul padrão
     image: '/images/landing/mobile-1.png', // Substituir depois
     alt: 'Registre vendas no uComis'
   },
   {
-    label: 'Calcule',
+    label: 'Visualize',
+    icon: BarChart3,
+    color: '#67C23A', // Verde
     image: '/images/landing/mobile-2.png', // Substituir depois
-    alt: 'Calcule comissões automaticamente'
+    alt: 'Visualize comissões automaticamente'
   },
   {
     label: 'Controle',
+    icon: SlidersHorizontal,
+    color: '#E6A23C', // Laranja
     image: '/images/landing/mobile-1.png', // Substituir depois
     alt: 'Controle seus recebíveis'
   }
@@ -24,8 +31,6 @@ export function FeaturesShowcase() {
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <h1 className="text-5xl lg:text-6xl font-bold tracking-tight mb-16 text-center text-foreground">
-          Registre, calcule, controle.
-          <br />
           Tudo em um só lugar.
         </h1>
 
@@ -34,15 +39,24 @@ export function FeaturesShowcase() {
           {FEATURES.map((feature, index) => (
             <div
               key={index}
-              className="relative flex flex-col bg-gray-100 rounded-lg overflow-hidden"
+              className="relative flex flex-col bg-gradient-to-b from-background via-muted/20 to-background rounded-lg overflow-hidden"
               style={{ aspectRatio: '1 / 1' }}
             >
               {/* Título no topo - apenas para esquerda e direita */}
               {index !== 1 && (
-                <div className="pt-8 px-6 mb-6">
-                  <h3 className="text-3xl lg:text-4xl font-bold text-white text-center">
-                    {feature.label}
-                  </h3>
+                <div className="pt-8 px-10 mb-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <feature.icon
+                      className={`w-5 h-5 ${feature.color.startsWith('#') ? '' : feature.color}`}
+                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                    />
+                    <h3
+                      className={`text-base lg:text-lg font-bold ${feature.color.startsWith('#') ? '' : feature.color}`}
+                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                    >
+                      {feature.label}
+                    </h3>
+                  </div>
                 </div>
               )}
 
@@ -88,10 +102,19 @@ export function FeaturesShowcase() {
 
               {/* Título embaixo - apenas para centro */}
               {index === 1 && (
-                <div className="pb-8 px-6 mt-6">
-                  <h3 className="text-3xl lg:text-4xl font-bold text-white text-center">
-                    {feature.label}
-                  </h3>
+                <div className="pb-8 px-10 mt-6">
+                  <div className="flex items-center justify-center gap-3">
+                    <feature.icon
+                      className={`w-5 h-5 ${feature.color.startsWith('#') ? '' : feature.color}`}
+                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                    />
+                    <h3
+                      className={`text-base lg:text-lg font-bold ${feature.color.startsWith('#') ? '' : feature.color}`}
+                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                    >
+                      {feature.label}
+                    </h3>
+                  </div>
                 </div>
               )}
             </div>
