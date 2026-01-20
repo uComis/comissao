@@ -125,10 +125,10 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
 
   const getPlanFeatures = (plan: Plan) => {
     const features: string[] = []
-    
+
     features.push(plan.max_suppliers >= 9999 ? 'Pastas Ilimitadas' : `${plan.max_suppliers} ${plan.max_suppliers === 1 ? 'Pasta de fornecedor' : 'Pastas de fornecedor'}`)
     features.push(plan.max_sales_month >= 99999 ? 'Vendas Ilimitadas' : `${plan.max_sales_month} vendas por mês`)
-    
+
     // Data retention: specific days for FREE, unlimited for paid plans
     const retentionDays = plan.features.data_retention_days as number | null | undefined
     if (retentionDays && retentionDays > 0) {
@@ -136,9 +136,9 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
     } else {
       features.push('Histórico ilimitado de dados')
     }
-    
+
     if (plan.features.custom_reports) features.push('Relatórios Avançados')
-    
+
     return features
   }
 
@@ -146,14 +146,14 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
     try {
       setSubscribingId(planId)
       const result = await createSubscriptionAction(planId)
-      
+
       if (result.success) {
         toast.success('Fatura gerada! Redirecionando para central de cobranças...')
-        
+
         const params = new URLSearchParams()
         if (result.invoiceId) params.append('invoice_id', result.invoiceId)
         if (result.invoiceUrl) params.append('url', result.invoiceUrl)
-        
+
         window.location.href = `/cobrancas?${params.toString()}`
       } else {
         if (result.error === 'NEEDS_DOCUMENT') {
@@ -197,23 +197,21 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
         <div className="flex justify-center">
           <Card className="p-1 w-fit">
             <div className="flex items-center gap-1">
-              <button 
+              <button
                 onClick={() => setBillingInterval('month')}
-                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${
-                  billingInterval === 'month' 
-                    ? 'bg-primary text-primary-foreground shadow-sm' 
+                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${billingInterval === 'month'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 Mensal
               </button>
-              <button 
+              <button
                 onClick={() => setBillingInterval('year')}
-                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] flex items-center justify-center gap-1 ${
-                  billingInterval === 'year' 
-                    ? 'bg-primary text-primary-foreground shadow-sm' 
+                className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] flex items-center justify-center gap-1 ${billingInterval === 'year'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
-                }`}
+                  }`}
               >
                 <span>Anual</span>
                 {maxDiscount > 0 && (
@@ -234,21 +232,20 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
         ) : (
           <div className="flex flex-wrap justify-center gap-6 py-4 w-full">
             {filteredPlans.map((plan) => {
-                const isCurrent = currentPlanId === plan.id
-                const isRecommended = plan.plan_group === 'pro' || plan.plan_group === 'pro_plus'
-                const isUltra = plan.plan_group === 'ultra'
+              const isCurrent = currentPlanId === plan.id
+              const isRecommended = plan.plan_group === 'pro' || plan.plan_group === 'pro_plus'
+              const isUltra = plan.plan_group === 'ultra'
 
-                return (
-                  <Card 
-                    key={plan.id} 
-                    className={`flex flex-col relative transition-all duration-500 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${
-                      isRecommended 
-                        ? 'border-[#409eff]/40 bg-gradient-to-b from-[#409eff]/5 via-white to-white dark:from-[#409eff]/15 dark:via-[#1a1a2e]/40 dark:to-card/40 shadow-[0_0_40px_rgba(64,158,255,0.05)] dark:shadow-[0_0_40px_rgba(64,158,255,0.1)] dark:border-[#409eff]/50' 
-                        : isUltra
-                          ? 'border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-white dark:border-white/20 dark:from-white/10 dark:via-card/40 dark:to-card/40 shadow-[0_0_40px_rgba(0,0,0,0.03)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]'
-                          : 'border-border/40 bg-card/40 hover:border-primary/20'
+              return (
+                <Card
+                  key={plan.id}
+                  className={`flex flex-col relative transition-all duration-500 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${isRecommended
+                      ? 'border-[#409eff]/40 bg-gradient-to-b from-[#409eff]/5 via-white to-white dark:from-[#409eff]/15 dark:via-[#1a1a2e]/40 dark:to-card/40 shadow-[0_0_40px_rgba(64,158,255,0.05)] dark:shadow-[0_0_40px_rgba(64,158,255,0.1)] dark:border-[#409eff]/50'
+                      : isUltra
+                        ? 'border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-white dark:border-white/20 dark:from-white/10 dark:via-card/40 dark:to-card/40 shadow-[0_0_40px_rgba(0,0,0,0.03)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]'
+                        : 'border-border/40 bg-card/40 hover:border-primary/20'
                     } ${isCurrent ? 'bg-brand/[0.02] border-brand/10' : ''}`}
-                  >
+                >
                   {isRecommended && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <Badge variant="secondary" className="bg-[#111] text-white hover:bg-[#111] flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
@@ -263,18 +260,18 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                       </span>
                     )}
                     <CardTitle className="text-xl flex items-center gap-2">
-                       {plan.name.replace(' Mensal', '').replace(' Anual', '')}
+                      {plan.name.replace(' Mensal', '').replace(' Anual', '')}
                     </CardTitle>
                     <CardDescription className="line-clamp-1">
-                      {plan.description === 'Para representante profissional e equipes' 
-                        ? 'Para representante multipasta' 
+                      {plan.description === 'Para representante profissional e equipes'
+                        ? 'Para representante multipasta'
                         : (plan.description || 'Para impulsionar suas vendas')}
                     </CardDescription>
                     <div className="pt-4 flex flex-col gap-0.5">
                       <div className="flex items-baseline gap-1 animate-in fade-in slide-in-from-bottom-2 duration-500 overflow-hidden">
                         <span className="text-3xl md:text-4xl font-bold tracking-tight">
-                          {billingInterval === 'year' && plan.price > 0 
-                            ? formatPrice(plan.price / 12) 
+                          {billingInterval === 'year' && plan.price > 0
+                            ? formatPrice(plan.price / 12)
                             : formatPrice(plan.price)}
                         </span>
                         {plan.price > 0 && (
@@ -297,14 +294,13 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                   </CardContent>
                   {!isCurrent && (
                     <CardFooter className="p-8 pt-0 mt-auto">
-                      <Button 
-                        className={`w-full font-bold py-6 transition-all duration-300 ${
-                          isRecommended 
-                            ? 'bg-zinc-900 text-white hover:bg-black dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200' 
+                      <Button
+                        className={`w-full font-bold py-6 transition-all duration-300 ${isRecommended
+                            ? 'bg-zinc-900 text-white hover:bg-black dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
                             : isUltra
                               ? 'bg-primary text-primary-foreground hover:opacity-90 dark:bg-white dark:text-black dark:hover:bg-white/90'
                               : 'bg-transparent border-zinc-200 hover:bg-zinc-50 dark:border-border/40 dark:hover:bg-muted/50'
-                        }`}
+                          }`}
                         variant={isRecommended || isUltra ? 'default' : 'outline'}
                         disabled={!!subscribingId}
                         onClick={() => handleSubscribe(plan.id)}
@@ -337,8 +333,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
 
           <Accordion type="single" collapsible className="w-full space-y-4">
             {faqData.map((item, index) => (
-              <AccordionItem 
-                key={index} 
+              <AccordionItem
+                key={index}
                 value={`item-${index}`}
                 className="border border-border/40 bg-card/40 backdrop-blur-sm rounded-2xl overflow-hidden transition-all hover:border-primary/30 hover:bg-card/60 data-[state=open]:border-primary/40 data-[state=open]:bg-card/80 group"
               >
@@ -356,7 +352,7 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
         </div>
       </div>
 
-      <ProfileCompletionDialog 
+      <ProfileCompletionDialog
         open={showProfileDialog}
         onOpenChange={setShowProfileDialog}
         onSuccess={() => {

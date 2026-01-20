@@ -10,6 +10,7 @@ export function TrialBanner() {
   const router = useRouter()
   const [isVisible, setIsVisible] = useState(true)
   const [isClosing, setIsClosing] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [trialData, setTrialData] = useState<{
     daysLeft: number
@@ -27,6 +28,8 @@ export function TrialBanner() {
             daysLeft: Math.max(0, daysLeft),
             isTrial: true
           })
+          // Trigger entrance animation after data loads
+          setTimeout(() => setIsAnimating(true), 10)
         } else {
           setTrialData({ daysLeft: 0, isTrial: false })
         }
@@ -57,7 +60,12 @@ export function TrialBanner() {
       <div 
         className={`
           w-full z-50
-          ${isClosing ? 'max-h-0 opacity-0 overflow-hidden transition-all duration-500' : ''}
+          transition-all duration-500 ease-out
+          ${isClosing 
+            ? 'max-h-0 opacity-0 overflow-hidden' 
+            : isAnimating 
+              ? 'translate-y-0 opacity-100' 
+              : '-translate-y-2 opacity-0'}
         `}
       >
         <div className={`py-2 px-4 flex items-center justify-between text-sm font-medium ${getBannerStyles()}`}>

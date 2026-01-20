@@ -23,6 +23,7 @@ import { createClient } from '@/lib/supabase'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { UsageWidget } from '@/components/billing/usage-widget'
+import { UserControl } from './user-control'
 
 type UserMode = 'personal' | 'organization' | null
 
@@ -174,6 +175,10 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
+        {/* User Control - Desktop only */}
+        <div className="hidden md:block">
+          <UserControl />
+        </div>
         <UsageWidget />
       </SidebarFooter>
     </Sidebar>

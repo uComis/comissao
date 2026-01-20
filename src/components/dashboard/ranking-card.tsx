@@ -22,6 +22,7 @@ type RankingCardProps = {
   data: RankingDataItem[]
   topN?: number
   othersLabel?: string
+  accentColor?: string
 }
 
 function clampPercent(n: number) {
@@ -35,6 +36,7 @@ export function RankingCard({
   data,
   topN = 6,
   othersLabel = 'Outros',
+  accentColor = '#94a3b8',
 }: RankingCardProps) {
   const total = data.reduce((sum, item) => sum + item.value, 0)
 
@@ -57,13 +59,13 @@ export function RankingCard({
     sortedCandidates.slice(topN - 1).reduce((sum, item) => sum + item.value, 0) +
     othersCandidates.reduce((sum, item) => sum + item.value, 0)
 
-  const othersFill = othersCandidates[0]?.fill ?? '#94a3b8'
+  const othersFill = othersCandidates[0]?.fill ?? accentColor
   const placeholderFill = '#cbd5e1'
   const rows: RankedRow[] = topItems.map((item, idx) => ({
     key: `${item.name}-${idx}`,
     name: item.name,
     value: item.value,
-    fill: item.fill,
+    fill: item.fill ?? accentColor,
   }))
 
   while (rows.length < topN - 1) {
@@ -143,7 +145,7 @@ export function RankingCard({
                       className="h-full rounded-full"
                       style={{
                         width: `${barW}%`,
-                        backgroundColor: item.fill ?? '#94a3b8',
+                        backgroundColor: item.fill ?? accentColor,
                       }}
                       aria-label={`${item.name}: ${pctRounded}%`}
                     />

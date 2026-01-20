@@ -1,29 +1,14 @@
 'use client'
 
-import { useAuth } from '@/contexts/auth-context'
-import { useUser } from '@/contexts/app-data-context'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ThemeToggle } from './theme-toggle'
-import { LogOut, User, CreditCard } from 'lucide-react'
+import { UserControl } from './user-control'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
 
 export function Header() {
-  const { signOut } = useAuth()
-  const { profile } = useUser()
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -34,14 +19,6 @@ export function Header() {
 
   const isDark = mounted && resolvedTheme === 'dark'
   const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
-
-  const name = profile?.name || 'Usuário'
-  const initials = name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || profile?.email?.[0].toUpperCase() || 'U'
 
   if (!mounted) {
     return (
@@ -72,49 +49,10 @@ export function Header() {
 
       <ThemeToggle />
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.email ?? ''} />
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col space-y-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium leading-none">{name}</p>
-                {profile?.is_super_admin && (
-                  <Badge variant="secondary" className="h-5 px-2 py-0 text-[10px]">
-                    Admin
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs leading-none text-muted-foreground">{profile?.email}</p>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/minhaconta">
-              <User className="mr-2 h-4 w-4" />
-              <span>Minha conta</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/cobrancas">
-              <CreditCard className="mr-2 h-4 w-4" />
-              <span>Minha assinatura</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Sair</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* User Control - Mobile only */}
+      <div className="md:hidden">
+        <UserControl />
+      </div>
     </header>
   )
 }

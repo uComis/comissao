@@ -125,12 +125,14 @@ export default function AnalyticsPage() {
               <RankingCard
                 title="Faturamento por Cliente"
                 data={rankings?.clients || []}
+                accentColor="#ca8a04"
               />
             </TabsContent>
             <TabsContent value="pasta" className="h-full">
               <RankingCard
                 title="Faturamento por Pasta"
                 data={rankings?.folders || []}
+                accentColor="#2563eb"
               />
             </TabsContent>
           </Tabs>
@@ -141,12 +143,14 @@ export default function AnalyticsPage() {
           <RankingCard
             title="Faturamento por Cliente"
             data={rankings?.clients || []}
+            accentColor="#ca8a04"
           />
         </div>
         <div className="hidden min-[1400px]:block">
           <RankingCard
             title="Faturamento por Pasta"
             data={rankings?.folders || []}
+            accentColor="#2563eb"
           />
         </div>
       </div>
