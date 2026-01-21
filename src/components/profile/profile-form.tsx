@@ -11,9 +11,11 @@ import { useUser } from '@/contexts/app-data-context'
 
 interface ProfileFormProps {
   onSuccess?: () => void
+  hideButton?: boolean
+  onSubmitHandler?: (e: React.FormEvent) => Promise<void>
 }
 
-export function ProfileForm({ onSuccess }: ProfileFormProps) {
+export function ProfileForm({ onSuccess, hideButton = false }: ProfileFormProps) {
   const { refresh } = useUser()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -96,38 +98,42 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6" id="profile-form">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Nome Completo (ou Razão Social)</Label>
+        <Label htmlFor="fullName" className="text-base">Nome Completo (ou Razão Social)</Label>
         <Input
           id="fullName"
           placeholder="Ex: João Silva ou Empresa Ltda"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
+          className="h-12 text-base"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="document">CPF ou CNPJ</Label>
+        <Label htmlFor="document" className="text-base">CPF ou CNPJ</Label>
         <Input
           id="document"
           placeholder="000.000.000-00"
           value={document}
           onChange={handleDocumentChange}
+          className="h-12 text-base"
         />
       </div>
-      <Button type="submit" disabled={saving} className="w-full">
-        {saving ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Salvando...
-          </>
-        ) : (
-          <>
-            <Save className="mr-2 h-4 w-4" />
-            Salvar Alterações
-          </>
-        )}
-      </Button>
+      {!hideButton && (
+        <Button type="submit" disabled={saving} className="w-full h-12 text-base">
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Salvar Alterações
+            </>
+          )}
+        </Button>
+      )}
     </form>
   )
 }

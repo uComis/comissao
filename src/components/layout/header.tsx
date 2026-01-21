@@ -7,9 +7,11 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
+import { Moon, Sun } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export function Header() {
-  const { resolvedTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -19,6 +21,10 @@ export function Header() {
 
   const isDark = mounted && resolvedTheme === 'dark'
   const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark')
+  }
 
   if (!mounted) {
     return (
@@ -47,10 +53,29 @@ export function Header() {
 
       <div className="flex-1" />
 
-      <ThemeToggle />
+      {/* Desktop: Full theme toggle with switch */}
+      <div className="hidden md:block">
+        <ThemeToggle />
+      </div>
+
+      {/* Mobile: Simple icon button */}
+      <button
+        onClick={toggleTheme}
+        className={cn(
+          "md:hidden p-2 rounded-lg transition-colors",
+          "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        )}
+        aria-label="Alternar tema"
+      >
+        {isDark ? (
+          <Moon className="h-5 w-5 text-foreground" />
+        ) : (
+          <Sun className="h-5 w-5 text-foreground" />
+        )}
+      </button>
 
       {/* User Control - Mobile only */}
-      <div className="md:hidden">
+      <div className="md:hidden -mr-4">
         <UserControl />
       </div>
     </header>
