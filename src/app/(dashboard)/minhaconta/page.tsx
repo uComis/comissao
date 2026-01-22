@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useUser } from '@/contexts/app-data-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check, ArrowRight, Shield, Mail, User, CreditCard, ChevronLeft, ChevronRight, Save } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ProfileForm } from '@/components/profile/profile-form'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
@@ -33,7 +33,7 @@ import { getSubscription } from '@/app/actions/billing'
 import { useCurrentUser } from '@/contexts/current-user-context'
 import { updateUserMode } from '@/app/actions/user-preferences'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   Collapsible,
   CollapsibleContent,
@@ -57,12 +57,13 @@ interface SubscriptionInfo {
   status: string
 }
 
-type MenuSection = 'menu' | 'perfil' | 'seguranca' | 'plano'
+type MenuSection = 'perfil' | 'seguranca' | 'plano'
 
 export default function MinhaContaPage() {
   const { signOut, user, linkIdentity } = useAuth()
   const { profile } = useUser()
   const router = useRouter()
+  const pathname = usePathname()
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [envVars, setEnvVars] = useState<EnvironmentVariable[]>([])
   const [envVarsLoading, setEnvVarsLoading] = useState(false)
@@ -74,9 +75,62 @@ export default function MinhaContaPage() {
   const [isUpdatingMode, setIsUpdatingMode] = useState(false)
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState<MenuSection>('menu')
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  
+  // Extrai a seção da URL: /minhaconta/perfil -> 'perfil', /minhaconta -> null (menu principal)
+  const getSectionFromPath = (): MenuSection | null => {
+    if (!pathname.startsWith('/minhaconta/')) return null
+    const section = pathname.replace('/minhaconta/', '').split('/')[0] as MenuSection
+    const validSections: MenuSection[] = ['perfil', 'seguranca', 'plano']
+    return validSections.includes(section) ? section : null
+  }
+  
+  const activeSection = getSectionFromPath()
+  const [displayedSection, setDisplayedSection] = useState<MenuSection | null>(activeSection)
+  const [isExiting, setIsExiting] = useState(false)
+  const isFirstRender = useRef(true)
+  const prevActiveSection = useRef<MenuSection | null>(activeSection)
+
+  // Controla a animação de entrada/saída das seções
+  useEffect(() => {
+    // Primeira renderização - não anima
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      prevActiveSection.current = activeSection
+      setDisplayedSection(activeSection)
+      return
+    }
+
+    // Se não há seção ativa, limpa o estado
+    if (!activeSection) {
+      if (displayedSection !== null) {
+        setIsExiting(true)
+        setTimeout(() => {
+          setDisplayedSection(null)
+          setIsExiting(false)
+        }, 300)
+      }
+      prevActiveSection.current = null
+      return
+    }
+
+    // Se está mudando de uma seção para outra
+    if (activeSection !== displayedSection && displayedSection !== null && prevActiveSection.current !== null) {
+      setIsExiting(true)
+      const timer = setTimeout(() => {
+        setDisplayedSection(activeSection)
+        setIsExiting(false)
+        prevActiveSection.current = activeSection
+      }, 300) // Duração da animação de saída
+      
+      return () => clearTimeout(timer)
+    } else if (activeSection !== displayedSection) {
+      // Primeira vez carregando uma seção - sem animação de saída
+      setDisplayedSection(activeSection)
+      prevActiveSection.current = activeSection
+    }
+  }, [activeSection, displayedSection])
 
   useEffect(() => {
     const checkMobile = () => {
@@ -227,7 +281,7 @@ export default function MinhaContaPage() {
   ]
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl md:mx-auto">
       <PageHeader
         title="Minha Conta"
         description="Gerencie suas informações"
@@ -236,7 +290,7 @@ export default function MinhaContaPage() {
       <div className="relative overflow-hidden">
         {/* Menu List */}
         <div
-          className={`transition-transform duration-300 ease-in-out ${activeSection !== 'menu' ? '-translate-x-full absolute inset-0' : 'translate-x-0'
+          className={`transition-transform duration-300 ease-in-out ${activeSection ? '-translate-x-full absolute inset-0' : 'translate-x-0'
             }`}
         >
           <ItemGroup className="gap-2">
@@ -247,7 +301,7 @@ export default function MinhaContaPage() {
                   key={item.id}
                   variant="outline"
                   className="cursor-pointer hover:bg-accent"
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => router.push(`/minhaconta/${item.id}`)}
                 >
                   <ItemMedia variant="icon">
                     <Icon className="h-5 w-5" />
@@ -275,21 +329,30 @@ export default function MinhaContaPage() {
         </div>
 
         {/* Content Sections */}
-        {activeSection !== 'menu' && (
-          <div className="animate-in slide-in-from-right duration-300">
+        {displayedSection && (
+          <div 
+            key={displayedSection}
+            className="relative"
+            style={{
+              animation: isExiting 
+                ? 'slideOutRight 0.3s ease-in-out forwards' 
+                : 'slideInRight 0.3s ease-in-out forwards',
+              willChange: 'transform'
+            }}
+          >
             {/* Back Button Header */}
             <Button
               variant="ghost"
               size="sm"
               className="mb-4 -ml-2"
-              onClick={() => setActiveSection('menu')}
+              onClick={() => router.push('/minhaconta')}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar
             </Button>
 
             {/* Perfil Section */}
-            {activeSection === 'perfil' && (
+            {displayedSection === 'perfil' && (
               <div className="space-y-6">
                 {/* Profile Card - Improved Design */}
                 <Card>
@@ -491,7 +554,7 @@ export default function MinhaContaPage() {
             )}
 
             {/* Segurança Section */}
-            {activeSection === 'seguranca' && (
+            {displayedSection === 'seguranca' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -592,7 +655,7 @@ export default function MinhaContaPage() {
             )}
 
             {/* Plano Section */}
-            {activeSection === 'plano' && (
+            {displayedSection === 'plano' && (
               <Card>
                 <CardHeader>
                   <CardTitle>Plano e Faturamento</CardTitle>
