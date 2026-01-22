@@ -1,41 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { AlertCircle, X } from 'lucide-react'
 import { useCurrentUser } from '@/contexts/current-user-context'
 
-const TRIAL_BANNER_CLOSED_KEY = 'trial_banner_closed'
+const APPEAR_DELAY_MS = 2000 // 2 segundos
+const ANIMATION_DURATION_MS = 400 // Duração suave da animação
 
 export function TrialBanner() {
   const router = useRouter()
   const pathname = usePathname()
   const { currentUser } = useCurrentUser()
-  const [isVisible, setIsVisible] = useState(true)
+  const [isVisible, setIsVisible] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
   const [shouldRender, setShouldRender] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
+  const [bannerHeight, setBannerHeight] = useState<number | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const [trialData, setTrialData] = useState<{
     daysLeft: number
     isTrial: boolean
   } | null>(null)
 
   useEffect(() => {
-    // Verificar se foi fechado antes
-    const wasClosed = localStorage.getItem(TRIAL_BANNER_CLOSED_KEY) === 'true'
-    if (wasClosed) {
-      setIsVisible(false)
-      return
-    }
-
     // Se não tem dados do usuário, não faz nada
     if (!currentUser?.billing) {
+      setShouldRender(false)
       return
     }
-
-    // Reset estados de animação ao montar
-    setIsAnimating(false)
-    setShouldRender(false)
 
     const billing = currentUser.billing
     const isFree = billing.effectivePlan === 'free'
@@ -49,12 +41,25 @@ export function TrialBanner() {
         isTrial: isUltra
       })
       setShouldRender(true)
-      // Trigger slide down animation após um pequeno delay para garantir que o DOM está pronto
-      requestAnimationFrame(() => {
-        setTimeout(() => setIsAnimating(true), 10)
-      })
+      
+      // Medir altura do banner após renderizar
+      setTimeout(() => {
+        if (contentRef.current) {
+          setBannerHeight(contentRef.current.scrollHeight)
+        }
+      }, 10)
+      
+      // Delay de 2 segundos antes de aparecer
+      const appearTimer = setTimeout(() => {
+        setIsVisible(true)
+      }, APPEAR_DELAY_MS)
+
+      return () => {
+        clearTimeout(appearTimer)
+      }
     } else {
       setShouldRender(false)
+      setIsVisible(false)
     }
   }, [currentUser])
 
@@ -65,33 +70,63 @@ export function TrialBanner() {
 
   const handleClose = () => {
     setIsClosing(true)
-    setIsAnimating(false)
     
+    // Aguarda a animação de slide-up terminar antes de remover do DOM
     setTimeout(() => {
       setIsVisible(false)
       setShouldRender(false)
-    }, 300)
+    }, ANIMATION_DURATION_MS)
   }
 
-    // ✅ Não renderiza nada se não deve mostrar (evita layout shift)
-    if (!shouldRender || !isVisible) return null
+  // ✅ Não renderiza nada se não deve mostrar (evita layout shift)
+  if (!shouldRender) return null
 
-    const daysLeft = trialData?.daysLeft ?? 0
-    const isTrial = trialData?.isTrial ?? false
+  const daysLeft = trialData?.daysLeft ?? 0
+  const isTrial = trialData?.isTrial ?? false
+
+  const getContainerStyle = () => {
+    if (!bannerHeight) {
+      return {
+        height: '0',
+        opacity: '0',
+        transform: 'translateY(-100%)',
+      }
+    }
+
+    if (isVisible && !isClosing) {
+      return {
+        height: `${bannerHeight}px`,
+        opacity: '1',
+        transform: 'translateY(0)',
+        transition: 'height 400ms ease-out, opacity 400ms ease-out, transform 400ms ease-out',
+      }
+    }
+
+    if (isClosing) {
+      return {
+        height: '0',
+        opacity: '0',
+        transform: 'translateY(-100%)',
+        transition: 'height 400ms ease-in, opacity 400ms ease-in, transform 400ms ease-in',
+      }
+    }
+
+    return {
+      height: '0',
+      opacity: '0',
+      transform: 'translateY(-100%)',
+    }
+  }
 
   return (
     <div 
-      className={`
-        w-full z-[70]
-        overflow-hidden
-        transition-all duration-300 ease-out
-        ${isAnimating && !isClosing 
-          ? 'h-auto opacity-100' 
-          : 'h-0 opacity-0'
-        }
-      `}
+      className="w-full z-[70] overflow-hidden will-change-[height,opacity,transform]"
+      style={getContainerStyle()}
     >
-      <div className={`py-2 px-4 flex items-center justify-between text-sm font-medium border-b ${getBannerStyles()}`}>
+      <div 
+        ref={contentRef}
+        className={`py-2 px-4 flex items-center justify-between text-sm font-medium border-b ${getBannerStyles()}`}
+      >
         <div className="flex-1 flex items-center justify-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>
@@ -106,7 +141,8 @@ export function TrialBanner() {
         </div>
         <button 
           onClick={handleClose}
-          className="hover:opacity-70 shrink-0 ml-2"
+          className="hover:opacity-70 shrink-0 ml-2 transition-opacity"
+          aria-label="Fechar banner"
         >
           <X className="h-4 w-4" />
         </button>
