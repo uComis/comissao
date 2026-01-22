@@ -2,33 +2,67 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase-server'
 import { AsaasService } from '@/lib/clients/asaas'
-import { getProfile } from './profiles'
+import { getCurrentUser, type CurrentUser } from './user'
 import { revalidatePath } from 'next/cache'
 
-export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
+// =====================================================
+// TYPES - Nova estrutura baseada em user_subscriptions
+// =====================================================
+
+export type PlanGroup = 'free' | 'pro' | 'ultra'
+
+export interface UserSubscription {
+  user_id: string
+  plan_group: PlanGroup
+  is_annual: boolean
+  trial_start_date: string
+  trial_period_days: number
+  subscription_started_at: string | null
+  last_payment_date: string | null
+  current_period_start: string | null
+  current_period_end: string | null
+  next_billing_date: string | null
+  asaas_customer_id: string | null
+  asaas_subscription_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrialInfo {
+  isActive: boolean
+  daysRemaining: number
+  endsAt: string | null
+}
+
+export interface RenewalAlert {
+  needsAlert: boolean
+  daysRemaining: number | null
+  urgencyLevel: 'urgent' | 'warning' | null
+}
+
+export interface EffectiveSubscription {
+  // Dados brutos
+  subscription: UserSubscription
+  
+  // Estados computados (a "verdade")
+  effectivePlanGroup: PlanGroup
+  isInTrial: boolean
+  isPaidUp: boolean
+  
+  // Informações úteis
+  trial: TrialInfo
+  renewalAlert: RenewalAlert | null
+  
+  // Limites do plano efetivo
+  limits: PlanLimits
+}
 
 export interface PlanLimits {
-  name?: string
+  plan_group: PlanGroup
   max_suppliers: number
   max_sales_month: number
   max_users: number
-  max_revenue_month: number | null
   features: Record<string, unknown>
-}
-
-export interface Subscription {
-  id: string
-  user_id: string
-  plan_id: string
-  status: SubscriptionStatus
-  plan_snapshot: PlanLimits
-  trial_ends_at: string | null
-  current_period_start: string
-  current_period_end: string | null
-  asaas_customer_id: string | null
-  asaas_subscription_id: string | null
-  cancel_at_period_end: boolean
-  notified_plan_id?: string | null
 }
 
 export interface UsageStats {
@@ -38,6 +72,10 @@ export interface UsageStats {
   users_count: number
   last_reset_date: string
 }
+
+// =====================================================
+// FUNÇÕES PRINCIPAIS
+// =====================================================
 
 /**
  * Busca todos os planos públicos.
@@ -55,82 +93,207 @@ export async function getPlans() {
 }
 
 /**
- * Action para o UsageWidget e UI de billing.
+ * Retorna a assinatura efetiva do usuário com todos os estados calculados.
+ * Esta é a FONTE ÚNICA DA VERDADE para qualquer verificação de plano/trial.
+ * 
+ * Durante trial: retorna 'ultra' como plano efetivo
+ * Após trial pago: retorna o plano que o usuário pagou
+ * Após trial inadimplente: retorna 'free'
  */
-export async function getBillingUsage() {
+export async function getEffectiveSubscription(userId: string): Promise<EffectiveSubscription | null> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  
+  // 1. Buscar user_subscription
+  const { data: sub, error } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
 
-  const subscription = await getSubscription(user.id)
-  const usage = await getUsageStats(user.id)
+  if (error || !sub) return null
 
-  if (!subscription || !usage) return null
-
+  const subscription = sub as UserSubscription
+  const now = new Date()
+  
+  // 2. Calcular data de fim do trial (verificar se tem trial válido)
+  let isInTrial = false
+  let trialEnd = new Date()
+  
+  if (subscription.trial_start_date && subscription.trial_period_days) {
+    trialEnd = new Date(subscription.trial_start_date)
+    trialEnd.setDate(trialEnd.getDate() + subscription.trial_period_days)
+    isInTrial = now < trialEnd
+  }
+  
+  // 3. Calcular isPaidUp
+  const isPaidUp = subscription.current_period_end 
+    ? now <= new Date(subscription.current_period_end) 
+    : false
+  
+  // 4. Determinar plano efetivo
+  let effectivePlanGroup: PlanGroup = 'free'
+  if (isInTrial) {
+    effectivePlanGroup = 'ultra' // Durante trial = sempre Ultra
+  } else if (isPaidUp) {
+    effectivePlanGroup = subscription.plan_group // Pago = plano contratado
+  } else {
+    effectivePlanGroup = 'free' // Inadimplente = free
+  }
+  
+  // 5. Calcular info de trial
+  const daysRemaining = isInTrial 
+    ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0
+  
+  const trial: TrialInfo = {
+    isActive: isInTrial,
+    daysRemaining,
+    endsAt: trialEnd.toISOString()
+  }
+  
+  // 6. Calcular alerta de renovação (se aplicável)
+  let renewalAlert: RenewalAlert | null = null
+  if (subscription.plan_group !== 'free' && subscription.current_period_end) {
+    const daysUntilRenewal = Math.ceil(
+      (new Date(subscription.current_period_end).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    )
+    
+    if (daysUntilRenewal <= 1) {
+      renewalAlert = { needsAlert: true, daysRemaining: daysUntilRenewal, urgencyLevel: 'urgent' }
+    } else if (daysUntilRenewal <= 3) {
+      renewalAlert = { needsAlert: true, daysRemaining: daysUntilRenewal, urgencyLevel: 'warning' }
+    } else {
+      renewalAlert = { needsAlert: false, daysRemaining: daysUntilRenewal, urgencyLevel: null }
+    }
+  }
+  
+  // 7. Buscar limites do plano efetivo
+  const { data: planLimits } = await supabase
+    .from('plans')
+    .select('plan_group, max_suppliers, max_sales_month, max_users, features')
+    .eq('plan_group', effectivePlanGroup)
+    .limit(1)
+    .single()
+  
+  const limits: PlanLimits = planLimits || {
+    plan_group: 'free',
+    max_suppliers: 1,
+    max_sales_month: 30,
+    max_users: 1,
+    features: {}
+  }
+  
   return {
-    plan: subscription.plan_snapshot.name || subscription.plan_id.split('_')[0].toUpperCase(),
-    vendas: {
-      current: usage.sales_count_current_month,
-      limit: subscription.plan_snapshot.max_sales_month,
-    },
-    pastas: {
-      current: usage.suppliers_count,
-      limit: subscription.plan_snapshot.max_suppliers,
-    },
-    trialEndsAt: subscription.trial_ends_at,
-    status: subscription.status,
+    subscription,
+    effectivePlanGroup,
+    isInTrial,
+    isPaidUp,
+    trial,
+    renewalAlert,
+    limits
   }
 }
 
 /**
- * Busca a assinatura ativa do usuário.
- * Se não houver, retorna null.
+ * Cria uma assinatura trial para um novo usuário.
+ * Todo novo usuário começa com 14 dias de trial Ultra.
+ * 
+ * Usa UPSERT para evitar duplicatas caso seja chamado múltiplas vezes.
  */
-export async function getSubscription(userId: string): Promise<Subscription | null> {
+export async function setupTrialSubscription(userId: string) {
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .eq('user_id', userId)
-    .in('status', ['trialing', 'active', 'past_due'])
-    .order('created_at', { ascending: false })
-    .limit(1)
+
+  // 1. Buscar o plano ULTRA para pegar trial_days
+  const { data: ultraPlan } = await supabase
+    .from('plans')
+    .select('trial_days')
+    .eq('id', 'ultra_monthly')
     .single()
 
-  if (error || !data) return null
-  return data as Subscription
+  const trialDays = ultraPlan?.trial_days || 14
+
+  // 2. Criar/atualizar registro em user_subscriptions (UPSERT)
+  // Se já existe, não sobrescreve dados importantes (trial_start_date, asaas_ids, etc)
+  const { data: existingSub } = await supabase
+    .from('user_subscriptions')
+    .select('user_id')
+    .eq('user_id', userId)
+    .single()
+
+  if (!existingSub) {
+    // Só insere se não existir
+    const { error: subError } = await supabase
+      .from('user_subscriptions')
+      .insert({
+        user_id: userId,
+        plan_group: 'free', // Começa como free, mas com trial ultra ativo
+        is_annual: false,
+        trial_start_date: new Date().toISOString(),
+        trial_period_days: trialDays,
+      })
+
+    if (subError) throw subError
+  }
+
+  // 3. Inicializar usage_stats (UPSERT para evitar erro)
+  const { error: usageError } = await supabase
+    .from('usage_stats')
+    .upsert({
+      user_id: userId,
+      sales_count_current_month: 0,
+      suppliers_count: 0,
+      users_count: 0,
+    }, { onConflict: 'user_id' })
+
+  if (usageError) throw usageError
 }
 
 /**
- * Busca as estatísticas de uso do usuário.
+ * Helper: Transforma getCurrentUser() no formato antigo de getBillingUsage()
+ * Mantido temporariamente para compatibilidade durante migração
+ * @deprecated Use getCurrentUser() diretamente
  */
-export async function getUsageStats(userId: string): Promise<UsageStats | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('usage_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .single()
+export async function getBillingUsage() {
+  const currentUser = await getCurrentUser()
+  if (!currentUser?.billing || !currentUser?.usage) return null
 
-  if (error || !data) return null
-  return data as UsageStats
+  const { billing, usage } = currentUser
+  const shouldShowTrialAlert = billing.isInTrial && !billing.asaasSubscriptionId
+
+  return {
+    plan: billing.effectivePlan.toUpperCase(),
+    contractedPlan: billing.planGroup,
+    vendas: {
+      current: usage.sales_count_current_month,
+      limit: billing.limits.max_sales_month,
+    },
+    pastas: {
+      current: usage.suppliers_count,
+      limit: billing.limits.max_suppliers,
+    },
+    trial: {
+      ...billing.trial,
+      shouldShowAlert: shouldShowTrialAlert,
+    },
+    renewalAlert: billing.renewalAlert,
+    isInTrial: billing.isInTrial,
+    isPaidUp: billing.isPaidUp,
+  }
 }
 
 /**
  * Retorna a data mínima permitida para consulta de vendas baseada no plano do usuário.
- * - null ou -1 = sem restrição (ilimitado)
- * - > 0 = limitar às vendas dos últimos N dias
- * 
- * @returns Date (data mínima) ou null (sem limite)
+ * - null = sem restrição (ilimitado)
+ * - Date = limitar às vendas após esta data
  */
 export async function getDataRetentionFilter(userId: string): Promise<Date | null> {
-  const subscription = await getSubscription(userId)
-  if (!subscription) return null
+  const effectiveSub = await getEffectiveSubscription(userId)
+  if (!effectiveSub) return null
 
-  const retentionDays = subscription.plan_snapshot.features?.data_retention_days
+  const retentionDays = effectiveSub.limits.features?.data_retention_days
   
-  // null, undefined ou -1 = ilimitado
-  if (retentionDays === null || retentionDays === undefined || retentionDays === -1) {
+  // null ou undefined = ilimitado
+  if (retentionDays === null || retentionDays === undefined) {
     return null
   }
 
@@ -145,174 +308,7 @@ export async function getDataRetentionFilter(userId: string): Promise<Date | nul
 }
 
 /**
- * Cria uma assinatura trial para um novo usuário.
- * Trial sempre usa o plano ULTRA com todos os recursos ilimitados.
- */
-export async function setupTrialSubscription(userId: string) {
-  const supabase = await createClient()
-
-  // 1. Buscar o plano ULTRA (usado durante trial)
-  const { data: ultraPlan, error: planError } = await supabase
-    .from('plans')
-    .select('*')
-    .eq('id', 'ultra_monthly')
-    .single()
-
-  if (planError) throw planError
-
-  // 2. Criar a assinatura status trialing com limites ULTRA
-  const trialDays = ultraPlan.trial_days || 14 // Fallback se não tiver no banco
-  const trialEndsAt = new Date()
-  trialEndsAt.setDate(trialEndsAt.getDate() + trialDays)
-
-  const { error: subError } = await supabase
-    .from('subscriptions')
-    .insert({
-      user_id: userId,
-      plan_id: 'ultra_monthly', // Trial = ULTRA ilimitado
-      status: 'trialing',
-      plan_snapshot: {
-        name: ultraPlan.name,
-        max_suppliers: ultraPlan.max_suppliers,
-        max_sales_month: ultraPlan.max_sales_month,
-        max_users: ultraPlan.max_users,
-        max_revenue_month: ultraPlan.max_revenue_month,
-        features: ultraPlan.features
-      },
-      trial_ends_at: trialEndsAt.toISOString(),
-      current_period_start: new Date().toISOString(),
-      current_period_end: trialEndsAt.toISOString(),
-    })
-
-  if (subError) throw subError
-
-  // 3. Inicializar usage_stats
-  const { error: usageError } = await supabase
-    .from('usage_stats')
-    .insert({
-      user_id: userId,
-      sales_count_current_month: 0,
-      suppliers_count: 0,
-    })
-
-  if (usageError) throw usageError
-}
-
-/**
- * Faz a transição de trial expirado para o plano correto.
- * - Se assinou durante trial: mantém ULTRA até fim do trial, depois aplica limites do plano pago
- * - Se não assinou: downgrade para FREE
- * 
- * Esta função deve ser chamada periodicamente (cron/webhook) ou no login do usuário.
- */
-export async function handleExpiredTrials() {
-  const supabase = await createAdminClient()
-  
-  const now = new Date().toISOString()
-  
-  // Buscar subscriptions com trial expirado que ainda não foram processadas
-  const { data: expiredTrials, error } = await supabase
-    .from('subscriptions')
-    .select('*')
-    .lt('trial_ends_at', now)
-    .or('status.eq.trialing,and(status.eq.active,plan_id.like.ultra_%)')
-  
-  if (error) {
-    console.error('Error fetching expired trials:', error)
-    return
-  }
-
-  for (const sub of expiredTrials || []) {
-    try {
-      // Se ainda está trialing e expirou → downgrade para FREE
-      if (sub.status === 'trialing') {
-        const { data: freePlan } = await supabase
-          .from('plans')
-          .select('*')
-          .eq('id', 'free_monthly')
-          .single()
-
-        if (freePlan) {
-          await supabase
-            .from('subscriptions')
-            .update({
-              plan_id: 'free_monthly',
-              status: 'active',
-              plan_snapshot: {
-                name: freePlan.name,
-                max_suppliers: freePlan.max_suppliers,
-                max_sales_month: freePlan.max_sales_month,
-                max_users: freePlan.max_users,
-                max_revenue_month: freePlan.max_revenue_month,
-                features: freePlan.features
-              }
-            })
-            .eq('id', sub.id)
-        }
-      }
-      // Se assinou (active) mas ainda tem plan_id ULTRA e trial expirou → aplicar limites do plano correto
-      // Neste caso, precisamos ver qual plano ele realmente assinou via asaas_subscription_id
-      // Por enquanto, mantemos assim (quando assinar, já vai criar subscription com plano correto)
-    } catch (err) {
-      console.error(`Error processing trial for subscription ${sub.id}:`, err)
-    }
-  }
-}
-
-/**
- * Checa se o trial do usuário expirou e faz transição se necessário.
- * Deve ser chamado no login ou em operações críticas.
- */
-export async function checkAndHandleExpiredTrial(userId: string) {
-  const subscription = await getSubscription(userId)
-  if (!subscription) return
-
-  const now = new Date()
-  const trialEnd = subscription.trial_ends_at ? new Date(subscription.trial_ends_at) : null
-
-  // Se trial expirou e ainda está como trialing, fazer downgrade
-  if (
-    trialEnd && 
-    now > trialEnd && 
-    subscription.status === 'trialing' &&
-    subscription.plan_id.includes('ultra')
-  ) {
-    const supabase = await createClient()
-    
-    const { data: freePlan } = await supabase
-      .from('plans')
-      .select('*')
-      .eq('id', 'free_monthly')
-      .single()
-
-    if (freePlan) {
-      await supabase
-        .from('subscriptions')
-        .update({
-          plan_id: 'free_monthly',
-          status: 'active',
-          plan_snapshot: {
-            name: freePlan.name,
-            max_suppliers: freePlan.max_suppliers,
-            max_sales_month: freePlan.max_sales_month,
-            max_users: freePlan.max_users,
-            max_revenue_month: freePlan.max_revenue_month,
-            features: freePlan.features
-          }
-        })
-        .eq('user_id', userId)
-        .eq('status', 'trialing')
-    }
-  }
-}
-
-/**
  * Verifica quais pastas (fornecedores) estão bloqueadas pelo limite do plano.
- * Retorna IDs das pastas que excedem o limite permitido.
- * 
- * Estratégia: Primeiras N pastas (por created_at) são acessíveis, resto bloqueado.
- * 
- * @returns { allowedCount, blockedCount, blockedSupplierIds }
  */
 export async function getBlockedSuppliers(userId?: string): Promise<{
   allowedCount: number
@@ -321,7 +317,6 @@ export async function getBlockedSuppliers(userId?: string): Promise<{
 }> {
   const supabase = await createClient()
   
-  // Se não passou userId, pegar do usuário atual
   let effectiveUserId = userId
   if (!effectiveUserId) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -331,15 +326,14 @@ export async function getBlockedSuppliers(userId?: string): Promise<{
     effectiveUserId = user.id
   }
   
-  const subscription = await getSubscription(effectiveUserId)
+  const effectiveSub = await getEffectiveSubscription(effectiveUserId)
   
-  if (!subscription) {
+  if (!effectiveSub) {
     return { allowedCount: 0, blockedCount: 0, blockedSupplierIds: [] }
   }
 
-  const maxSuppliers = subscription.plan_snapshot.max_suppliers || 1
+  const maxSuppliers = effectiveSub.limits.max_suppliers || 1
 
-  // Buscar todas as pastas do usuário, ordenadas por data de criação (mais antigas primeiro)
   const { data: suppliers, error } = await supabase
     .from('personal_suppliers')
     .select('id, created_at')
@@ -355,7 +349,6 @@ export async function getBlockedSuppliers(userId?: string): Promise<{
   const allowedCount = Math.min(totalSuppliers, maxSuppliers)
   const blockedCount = Math.max(0, totalSuppliers - maxSuppliers)
   
-  // Pastas além do limite ficam bloqueadas
   const blockedSupplierIds = suppliers
     .slice(maxSuppliers)
     .map(s => s.id)
@@ -368,6 +361,21 @@ export async function getBlockedSuppliers(userId?: string): Promise<{
 }
 
 /**
+ * Helper interno para buscar usage_stats (usado apenas internamente em billing.ts)
+ */
+async function _getUsageStatsInternal(userId: string): Promise<UsageStats | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('usage_stats')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !data) return null
+  return data as UsageStats
+}
+
+/**
  * Helper para verificar limites antes de uma ação.
  * Se o usuário não tiver assinatura/usage, cria automaticamente (defensive).
  */
@@ -375,26 +383,26 @@ export async function checkLimit(
   userId: string, 
   feature: 'sales' | 'suppliers' | 'users'
 ): Promise<{ allowed: boolean; error?: string }> {
-  let subscription = await getSubscription(userId)
-  let usage = await getUsageStats(userId)
+  let effectiveSub = await getEffectiveSubscription(userId)
+  let usage = await _getUsageStatsInternal(userId)
 
   // Defensive: se usuário antigo não tem subscription/usage, criar automaticamente
-  if (!subscription || !usage) {
+  if (!effectiveSub || !usage) {
     try {
       await setupTrialSubscription(userId)
-      subscription = await getSubscription(userId)
-      usage = await getUsageStats(userId)
+      effectiveSub = await getEffectiveSubscription(userId)
+      usage = await _getUsageStatsInternal(userId)
     } catch (err) {
       console.error('Erro ao criar subscription automática:', err)
       return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }
     }
   }
 
-  if (!subscription || !usage) {
+  if (!effectiveSub || !usage) {
     return { allowed: false, error: 'Assinatura não encontrada. Por favor, entre em contato com o suporte.' }
   }
 
-  const limits = subscription.plan_snapshot
+  const limits = effectiveSub.limits
 
   switch (feature) {
     case 'sales':
@@ -462,12 +470,17 @@ export async function decrementUsage(
   }
 }
 
+// =====================================================
+// ASSINATURA E PAGAMENTO
+// =====================================================
+
 export type CreateSubscriptionResult = 
   | { success: true; subscriptionId: string; invoiceUrl: string; invoiceId?: string }
   | { success: false; error: string; message: string }
 
 /**
  * Inicia o processo de assinatura com o Asaas.
+ * Lógica CRÍTICA: Preserva trial_start_date e trial_period_days para manter Ultra até fim do trial.
  */
 export async function createSubscriptionAction(planId: string): Promise<CreateSubscriptionResult> {
   const supabase = await createClient()
@@ -485,8 +498,8 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
 
   try {
     // 2. Verificar se o usuário tem perfil com documento
-    const profile = await getProfile()
-    if (!profile?.document || !profile?.full_name) {
+    const currentUser = await getCurrentUser()
+    if (!currentUser?.profile?.document || !currentUser?.profile?.full_name) {
       return { 
         success: false, 
         error: 'NEEDS_DOCUMENT',
@@ -494,33 +507,38 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       }
     }
 
-    // 3. Buscar ou resolver cliente no Asaas (Fluxo Robusto)
-    let asaasCustomerId: string | null = null
+    const profile = currentUser.profile
+
+    // 3. Buscar subscription atual para preservar dados de trial
+    const { data: currentSub } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    // 4. Buscar ou resolver cliente no Asaas
+    let asaasCustomerId: string | null = currentSub?.asaas_customer_id || null
     const customerData = {
-      name: profile.full_name,
+      name: profile.full_name || '',
       email: user.email || '',
-      cpfCnpj: profile.document,
+      cpfCnpj: profile.document || '',
       externalReference: user.id
     }
     
-    // 3.1 Tentar pelo ID salvo no banco
-    const { data: existingSub } = await supabase
-      .from('subscriptions')
-      .select('asaas_customer_id')
-      .eq('user_id', user.id)
-      .not('asaas_customer_id', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    if (existingSub?.asaas_customer_id) {
-      const existingCustomer = await AsaasService.getCustomer(existingSub.asaas_customer_id)
-      if (existingCustomer && !existingCustomer.deleted) {
-        asaasCustomerId = existingCustomer.id
+    if (asaasCustomerId) {
+      const existingCustomer = await AsaasService.getCustomer(asaasCustomerId)
+      if (!existingCustomer || existingCustomer.deleted) {
+        asaasCustomerId = null
+      } else {
+        try {
+          await AsaasService.updateCustomer(asaasCustomerId, customerData)
+        } catch (err) {
+          console.warn('Erro ao atualizar cliente no Asaas:', err)
+        }
       }
     }
 
-    if (!asaasCustomerId) {
+    if (!asaasCustomerId && profile.document) {
       const customerByCpf = await AsaasService.findCustomerByCpfCnpj(profile.document)
       if (customerByCpf && !customerByCpf.deleted) {
         asaasCustomerId = customerByCpf.id
@@ -545,54 +563,13 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       asaasCustomerId = newCustomer.id
     }
 
-    // --- LÓGICA DE REUSO (UX SENIOR) ---
-    // 4. Verificar se já existe uma assinatura PENDING para este plano
-    const { data: currentSub } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('plan_id', planId)
-      .in('status', ['unpaid', 'past_due'])
-      .maybeSingle()
-
+    // 5. Cancelar assinatura antiga no Asaas se existir
     if (currentSub?.asaas_subscription_id) {
-      // Busca as cobranças dessa assinatura para ver se tem uma PENDING
-      const payments = await AsaasService.getSubscriptionPayments(currentSub.asaas_subscription_id)
-      const pendingPayment = payments.data.find(p => p.status === 'PENDING')
-      
-      if (pendingPayment) {
-        console.log('Reutilizando assinatura/fatura pendente existente...')
-        return {
-          success: true,
-          subscriptionId: currentSub.asaas_subscription_id,
-          invoiceUrl: pendingPayment.invoiceUrl,
-          invoiceId: pendingPayment.id
-        }
+      try {
+        await AsaasService.cancelSubscription(currentSub.asaas_subscription_id)
+      } catch (err) {
+        console.warn('Erro ao cancelar assinatura antiga no Asaas:', err)
       }
-    }
-
-    // 5. Se não tem para reusar, limpa as "lixo" antes de criar nova
-    const { data: previousSubs } = await supabase
-      .from('subscriptions')
-      .select('id, asaas_subscription_id')
-      .eq('user_id', user.id)
-      .in('status', ['unpaid', 'past_due'])
-
-    if (previousSubs && previousSubs.length > 0) {
-      for (const sub of previousSubs) {
-        if (sub.asaas_subscription_id) {
-          try {
-            await AsaasService.cancelSubscription(sub.asaas_subscription_id)
-          } catch (err) {
-            console.error(`Erro ao cancelar lixo ${sub.asaas_subscription_id}:`, err)
-          }
-        }
-      }
-      await supabase
-        .from('subscriptions')
-        .update({ status: 'canceled' })
-        .eq('user_id', user.id)
-        .in('status', ['unpaid', 'past_due'])
     }
 
     // 6. Criar nova assinatura no Asaas
@@ -624,27 +601,36 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
       throw new Error('Assinatura criada, mas sem link de pagamento.')
     }
 
-    // 8. Salvar no banco
+    // 8. Calcular período de pagamento
+    const periodStart = new Date()
+    const periodEnd = new Date()
+    if (plan.interval === 'month') {
+      periodEnd.setMonth(periodEnd.getMonth() + 1)
+    } else {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1)
+    }
+
+    // 9. UPDATE (não INSERT!) em user_subscriptions
+    // CRÍTICO: Preservar trial_start_date e trial_period_days para manter Ultra até fim do trial
     const { error: subError } = await supabase
-      .from('subscriptions')
-      .insert({
+      .from('user_subscriptions')
+      .upsert({
         user_id: user.id,
-        plan_id: plan.id,
-        status: 'unpaid',
+        plan_group: plan.plan_group,
+        is_annual: plan.interval === 'year',
+        trial_start_date: currentSub?.trial_start_date || new Date().toISOString(),
+        trial_period_days: currentSub?.trial_period_days || 14,
+        subscription_started_at: currentSub?.subscription_started_at || new Date().toISOString(),
         asaas_customer_id: asaasCustomerId,
         asaas_subscription_id: asaasSub.id,
-        plan_snapshot: {
-          name: plan.name,
-          max_suppliers: plan.max_suppliers,
-          max_sales_month: plan.max_sales_month,
-          max_users: plan.max_users,
-          max_revenue_month: plan.max_revenue_month,
-          features: plan.features
-        },
-        current_period_start: new Date().toISOString(),
+        current_period_start: periodStart.toISOString(),
+        current_period_end: periodEnd.toISOString(),
+        next_billing_date: periodEnd.toISOString(),
       })
 
     if (subError) throw subError
+
+    revalidatePath('/')
 
     return { 
       success: true, 
@@ -656,7 +642,6 @@ export async function createSubscriptionAction(planId: string): Promise<CreateSu
     console.error('Erro ao criar assinatura:', error)
     const message = error instanceof Error ? error.message : 'Falha ao processar assinatura no Asaas'
     
-    // Se o Asaas reclamar de falta de documento, tratamos como NEEDS_DOCUMENT
     if (message.includes('CPF') || message.includes('CNPJ') || message.includes('document')) {
       return { 
         success: false, 
@@ -677,23 +662,17 @@ export async function getInvoicesAction() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Usuário não autenticado')
 
-  // 1. Buscar asaas_customer_id mais recente
   const { data: subscription } = await supabase
-    .from('subscriptions')
+    .from('user_subscriptions')
     .select('asaas_customer_id')
     .eq('user_id', user.id)
-    .not('asaas_customer_id', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .single()
 
   if (!subscription?.asaas_customer_id) return []
 
   try {
-    // 2. Buscar TODAS as faturas do cliente para ter um histórico completo
     const payments = await AsaasService.getCustomerPayments(subscription.asaas_customer_id)
     
-    // 3. Filtrar apenas o que não foi removido/deletado e ordenar por vencimento desc
     return payments.data
       .filter(p => !p.deleted)
       .map(p => ({
@@ -712,28 +691,129 @@ export async function getInvoicesAction() {
 }
 
 /**
- * Marca o plano atual como notificado para evitar parabéns duplicados.
+ * Faz a transição de trials expirados para o plano correto.
+ * - Se não tem pagamento: downgrade para free
+ * - Se tem pagamento: já está no plano correto (não faz nada, limites são automáticos)
+ * 
+ * Esta função pode ser chamada periodicamente (cron) ou no login do usuário.
  */
-export async function markPlanAsNotifiedAction() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Usuário não autenticado')
+export async function handleExpiredTrials() {
+  const supabase = await createAdminClient()
+  
+  // Buscar usuários com trial expirado e sem pagamento
+  const { data: expiredTrials } = await supabase
+    .rpc('get_expired_trials_without_payment')
+    .returns<{ user_id: string }[]>()
+  
+  // Como não temos a RPC ainda, fazemos manualmente:
+  const { data: allSubs } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+  
+  if (!allSubs) return
 
-  const subscription = await getSubscription(user.id)
-  if (!subscription) return
-
-  // Usamos admin client para garantir que o update de metadados ocorra sem travas de RLS
-  const adminSupabase = createAdminClient()
-  const { error } = await adminSupabase
-    .from('subscriptions')
-    .update({ notified_plan_id: subscription.plan_id })
-    .eq('id', subscription.id)
-
-  if (error) {
-    console.error('Erro ao marcar plano como notificado:', error)
-    throw new Error('Falha ao atualizar status de notificação')
+  for (const sub of allSubs) {
+    const now = new Date()
+    const trialEnd = new Date(sub.trial_start_date)
+    trialEnd.setDate(trialEnd.getDate() + sub.trial_period_days)
+    
+    // Se trial expirou e não tem assinatura paga
+    if (now > trialEnd && !sub.current_period_end) {
+      // Garantir que está marcado como free (já deve estar, mas é garantia)
+      if (sub.plan_group !== 'free') {
+        await supabase
+          .from('user_subscriptions')
+          .update({ plan_group: 'free' })
+          .eq('user_id', sub.user_id)
+      }
+    }
+    
+    // Se trial expirou e está inadimplente (período pago expirou)
+    if (now > trialEnd && sub.current_period_end) {
+      const periodEnd = new Date(sub.current_period_end)
+      if (now > periodEnd) {
+        // Downgrade para free
+        await supabase
+          .from('user_subscriptions')
+          .update({ 
+            plan_group: 'free',
+            current_period_end: null,
+            next_billing_date: null
+          })
+          .eq('user_id', sub.user_id)
+      }
+    }
   }
-
-  revalidatePath('/')
 }
 
+/**
+ * Retorna informações sobre alertas de renovação.
+ */
+export async function getRenewalAlerts(userId: string): Promise<RenewalAlert | null> {
+  const effectiveSub = await getEffectiveSubscription(userId)
+  if (!effectiveSub) return null
+  
+  return effectiveSub.renewalAlert
+}
+
+// =====================================================
+// FUNÇÕES DE COMPATIBILIDADE (deprecated, usar getEffectiveSubscription)
+// =====================================================
+
+/**
+ * @deprecated Usar getEffectiveSubscription() no lugar
+ * Mantido por compatibilidade temporária
+ */
+export type Subscription = {
+  id: string
+  user_id: string
+  plan_id: string
+  status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
+  plan_snapshot: PlanLimits
+  trial_ends_at: string | null
+  current_period_start: string
+  current_period_end: string | null
+  asaas_customer_id: string | null
+  asaas_subscription_id: string | null
+  cancel_at_period_end: boolean
+  notified_plan_id: string | null
+}
+
+export async function getSubscription(userId: string): Promise<Subscription | null> {
+  const effectiveSub = await getEffectiveSubscription(userId)
+  if (!effectiveSub) return null
+  
+  // Retornar no formato antigo para não quebrar código existente
+  return {
+    id: effectiveSub.subscription.user_id,
+    user_id: effectiveSub.subscription.user_id,
+    plan_id: effectiveSub.effectivePlanGroup + '_monthly',
+    status: effectiveSub.isInTrial ? 'trialing' : effectiveSub.isPaidUp ? 'active' : 'past_due',
+    plan_snapshot: effectiveSub.limits,
+    trial_ends_at: effectiveSub.trial.endsAt,
+    current_period_start: effectiveSub.subscription.current_period_start || new Date().toISOString(),
+    current_period_end: effectiveSub.subscription.current_period_end,
+    asaas_customer_id: effectiveSub.subscription.asaas_customer_id,
+    asaas_subscription_id: effectiveSub.subscription.asaas_subscription_id,
+    cancel_at_period_end: false,
+    notified_plan_id: null,
+  }
+}
+
+/**
+ * @deprecated Função antiga, não faz nada na nova estrutura
+ */
+export async function checkAndHandleExpiredTrial(userId: string) {
+  // Na nova estrutura, isso é calculado automaticamente
+  // Não precisa fazer nada, mantido só para compatibilidade
+  return
+}
+
+/**
+ * @deprecated Função antiga, agora é automático via getEffectiveSubscription
+ */
+export async function markPlanAsNotifiedAction() {
+  // Na nova estrutura não precisamos mais desse controle
+  // Mantido só para não quebrar código existente
+  revalidatePath('/')
+}

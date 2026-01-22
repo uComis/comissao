@@ -10,26 +10,6 @@ const updateGoalSchema = z.object({
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string }
 
-export async function getUserPreferences() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) return null
-
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .select('*')
-    .eq('user_id', user.id)
-    .single()
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching user preferences:', error)
-    return null
-  }
-
-  return data
-}
-
 export async function updateCommissionGoal(goal: number): Promise<ActionResult<void>> {
   const parsed = updateGoalSchema.safeParse({ goal })
   if (!parsed.success) {

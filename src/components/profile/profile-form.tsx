@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getProfile, updateProfile } from '@/app/actions/profiles'
+import { useCurrentUser } from '@/contexts/current-user-context'
+import { updateProfile } from '@/app/actions/profiles'
 import { toast } from 'sonner'
 import { Loader2, Save } from 'lucide-react'
 import { useUser } from '@/contexts/app-data-context'
@@ -16,28 +17,25 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ onSuccess, hideButton = false }: ProfileFormProps) {
-  const { refresh } = useUser()
+  const { refresh: refreshAppData } = useUser()
+  const { refresh: refreshCurrentUser } = useCurrentUser()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [fullName, setFullName] = useState('')
   const [document, setDocument] = useState('')
 
+  const { currentUser } = useCurrentUser()
+
   useEffect(() => {
-    async function loadProfile() {
-      try {
-        const data = await getProfile()
-        if (data) {
-          setFullName(data.full_name || '')
-          setDocument(formatDocument(data.document || ''))
-        }
-      } catch (error) {
-        console.error('Error loading profile:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (currentUser?.profile) {
+      setFullName(currentUser.profile.full_name || '')
+      setDocument(formatDocument(currentUser.profile.document || ''))
+      setLoading(false)
+    } else if (currentUser === null) {
+      // Se currentUser é null, significa que não está logado ou ainda carregando
+      setLoading(false)
     }
-    loadProfile()
-  }, [])
+  }, [currentUser])
 
   const formatDocument = (value: string) => {
     if (!value) return ''
@@ -79,7 +77,7 @@ export function ProfileForm({ onSuccess, hideButton = false }: ProfileFormProps)
         document_type: digits ? (digits.length === 11 ? 'CPF' : 'CNPJ') : undefined,
       })
       toast.success('Perfil atualizado com sucesso!')
-      await refresh()
+      await Promise.all([refreshAppData(), refreshCurrentUser()])
       onSuccess?.()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro ao atualizar perfil'

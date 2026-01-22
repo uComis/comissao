@@ -438,7 +438,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
                                   {/* Installments + Progress bar - stacked */}
                                   <div className="w-[120px] shrink-0 px-3 flex flex-col justify-center border-l border-border/30">
-                                    <span className="text-xs text-muted-foreground font-mono text-center">{receivable.installment_number}/{receivable.total_installments}</span>
+                                    <span className="text-xs text-muted-foreground text-center">{receivable.installment_number}/{receivable.total_installments}</span>
                                     <div className="h-1.5 w-full rounded-full bg-gray-300 dark:bg-muted/60 overflow-hidden mt-1">
                                       <div
                                         className={cn(
@@ -452,7 +452,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
                                   {/* Value - fixed width, right aligned, pushed to edge */}
                                   <div className="w-[130px] shrink-0 text-right pl-3 pr-1 border-l border-border/30">
-                                    <span className={cn("text-base font-bold font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
+                                    <span className={cn("text-base font-bold", isOverdue ? "text-destructive" : "text-green-600")}>
                                       {formatCurrency(receivable.expected_commission || 0)}
                                     </span>
                                   </div>
@@ -487,7 +487,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                                           <span className="uppercase text-[10px]">{new Date(receivable.due_date + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
                                           {isOverdue && <span className="text-[10px] ml-1">• ATRASADO</span>}
                                         </div>
-                                        <span className={cn("text-base font-bold font-mono", isOverdue ? "text-destructive" : "text-green-600")}>
+                                        <span className={cn("text-base font-bold", isOverdue ? "text-destructive" : "text-green-600")}>
                                           {formatCurrency(receivable.expected_commission || 0)}
                                         </span>
                                       </div>
@@ -562,7 +562,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                         <div className="text-right flex items-center gap-4">
                           <div className="text-right">
                             <div className="text-xs font-bold uppercase text-muted-foreground/60 leading-tight">Recebido</div>
-                            <div className="text-xl font-black font-mono tracking-tight text-green-700/80">{formatCurrency(receivable.received_amount || receivable.expected_commission || 0)}</div>
+                            <div className="text-xl font-black tracking-tight text-green-700/80">{formatCurrency(receivable.received_amount || receivable.expected_commission || 0)}</div>
                           </div>
                           <Button variant="ghost" size="icon" onClick={() => handleUndoReceived(receivable)} disabled={loading} className="text-muted-foreground hover:text-destructive">
                             <X className="h-4 w-4" />

@@ -76,7 +76,7 @@ export function UpgradeCelebrationModal({ subscription }: UpgradeCelebrationModa
   if (!subscription) return null
 
   const isFirstSubscription = !subscription.notified_plan_id
-  const planName = subscription.plan_snapshot.name || 'Premium'
+  const planName = (subscription.plan_snapshot as any)?.name || subscription.plan_id?.replace('_monthly', '').toUpperCase() || 'Premium'
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !isUpdating && setIsOpen(open)}>

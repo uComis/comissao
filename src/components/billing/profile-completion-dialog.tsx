@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateProfile } from '@/app/actions/profiles'
+import { useCurrentUser } from '@/contexts/current-user-context'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -27,6 +28,7 @@ export function ProfileCompletionDialog({
   onOpenChange,
   onSuccess,
 }: ProfileCompletionDialogProps) {
+  const { refresh } = useCurrentUser()
   const [loading, setLoading] = useState(false)
   const [fullName, setFullName] = useState('')
   const [document, setDocument] = useState('')
@@ -76,6 +78,7 @@ export function ProfileCompletionDialog({
         document: digits,
         document_type: digits.length === 11 ? 'CPF' : 'CNPJ',
       })
+      await refresh()
       toast.success('Perfil atualizado com sucesso!')
       onSuccess()
     } catch (error) {

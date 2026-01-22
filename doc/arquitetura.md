@@ -64,6 +64,9 @@ src/
 │   │       └── page.tsx             # /configuracoes
 │   │
 │   ├── actions/                     # Server Actions (mutações)
+│   │   ├── user.ts                  # getCurrentUser() - FONTE DA VERDADE
+│   │   ├── profiles.ts              # updateProfile()
+│   │   ├── billing.ts               # assinaturas, limites
 │   │   ├── sellers.ts
 │   │   ├── rules.ts
 │   │   ├── sales.ts
@@ -85,8 +88,8 @@ src/
 │   └── reports/                     # Componentes de relatórios
 │
 ├── contexts/
-│   ├── auth-context.tsx             # Usuário logado
-│   └── organization-context.tsx     # Organização atual
+│   ├── auth-context.tsx             # Login/logout (Supabase Auth)
+│   └── organization-context.tsx     # Organização atual (modo empresa)
 │
 ├── hooks/
 │   └── use-notifications.ts         # Wrapper do toast
@@ -128,6 +131,77 @@ src/
     ├── sale.ts
     └── commission.ts
 ```
+
+## User Controller (Fonte Única da Verdade)
+
+O sistema centraliza TODOS os dados do usuário em uma única função: `getCurrentUser()`.
+
+### Arquitetura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  app/actions/user.ts                                        │
+│                                                             │
+│  getCurrentUser()  ← FONTE ÚNICA DA VERDADE                 │
+│    │                                                        │
+│    ├── auth.getUser()         → id, email                   │
+│    ├── profiles               → nome, documento, avatar     │
+│    ├── user_preferences       → modo (personal/org)         │
+│    ├── user_subscriptions     → plano, trial, pagamento     │
+│    └── usage_stats            → vendas, fornecedores        │
+│                                                             │
+│  Retorna: CurrentUser (objeto único com tudo)               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Operações de Usuário
+
+| Operação      | Arquivo                        | Descrição                          |
+| ------------- | ------------------------------ | ---------------------------------- |
+| **GET**       | `app/actions/user.ts`          | `getCurrentUser()` - retorna tudo  |
+| **Login**     | `contexts/auth-context.tsx`    | OAuth, email/senha, magic link     |
+| **Cadastro**  | `contexts/auth-context.tsx`    | signUp + trigger cria subscription |
+| **Update**    | `app/actions/profiles.ts`      | `updateProfile()` - atualiza dados |
+| **Logout**    | `contexts/auth-context.tsx`    | `signOut()`                        |
+
+### Regras
+
+1. **GET centralizado**: Toda leitura de dados do usuário deve passar por `getCurrentUser()`
+2. **Uma chamada**: Não fazer múltiplas queries separadas para montar dados do usuário
+3. **Context distribui**: O `UserProvider` (ou `BillingBanners`) chama uma vez e distribui via props/context
+
+### Estrutura do CurrentUser
+
+```typescript
+interface CurrentUser {
+  // Auth básico
+  id: string
+  email: string
+  createdAt: string
+  
+  // Dados
+  profile: UserProfile | null      // nome, documento, avatar
+  preferences: UserPreferences     // modo personal/organization
+  billing: UserBilling | null      // plano, trial, limites
+  usage: UserUsage | null          // contadores de uso
+}
+```
+
+### Uso nos Componentes
+
+```typescript
+// ❌ ERRADO - Múltiplas chamadas separadas
+const user = useAuth()
+const profile = await getProfile()
+const billing = await getBillingUsage()
+const prefs = await getPreferences()
+
+// ✅ CORRETO - Uma chamada centralizada
+const currentUser = await getCurrentUser()
+// currentUser.profile, currentUser.billing, currentUser.preferences
+```
+
+---
 
 ## Camadas
 

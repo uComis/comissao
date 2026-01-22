@@ -131,12 +131,26 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // ✅ DEFAULT: Se organization desabilitado e sem cookie, força personal
+    const isOrgEnabled = process.env.NEXT_PUBLIC_ENABLE_ORGANIZATION === 'true'
+    if (!userModeCookie && !isOrgEnabled) {
+      userModeCookie = 'personal'
+      // Salva cookie para não repetir lógica
+      supabaseResponse.cookies.set('user_mode', 'personal', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 dias
+        path: '/'
+      })
+    }
+
     // Se está na página de login, verificar modo e redirecionar
     if (isAuthPage) {
       const url = request.nextUrl.clone()
 
       if (!userModeCookie) {
-        // Sem modo definido → onboarding
+        // Sem modo definido E organization habilitada → onboarding
         url.pathname = '/onboarding'
       } else if (userModeCookie === 'personal') {
         url.pathname = '/home'
@@ -149,7 +163,7 @@ export async function middleware(request: NextRequest) {
 
     // Se está em página protegida (não é auth/onboarding)
     if (!isPublicAuthRoute) {
-      // Se não tem modo definido, redireciona para onboarding
+      // Se não tem modo definido E organization habilitada → onboarding
       if (!userModeCookie && !isOnboardingPage) {
         const url = request.nextUrl.clone()
         url.pathname = '/onboarding'

@@ -188,7 +188,7 @@ export function SupplierTable({ suppliers }: Props) {
                     {supplier.cnpj && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <FileText className="h-3.5 w-3.5 shrink-0" />
-                        <span className="font-mono text-xs">{formatCnpj(supplier.cnpj)}</span>
+                        <span className="text-xs">{formatCnpj(supplier.cnpj)}</span>
                       </div>
                     )}
 
@@ -244,7 +244,7 @@ export function SupplierTable({ suppliers }: Props) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
+                  <TableCell className="text-muted-foreground text-sm">
                     {formatCnpj(supplier.cnpj || '')}
                   </TableCell>
                   <TableCell>{getRuleDescription(supplier.default_rule || null)}</TableCell>

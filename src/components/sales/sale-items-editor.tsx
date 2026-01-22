@@ -403,7 +403,7 @@ export function SaleItemsEditor({ products, value, onChange, supplierId, onProdu
                       className="w-16"
                     />
                   </TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right">
                     {formatCurrency((item.quantity * item.unit_price) * (1 - ((item.tax_rate || 0) / 100)))}
                   </TableCell>
                   <TableCell>

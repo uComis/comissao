@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { updateCommissionGoal } from '@/app/actions/user-preferences'
+import { useCurrentUser } from '@/contexts/current-user-context'
 import { toast } from 'sonner'
 import { Target } from 'lucide-react'
 
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export function GoalDialog({ open, onOpenChange, currentGoal, onSuccess }: Props) {
+  const { refresh } = useCurrentUser()
   const [goal, setGoal] = useState(currentGoal.toString())
   const [loading, setLoading] = useState(false)
 
@@ -41,6 +43,7 @@ export function GoalDialog({ open, onOpenChange, currentGoal, onSuccess }: Props
     const result = await updateCommissionGoal(numericGoal)
 
     if (result.success) {
+      await refresh()
       toast.success('Meta atualizada com sucesso!')
       onSuccess?.()
       onOpenChange(false)

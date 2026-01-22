@@ -162,7 +162,7 @@ export function PersonalSaleTable({ sales }: Props) {
                 <div className="flex-1 min-w-0 space-y-1.5">
                   {/* Sale Number + Cliente */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">#{sale.sale_number}</span>
+                    <span className="text-xs text-muted-foreground">#{sale.sale_number}</span>
                     <div className="font-medium truncate">
                       {sale.client_name || 'Cliente não informado'}
                     </div>
@@ -177,7 +177,7 @@ export function PersonalSaleTable({ sales }: Props) {
                   {/* Data */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="font-mono">{formatDate(sale.sale_date)}</span>
+                    <span>{formatDate(sale.sale_date)}</span>
                   </div>
                 </div>
 
@@ -189,12 +189,12 @@ export function PersonalSaleTable({ sales }: Props) {
                   </div>
 
                   {/* Valor bruto */}
-                  <div className="text-xs font-mono text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {formatCurrency(sale.gross_value)}
                   </div>
 
                   {/* Comissão - destaque */}
-                  <div className="text-lg font-mono text-green-500 font-semibold">
+                  <div className="text-lg text-green-500 font-semibold">
                     {formatCurrency(sale.commission_value)}
                   </div>
                 </div>
@@ -230,10 +230,10 @@ export function PersonalSaleTable({ sales }: Props) {
                 onClick={() => handleView(sale.id)}
                 onContextMenu={(e) => handleContextMenu(e, sale)}
               >
-                <TableCell className="font-mono text-sm text-muted-foreground">
+                <TableCell className="text-sm text-muted-foreground">
                   #{sale.sale_number}
                 </TableCell>
-                <TableCell className="font-mono text-sm">
+                <TableCell className="text-sm">
                   {formatDate(sale.sale_date)}
                 </TableCell>
                 <TableCell className="font-medium">
@@ -242,10 +242,10 @@ export function PersonalSaleTable({ sales }: Props) {
                 <TableCell className="text-muted-foreground">
                   {sale.supplier?.name || '-'}
                 </TableCell>
-                <TableCell className="text-right font-mono">
+                <TableCell className="text-right">
                   {formatCurrency(sale.gross_value)}
                 </TableCell>
-                <TableCell className="text-right font-mono text-green-600">
+                <TableCell className="text-right text-green-600">
                   {formatCurrency(sale.commission_value)}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>

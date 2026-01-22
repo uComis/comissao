@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase'
-import { setupTrialSubscription } from '@/app/actions/billing'
 import { toast } from 'sonner'
 import { Loader2, User, Building2 } from 'lucide-react'
 
@@ -27,29 +26,7 @@ export default function OnboardingPage() {
     }
 
     try {
-      // 1. Criar assinatura trial e usage_stats primeiro (Server Action)
-      await setupTrialSubscription(user.id)
-
-      // 2. Criar perfil do usuário (se não existir)
-      const userName = user.user_metadata?.full_name 
-        || user.user_metadata?.name 
-        || user.email?.split('@')[0] 
-        || 'Usuário'
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          full_name: userName,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError)
-        // Não bloqueia o fluxo, apenas loga
-      }
-
-      // 3. Salvar preferência do usuário
+      // 1. Salvar preferência do usuário (trial já foi criado pelo trigger)
       const { error: prefError } = await supabase
         .from('user_preferences')
         .upsert({
@@ -65,7 +42,26 @@ export default function OnboardingPage() {
         return
       }
 
-      // Se escolheu organização, criar organização
+      // 2. Atualizar perfil do usuário (se necessário)
+      const userName = user.user_metadata?.full_name 
+        || user.user_metadata?.name 
+        || user.email?.split('@')[0] 
+        || 'Usuário'
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: userName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError)
+        // Não bloqueia o fluxo, apenas loga
+      }
+
+      // 3. Se escolheu organização, criar organização
       if (mode === 'organization') {
         const orgName = user.user_metadata?.full_name 
           || user.user_metadata?.name 
@@ -103,14 +99,15 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     // Se houver erro na URL ou no fragmento, não redireciona automaticamente 
-    // para garantir que o erro seja processado e exibido
     const hasError = window.location.search.includes('error') || window.location.hash.includes('error')
     
-    // Se o modo organização estiver desabilitado, seleciona 'personal' automaticamente
+    // ✅ NOVO: Se organization desabilitado, middleware já força 'personal'
+    // Não precisa mais de auto-trigger aqui, mas mantém redirect se chegou nesta página
     if (!isOrganizationEnabled && user && !loading && !hasError) {
-      handleSelectMode('personal')
+      // Usuário não deveria estar aqui, redireciona
+      router.push('/home')
     }
-  }, [isOrganizationEnabled, user, handleSelectMode, loading])
+  }, [isOrganizationEnabled, user, loading, router])
 
   if (!isOrganizationEnabled) {
     return (

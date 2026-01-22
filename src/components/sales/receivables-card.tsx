@@ -149,10 +149,10 @@ export function ReceivablesCard({
                   </span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-mono font-semibold text-green-600">
+                  <p className="text-sm font-semibold text-green-600">
                     {formatCurrency(commissionValue)}
                   </p>
-                  <p className="text-xs font-mono text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {formatCurrency(totalValue)}
                   </p>
                 </div>
@@ -192,13 +192,13 @@ export function ReceivablesCard({
                           </div>
                           <div className="text-right">
                             <p className={cn(
-                              'text-sm font-mono',
+                              'text-sm',
                               isNext ? 'font-semibold text-green-600' : 'font-medium text-green-600'
                             )}>
                               {formatCurrency(inst.commission)}
                             </p>
                             <p className={cn(
-                              'text-xs font-mono',
+                              'text-xs',
                               isNext ? 'text-muted-foreground' : 'text-muted-foreground'
                             )}>
                               {formatCurrency(inst.value)}
@@ -240,10 +240,10 @@ export function ReceivablesCard({
                           <span className="text-sm">{formatDate(inst.dueDate)}</span>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-mono text-green-600">
+                          <p className="text-sm text-green-600">
                             {formatCurrency(inst.commission)}
                           </p>
-                          <p className="text-xs text-muted-foreground font-mono">
+                          <p className="text-xs text-muted-foreground">
                             {formatCurrency(inst.value)}
                           </p>
                         </div>

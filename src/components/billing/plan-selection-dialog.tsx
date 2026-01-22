@@ -97,11 +97,10 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
   }
 
   const getPlanFeatures = (plan: Plan) => {
-    const planOrder = ['free', 'pro', 'pro_plus', 'ultra']
+    const planOrder = ['free', 'pro', 'ultra']
     const planNames: Record<string, string> = {
       'free': 'FREE',
       'pro': 'PRO',
-      'pro_plus': 'PRO +',
       'ultra': 'ULTRA'
     }
 
@@ -202,7 +201,7 @@ export function PlanSelectionDialog({ open, onOpenChange }: PlanSelectionDialogP
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 py-4 min-w-max lg:min-w-0 justify-center items-stretch">
             {filteredPlans.map((plan) => {
               const isCurrent = currentPlanId === plan.id
-              const isRecommended = plan.plan_group === 'pro_plus'
+              const isRecommended = plan.plan_group === 'pro'
 
               return (
                 <Card 

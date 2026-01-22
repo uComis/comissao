@@ -185,7 +185,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
                   {(client.cpf || client.cnpj) && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <FileText className="h-3.5 w-3.5 shrink-0" />
-                      <span className="font-mono text-xs">{getDocument(client)}</span>
+                      <span className="text-xs">{getDocument(client)}</span>
                     </div>
                   )}
 
@@ -219,7 +219,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
                   {/* Data de cadastro */}
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="font-mono">{formatDate(client.created_at)}</span>
+                    <span>{formatDate(client.created_at)}</span>
                   </div>
                 </div>
 
@@ -254,7 +254,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
             {clients.map((client) => (
               <TableRow key={client.id}>
                 <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell className="text-muted-foreground font-mono text-sm">
+                <TableCell className="text-muted-foreground text-sm">
                   {getDocument(client)}
                 </TableCell>
                 <TableCell>

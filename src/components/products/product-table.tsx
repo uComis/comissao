@@ -108,7 +108,7 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
               <TableRow key={product.id} className={!product.is_active ? 'opacity-50' : ''}>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 {showSku && (
-                  <TableCell className="text-muted-foreground font-mono text-sm">
+                  <TableCell className="text-muted-foreground text-sm">
                     {product.sku || '-'}
                   </TableCell>
                 )}

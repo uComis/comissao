@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/drawer"
 import { getEnvironmentVariables, EnvironmentVariable } from '@/app/actions/profiles'
 import { getSubscription } from '@/app/actions/billing'
-import { getUserPreferences, updateUserMode } from '@/app/actions/user-preferences'
+import { useCurrentUser } from '@/contexts/current-user-context'
+import { updateUserMode } from '@/app/actions/user-preferences'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import {
@@ -81,10 +82,10 @@ export default function MinhaContaPage() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    
+
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
@@ -103,14 +104,13 @@ export default function MinhaContaPage() {
     }
   }
 
+  const { currentUser } = useCurrentUser()
+
   useEffect(() => {
     async function loadInitialData() {
       if (!user?.id) return
 
-      const [sub, prefs] = await Promise.all([
-        getSubscription(user.id),
-        getUserPreferences()
-      ])
+      const sub = await getSubscription(user.id)
 
       if (sub) {
         setSubscription({
@@ -118,13 +118,17 @@ export default function MinhaContaPage() {
           status: sub.status
         })
       }
-
-      if (prefs) {
-        setUserMode(prefs.user_mode)
-      }
     }
     loadInitialData()
   }, [user?.id])
+
+  useEffect(() => {
+    if (currentUser?.preferences) {
+      setUserMode(currentUser.preferences.user_mode)
+    }
+  }, [currentUser?.preferences])
+
+  const { refresh: refreshCurrentUser } = useCurrentUser()
 
   const handleModeChange = async (mode: string) => {
     const newMode = mode as 'personal' | 'organization'
@@ -134,6 +138,7 @@ export default function MinhaContaPage() {
     const result = await updateUserMode(newMode)
 
     if (result.success) {
+      await refreshCurrentUser()
       setUserMode(newMode)
       toast.success(`Modo alterado para ${newMode === 'personal' ? 'Vendedor' : 'Organização'}`)
       // Redireciona para a home correta do modo

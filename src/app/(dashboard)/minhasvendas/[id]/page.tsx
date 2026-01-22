@@ -176,13 +176,13 @@ async function VendaDetalheContent({ id }: { id: string }) {
                       sale.items.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.product_name}</TableCell>
-                          <TableCell className="font-mono">
+                          <TableCell>
                             {formatCurrency(item.unit_price)}
                           </TableCell>
-                          <TableCell className="font-mono">{item.quantity}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="font-mono">{formatCurrency(item.tax_amount)}</span>
+                              <span>{formatCurrency(item.tax_amount)}</span>
                               <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs px-1.5 py-0">
                                 {item.tax_rate?.toFixed(2) || '0.00'}%
                               </Badge>
@@ -190,13 +190,13 @@ async function VendaDetalheContent({ id }: { id: string }) {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-green-600">{formatCurrency(item.commission_value)}</span>
+                              <span className="text-green-600">{formatCurrency(item.commission_value)}</span>
                               <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs px-1.5 py-0">
                                 {item.commission_rate?.toFixed(2) || '0.00'}%
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono">
+                          <TableCell>
                             {formatCurrency(item.total_price)}
                           </TableCell>
                         </TableRow>
@@ -224,12 +224,12 @@ async function VendaDetalheContent({ id }: { id: string }) {
                     {sale.items && sale.items.length > 0 ? (
                       sale.items.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="text-center font-mono">
+                          <TableCell className="text-center">
                             {formatCurrency(item.total_price)}
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <span className="font-mono">{formatCurrency(item.tax_amount)}</span>
+                              <span>{formatCurrency(item.tax_amount)}</span>
                               <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs px-1.5 py-0">
                                 {item.tax_rate?.toFixed(2) || '0.00'}%
                               </Badge>
@@ -237,7 +237,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <span className="font-mono text-green-600">{formatCurrency(item.commission_value)}</span>
+                              <span className="text-green-600">{formatCurrency(item.commission_value)}</span>
                               <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs px-1.5 py-0">
                                 {item.commission_rate?.toFixed(2) || '0.00'}%
                               </Badge>
@@ -324,7 +324,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono text-xl font-bold text-green-600">
+                      <span className="text-xl font-bold text-green-600">
                         {formatCurrency(sale.commission_value)}
                       </span>
                     </div>
@@ -335,11 +335,11 @@ async function VendaDetalheContent({ id }: { id: string }) {
                 <div className="space-y-3 pt-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Valor Bruto</span>
-                    <span className="font-mono text-sm">{formatCurrency(sale.gross_value)}</span>
+                    <span className="text-sm">{formatCurrency(sale.gross_value)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Valor Líquido</span>
-                    <span className="font-mono text-sm">{formatCurrency(sale.net_value)}</span>
+                    <span className="text-sm">{formatCurrency(sale.net_value)}</span>
                   </div>
                 </div>
 
@@ -348,19 +348,19 @@ async function VendaDetalheContent({ id }: { id: string }) {
                   <div className="pt-4 border-t space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Total Recebido</span>
-                      <span className="font-mono text-sm text-green-600 font-semibold">
+                      <span className="text-sm text-green-600 font-semibold">
                         {formatCurrency(totalReceived)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Total Atrasado</span>
-                      <span className="font-mono text-sm text-red-600 font-semibold">
+                      <span className="text-sm text-red-600 font-semibold">
                         {formatCurrency(totalOverdue)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Total Devido</span>
-                      <span className="font-mono text-sm font-semibold">
+                      <span className="text-sm font-semibold">
                         {formatCurrency(totalDue)}
                       </span>
                     </div>

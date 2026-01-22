@@ -186,9 +186,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-bold">Escolha seu Plano</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">Planos</h1>
             <p className="text-muted-foreground mt-2 text-lg">
-              Selecione a melhor opção para o seu momento e escale sua operação com controle total.
             </p>
           </div>
         </div>
@@ -200,8 +199,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
               <button
                 onClick={() => setBillingInterval('month')}
                 className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${billingInterval === 'month'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
               >
                 Mensal
@@ -209,8 +208,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
               <button
                 onClick={() => setBillingInterval('year')}
                 className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] flex items-center justify-center gap-1 ${billingInterval === 'year'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
               >
                 <span>Anual</span>
@@ -233,17 +232,17 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
           <div className="flex flex-wrap justify-center gap-6 py-4 w-full">
             {filteredPlans.map((plan) => {
               const isCurrent = currentPlanId === plan.id
-              const isRecommended = plan.plan_group === 'pro' || plan.plan_group === 'pro_plus'
+              const isRecommended = plan.plan_group === 'pro'
               const isUltra = plan.plan_group === 'ultra'
 
               return (
                 <Card
                   key={plan.id}
                   className={`flex flex-col relative transition-all duration-500 backdrop-blur-md min-w-[280px] max-w-[340px] flex-1 ${isRecommended
-                      ? 'border-[#409eff]/40 bg-gradient-to-b from-[#409eff]/5 via-white to-white dark:from-[#409eff]/15 dark:via-[#1a1a2e]/40 dark:to-card/40 shadow-[0_0_40px_rgba(64,158,255,0.05)] dark:shadow-[0_0_40px_rgba(64,158,255,0.1)] dark:border-[#409eff]/50'
-                      : isUltra
-                        ? 'border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-white dark:border-white/20 dark:from-white/10 dark:via-card/40 dark:to-card/40 shadow-[0_0_40px_rgba(0,0,0,0.03)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]'
-                        : 'border-border/40 bg-card/40 hover:border-primary/20'
+                    ? 'border-[#409eff]/40 bg-gradient-to-b from-[#409eff]/5 via-white to-white dark:from-[#409eff]/15 dark:via-[#1a1a2e]/40 dark:to-card/40 shadow-[0_0_40px_rgba(64,158,255,0.05)] dark:shadow-[0_0_40px_rgba(64,158,255,0.1)] dark:border-[#409eff]/50'
+                    : isUltra
+                      ? 'border-zinc-200 bg-gradient-to-b from-zinc-50 via-white to-white dark:border-white/20 dark:from-white/10 dark:via-card/40 dark:to-card/40 shadow-[0_0_40px_rgba(0,0,0,0.03)] dark:shadow-[0_0_40px_rgba(255,255,255,0.05)]'
+                      : 'border-border/40 bg-card/40 hover:border-primary/20'
                     } ${isCurrent ? 'bg-brand/[0.02] border-brand/10' : ''}`}
                 >
                   {isRecommended && (
@@ -296,10 +295,10 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                     <CardFooter className="p-8 pt-0 mt-auto">
                       <Button
                         className={`w-full font-bold py-6 transition-all duration-300 ${isRecommended
-                            ? 'bg-zinc-900 text-white hover:bg-black dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
-                            : isUltra
-                              ? 'bg-primary text-primary-foreground hover:opacity-90 dark:bg-white dark:text-black dark:hover:bg-white/90'
-                              : 'bg-transparent border-zinc-200 hover:bg-zinc-50 dark:border-border/40 dark:hover:bg-muted/50'
+                          ? 'bg-zinc-900 text-white hover:bg-black dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
+                          : isUltra
+                            ? 'bg-primary text-primary-foreground hover:opacity-90 dark:bg-white dark:text-black dark:hover:bg-white/90'
+                            : 'bg-transparent border-zinc-200 hover:bg-zinc-50 dark:border-border/40 dark:hover:bg-muted/50'
                           }`}
                         variant={isRecommended || isUltra ? 'default' : 'outline'}
                         disabled={!!subscribingId}

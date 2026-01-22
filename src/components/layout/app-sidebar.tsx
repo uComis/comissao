@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -24,6 +24,7 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { UsageWidget } from '@/components/billing/usage-widget'
 import { UserControl } from './user-control'
+import { isDebugMode } from '@/lib/debug'
 
 type UserMode = 'personal' | 'organization' | null
 
@@ -92,13 +93,16 @@ export function AppSidebar() {
   const { userMode } = useUserMode() // ✅ Usa contexto global (sem query)
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [debugMode, setDebugMode] = useState(false)
   const isSuperAdmin = profile?.is_super_admin === true
 
   useEffect(() => {
     setMounted(true)
+    setDebugMode(isDebugMode())
   }, [])
 
-  const menuSections = userMode === 'personal' ? personalMenuSections : orgMenuSections
+  // Default para personal quando null (organizações desabilitadas)
+  const menuSections = userMode === 'organization' ? orgMenuSections : personalMenuSections
 
   const isDark = mounted && resolvedTheme === 'dark'
   const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
@@ -165,6 +169,28 @@ export function AppSidebar() {
                       <Link href="/admin/usuarios">
                         <Shield />
                         <span>Usuários</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
+        
+        {/* Seção Debug - só visível em localhost + DEBUG_MODE=true */}
+        {debugMode && (
+          <>
+            <SidebarSeparator className="my-1 opacity-30" />
+            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+              <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Debug</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-1">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/debug'}>
+                      <Link href="/debug">
+                        <Bug />
+                        <span>Debug Info</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
