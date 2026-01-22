@@ -42,7 +42,7 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<Plan[]>(initialPlans || [])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
-  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month')
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year')
   const [subscribingId, setSubscribingId] = useState<string | null>(null)
   const [showProfileDialog, setShowProfileDialog] = useState(false)
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
@@ -196,8 +196,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
 
         {/* Billing Interval Toggle */}
         <div className="flex justify-center">
-          <Card className="p-1 w-fit">
-            <div className="flex items-center gap-1">
+          <Card className="rounded-full p-2 w-fit">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={() => setBillingInterval('month')}
                 className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${billingInterval === 'month'
@@ -251,24 +251,26 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                 >
                   {isRecommended && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge variant="secondary" className="bg-[#111] text-white hover:bg-[#111] flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
-                        <span className="text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]">🔥</span> Popular
+                      <Badge variant="secondary" className="bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 flex items-center gap-1.5 px-4 py-1.5 text-[11px] tracking-widest uppercase font-bold border border-orange-400/30 rounded-full shadow-[0_4px_20px_rgba(249,115,22,0.4)]">
+                        <span className="drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">🔥</span> Popular
                       </Badge>
                     </div>
                   )}
                   {isTrialingUltra && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                      <Badge variant="secondary" className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
-                        <span className="drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">✨</span> Degustação Ativa
+                    <div className="absolute top-4 right-8 z-10">
+                      <Badge variant="secondary" className="bg-emerald-600/80 text-emerald-50 hover:bg-emerald-600/90 flex items-center gap-1 px-2 py-0.5 text-[9px] tracking-wide uppercase font-medium border border-emerald-500/20 rounded-md shadow-sm">
+                        <span>✨</span> Degustação Ativa
                       </Badge>
                     </div>
                   )}
-                  <CardHeader className="space-y-1 p-8">
-                    {isCurrent && (
-                      <span className="text-[10.5px] text-brand/80 font-bold uppercase tracking-[0.15em] mb-3 block animate-in fade-in slide-in-from-top-1 duration-700">
+                  {isCurrent && (
+                    <div className="absolute top-4 left-8 z-10">
+                      <span className="text-[10.5px] text-brand/80 font-bold uppercase tracking-[0.15em] block animate-in fade-in slide-in-from-top-1 duration-700">
                         Este é o seu plano
                       </span>
-                    )}
+                    </div>
+                  )}
+                  <CardHeader className="space-y-1 p-8">
                     <CardTitle className="text-xl flex items-center gap-2">
                       {plan.name.replace(' Mensal', '').replace(' Anual', '')}
                     </CardTitle>
