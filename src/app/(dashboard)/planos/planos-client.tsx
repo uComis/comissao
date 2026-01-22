@@ -10,6 +10,7 @@ import { getSubscription, createSubscriptionAction } from '@/app/actions/billing
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ProfileCompletionDialog } from '@/components/billing/profile-completion-dialog'
+import { useCurrentUser } from '@/contexts/current-user-context'
 import {
   Accordion,
   AccordionContent,
@@ -37,6 +38,7 @@ interface PlanosPageClientProps {
 export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const { currentUser } = useCurrentUser()
   const [loading, setLoading] = useState(true)
   const [plans, setPlans] = useState<Plan[]>(initialPlans || [])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
@@ -231,7 +233,9 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
         ) : (
           <div className="flex flex-wrap justify-center gap-6 py-4 w-full">
             {filteredPlans.map((plan) => {
-              const isCurrent = currentPlanId === plan.id
+              const billing = currentUser?.billing
+              const isCurrent = billing?.planGroup === plan.plan_group
+              const isTrialingUltra = plan.plan_group === 'ultra' && billing?.isInTrial
               const isRecommended = plan.plan_group === 'pro'
               const isUltra = plan.plan_group === 'ultra'
 
@@ -249,6 +253,13 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <Badge variant="secondary" className="bg-[#111] text-white hover:bg-[#111] flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
                         <span className="text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.6)]">🔥</span> Popular
+                      </Badge>
+                    </div>
+                  )}
+                  {isTrialingUltra && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <Badge variant="secondary" className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1.5 px-3.5 py-1 text-[10px] tracking-widest uppercase font-bold border border-white/10 rounded-full shadow-xl">
+                        <span className="drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">✨</span> Degustação Ativa
                       </Badge>
                     </div>
                   )}
@@ -291,7 +302,7 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                       ))}
                     </ul>
                   </CardContent>
-                  {!isCurrent && (
+                  {(!isCurrent && plan.plan_group !== 'free') && (
                     <CardFooter className="p-8 pt-0 mt-auto">
                       <Button
                         className={`w-full font-bold py-6 transition-all duration-300 ${isRecommended

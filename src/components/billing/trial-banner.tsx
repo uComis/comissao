@@ -23,8 +23,8 @@ export function TrialBanner() {
   } | null>(null)
 
   useEffect(() => {
-    // Se não tem dados do usuário, não faz nada
-    if (!currentUser?.billing) {
+    // Se não tem dados do usuário ou se estiver na página de planos, não renderiza
+    if (!currentUser?.billing || pathname === '/planos') {
       setShouldRender(false)
       return
     }
@@ -132,10 +132,10 @@ export function TrialBanner() {
           <span>
             {isTrial ? (
               daysLeft <= 3 
-                ? <>Atenção: Seu teste ULTRA termina em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}! Para manter acesso ilimitado, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
-                : <>Você possui {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} de teste ULTRA (ilimitado), <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>
+                ? <>Atenção: Seu teste ULTRA termina em {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'}! Para manter acesso ilimitado, <button onClick={() => { handleClose(); router.push('/planos'); }} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</> 
+                : <>Você possui {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} de teste ULTRA (ilimitado), <button onClick={() => { handleClose(); router.push('/planos'); }} className="underline hover:opacity-80 transition-opacity">conheça os planos</button>.</>
             ) : (
-              <>Você está no plano FREE. Para ter acesso ilimitado e mais recursos, <button onClick={() => router.push('/planos')} className="underline hover:opacity-80 transition-opacity">conheça o plano ULTRA</button>.</>
+              <>Você está no plano FREE. Para ter acesso ilimitado e mais recursos, <button onClick={() => { handleClose(); router.push('/planos'); }} className="underline hover:opacity-80 transition-opacity">conheça o plano ULTRA</button>.</>
             )}
           </span>
         </div>
