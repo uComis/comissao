@@ -1,15 +1,12 @@
 'use client'
 
 import { Check, Loader2, ArrowLeft } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getSubscription, createSubscriptionAction } from '@/app/actions/billing'
 import { useAuth } from '@/contexts/auth-context'
-import { toast } from 'sonner'
-import { ProfileCompletionDialog } from '@/components/billing/profile-completion-dialog'
 import { useCurrentUser } from '@/contexts/current-user-context'
 import {
   Accordion,
@@ -39,16 +36,12 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const router = useRouter()
   const { user } = useAuth()
   const { currentUser } = useCurrentUser()
-  const [loading, setLoading] = useState(true)
-  const [plans, setPlans] = useState<Plan[]>(initialPlans || [])
-  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year')
-  const [subscribingId, setSubscribingId] = useState<string | null>(null)
-  const [showProfileDialog, setShowProfileDialog] = useState(false)
-  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null)
+
+  const loading = !user
 
   // Buscar plano FREE para usar nos FAQs (fallback para valores padrão)
-  const freePlan = plans?.find(p => p.plan_group === 'free')
+  const freePlan = initialPlans?.find(p => p.plan_group === 'free')
   const faqData = [
     {
       question: "O que são os dias de teste gratuito? Vou perder meus dados quando acabar?",
@@ -84,9 +77,9 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
     }
   ]
 
-  const maxDiscount = plans.reduce((acc, plan) => {
+  const maxDiscount = initialPlans.reduce((acc, plan) => {
     if (plan.interval === 'year') {
-      const monthlyPlan = plans.find(p => p.plan_group === plan.plan_group && p.interval === 'month')
+      const monthlyPlan = initialPlans.find(p => p.plan_group === plan.plan_group && p.interval === 'month')
       if (monthlyPlan) {
         const discount = 1 - (plan.price / (monthlyPlan.price * 12))
         return Math.max(acc, Math.round(discount * 100))
@@ -95,26 +88,8 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
     return acc
   }, 0)
 
-
-
-  useEffect(() => {
-    if (user) {
-      async function loadData() {
-        try {
-          const subData = await getSubscription(user!.id)
-          setCurrentPlanId(subData?.plan_id || null)
-        } catch (error) {
-          console.error('Error loading subscription:', error)
-        } finally {
-          setLoading(false)
-        }
-      }
-      loadData()
-    }
-  }, [user])
-
   // Filtra por intervalo, mas sempre mostra FREE (que só existe como mensal)
-  const filteredPlans = plans
+  const filteredPlans = initialPlans
     .filter(p => p.interval === billingInterval || p.plan_group === 'free')
 
   const formatPrice = (price: number) => {
@@ -145,33 +120,19 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   }
 
   const handleSubscribe = async (planId: string) => {
-    try {
-      setSubscribingId(planId)
-      const result = await createSubscriptionAction(planId)
+    const selectedPlan = initialPlans.find(p => p.id === planId)
+    if (!selectedPlan) return
 
-      if (result.success) {
-        toast.success('Fatura gerada! Redirecionando para central de cobranças...')
+    // Redirecionar para página de confirmação com dados do plano
+    const params = new URLSearchParams({
+      plan_id: selectedPlan.id,
+      plan_name: selectedPlan.name,
+      plan_price: selectedPlan.price.toString(),
+      plan_interval: selectedPlan.interval,
+      plan_group: selectedPlan.plan_group,
+    })
 
-        const params = new URLSearchParams()
-        if (result.invoiceId) params.append('invoice_id', result.invoiceId)
-        if (result.invoiceUrl) params.append('url', result.invoiceUrl)
-
-        window.location.href = `/cobrancas?${params.toString()}`
-      } else {
-        if (result.error === 'NEEDS_DOCUMENT') {
-          setPendingPlanId(planId)
-          setShowProfileDialog(true)
-        } else {
-          throw new Error(result.message || 'Não foi possível gerar o link de pagamento.')
-        }
-      }
-    } catch (error: unknown) {
-      console.error('Erro ao assinar:', error)
-      const message = error instanceof Error ? error.message : 'Erro ao processar assinatura. Tente novamente.'
-      toast.error(message)
-    } finally {
-      setSubscribingId(null)
-    }
+    router.push(`/planos/confirmar?${params.toString()}`)
   }
 
   return (
@@ -314,17 +275,9 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
                             : 'bg-transparent border-zinc-200 hover:bg-zinc-50 dark:border-border/40 dark:hover:bg-muted/50'
                           }`}
                         variant={isRecommended || isUltra ? 'default' : 'outline'}
-                        disabled={!!subscribingId}
                         onClick={() => handleSubscribe(plan.id)}
                       >
-                        {subscribingId === plan.id ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processando...
-                          </>
-                        ) : (
-                          `Escolher plano`
-                        )}
+                        Escolher plano
                       </Button>
                     </CardFooter>
                   )}
@@ -363,15 +316,6 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
           </Accordion>
         </div>
       </div>
-
-      <ProfileCompletionDialog
-        open={showProfileDialog}
-        onOpenChange={setShowProfileDialog}
-        onSuccess={() => {
-          setShowProfileDialog(false)
-          if (pendingPlanId) handleSubscribe(pendingPlanId)
-        }}
-      />
     </>
   )
 }

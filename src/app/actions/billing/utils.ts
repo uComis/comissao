@@ -1,5 +1,3 @@
-'use server'
-
 import type { UserSubscription, PlanGroup } from './types'
 
 // =====================================================
