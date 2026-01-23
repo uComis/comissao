@@ -20,7 +20,7 @@ export interface AsaasSubscriptionInput {
   billingType: 'BOLETO' | 'CREDIT_CARD' | 'PIX' | 'UNDEFINED';
   value: number;
   nextDueDate: string;
-  cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'ANNUALLY';
+  cycle: 'MONTHLY' | 'ANNUALLY';
   description?: string;
   externalReference?: string;
   discount?: {
@@ -51,6 +51,7 @@ export interface AsaasSubscription {
   customer: string;
   value: number;
   status: string;
+  cycle: 'MONTHLY' | 'ANNUALLY';
   invoiceUrl?: string;
   lastInvoiceUrl?: string;
   externalReference?: string;
@@ -72,6 +73,7 @@ export interface AsaasPayment {
   installment?: string;
   paymentLink?: string;
   dueDate: string;
+  paymentDate?: string;
   value: number;
   netValue: number;
   billingType: string;
@@ -194,6 +196,15 @@ export class AsaasService {
     });
     console.log('Asaas Subscription Response:', JSON.stringify(response, null, 2));
     return response;
+  }
+
+  /**
+   * Busca uma assinatura pelo ID.
+   */
+  static async getSubscription(subscriptionId: string): Promise<AsaasSubscription> {
+    return this.request<AsaasSubscription>(`/subscriptions/${subscriptionId}`, {
+      method: 'GET',
+    });
   }
 
   /**
