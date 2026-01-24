@@ -36,7 +36,7 @@ export function Header() {
   }, []);
 
   // Site sempre usa logo preto (light mode fixo)
-  const logoSrc = '/images/logo/uComis_black.svg';
+  const logoSrc = '/images/logo/uComis_black.png';
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white transition-all duration-300">

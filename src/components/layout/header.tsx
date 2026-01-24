@@ -20,7 +20,7 @@ export function Header() {
   }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
+  const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
 
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark')

@@ -88,7 +88,7 @@ export interface AsaasPayment {
 export class AsaasService {
   private static getApiKey() {
     let apiKey = process.env.ASAAS_API_KEY;
-    
+
     if (!apiKey) {
       console.error('ERRO: ASAAS_API_KEY não está definida no .env');
       throw new Error('Configuração de API do Asaas ausente.');
@@ -96,11 +96,11 @@ export class AsaasService {
 
     // Remove aspas caso o processo as tenha lido como parte da string
     apiKey = apiKey.replace(/^["']|["']$/g, '');
-    
+
     // TRATAMENTO PARA O SÍMBOLO $:
     // Se a chave vier com [S] (placeholder para evitar erro do Next.js), trocamos de volta para $
     apiKey = apiKey.replaceAll('[S]', '$');
-    
+
     return apiKey;
   }
 
@@ -258,6 +258,20 @@ export class AsaasService {
   static async cancelSubscription(subscriptionId: string): Promise<AsaasSubscription> {
     return this.request<AsaasSubscription>(`/subscriptions/${subscriptionId}`, {
       method: 'DELETE',
+    });
+  }
+
+  /**
+   * Simula pagamento de uma fatura no sandbox.
+   * ⚠️ Só funciona no ambiente sandbox (api-sandbox.asaas.com)
+   * 
+   * @param paymentId ID do pagamento a ser simulado
+   * @returns Objeto de confirmação
+   */
+  static async simulatePayment(paymentId: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>('/bill/simulate', {
+      method: 'POST',
+      body: JSON.stringify({ payment: paymentId }),
     });
   }
 }

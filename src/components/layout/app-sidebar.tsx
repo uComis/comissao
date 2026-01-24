@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -105,7 +105,7 @@ export function AppSidebar() {
   const menuSections = userMode === 'organization' ? orgMenuSections : personalMenuSections
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
+  const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
 
   if (!mounted) return null
 
@@ -191,6 +191,14 @@ export function AppSidebar() {
                       <Link href="/debug">
                         <Bug />
                         <span>Debug Info</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === '/debug/email'}>
+                      <Link href="/debug/email">
+                        <Mail />
+                        <span>Debug Email</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

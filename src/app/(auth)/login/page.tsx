@@ -5,25 +5,19 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { Loader2, Mail, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
-  const { signInWithGoogle, signUpWithPassword, signInWithPassword, resetPassword, isConfigured } = useAuth()
+  const { signInWithGoogle, signInWithPassword, isConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
-  const [showForgotPassword, setShowForgotPassword] = useState(false)
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
-  const [resetEmailSent, setResetEmailSent] = useState(false)
   const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
@@ -33,208 +27,115 @@ export default function LoginPage() {
   }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
+  const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) return
 
     setLoading(true)
+    const { error } = await signInWithPassword(email, password)
 
-    if (activeTab === 'register') {
-      const { error } = await signUpWithPassword(email, password)
+    if (error) {
       setLoading(false)
-
-      if (error) {
-        toast.error(error)
-      } else {
-        setEmailSent(true)
-        toast.success('Conta criada! Verifique seu email para confirmar.')
-      }
+      toast.error(error)
     } else {
-      const { error } = await signInWithPassword(email, password)
-
-      if (error) {
-        setLoading(false)
-        toast.error(error)
-      } else {
-        router.refresh()
-      }
+      router.refresh()
     }
   }
 
   const handleGoogleLogin = async () => {
-    await signInWithGoogle()
-  }
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!forgotPasswordEmail) return
-
     setLoading(true)
-    const { error } = await resetPassword(forgotPasswordEmail)
+    await signInWithGoogle()
     setLoading(false)
-
-    if (error) {
-      toast.error(error)
-    } else {
-      setResetEmailSent(true)
-      toast.success('Email de recuperação enviado!')
-    }
   }
 
   if (!isConfigured) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Image
-                src={logoSrc}
-                alt="uComis"
-                width={180}
-                height={40}
-                priority
-                className="h-10 w-auto"
-              />
-            </div>
-            <CardDescription>Configure o Supabase para acessar o sistema</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Para ver o sistema, configure as variáveis de ambiente do Supabase no arquivo{' '}
+        <div className="w-full max-w-sm text-center space-y-6">
+          <div className="flex justify-center mb-4">
+            <Image
+              src={logoSrc}
+              alt="uComis"
+              width={180}
+              height={40}
+              priority
+              className="h-10 w-auto"
+            />
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Configure o Supabase para acessar o sistema
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Adicione as variáveis no arquivo{' '}
               <code className="bg-muted px-1 py-0.5 rounded">.env.local</code>
             </p>
-            <pre className="bg-muted p-4 rounded-lg text-xs overflow-auto">
+            <pre className="bg-muted p-4 rounded-lg text-xs text-left overflow-auto">
               {`NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
             </pre>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (emailSent) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Mail className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">Verifique seu email</CardTitle>
-            <CardDescription>
-              Enviamos um link de confirmação para <strong>{email}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center text-sm text-muted-foreground">
-            <p>Clique no link no email para ativar sua conta.</p>
-            <p className="mt-2">Não recebeu? Verifique a pasta de spam.</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (resetEmailSent) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Mail className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle className="text-2xl">Verifique seu email</CardTitle>
-            <CardDescription>
-              Enviamos um link de recuperação para <strong>{forgotPasswordEmail}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-sm text-muted-foreground">
-              Clique no link no email para redefinir sua senha.
-            </p>
-            <p className="text-center text-sm text-muted-foreground">
-              Não recebeu? Verifique a pasta de spam.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setResetEmailSent(false)
-                setShowForgotPassword(false)
-                setForgotPasswordEmail('')
-              }}
-            >
-              Voltar ao login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (showForgotPassword) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Esqueci minha senha</CardTitle>
-            <CardDescription>
-              Digite seu email para receber um link de recuperação
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleForgotPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="forgot-email">Email</Label>
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={forgotPasswordEmail}
-                  onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <Button className="w-full" type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar link de recuperação
-              </Button>
-            </form>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setShowForgotPassword(false)}
-            >
-              Voltar ao login
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center pt-10 pb-8">
-          <div className="flex justify-center mb-6">
-            <Image
-              src={logoSrc}
-              alt="uComis"
-              width={160}
-              height={32}
-              priority
-              className="h-8 w-auto"
-            />
-          </div>
-          <CardDescription className="text-sm font-medium tracking-wide uppercase opacity-70">
-            Auditoria de comissões para vendedores
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button className="w-full" variant="outline" onClick={handleGoogleLogin}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="flex min-h-screen items-center justify-center bg-background p-4"
+    >
+      <div className="w-full max-w-sm space-y-8">
+        {/* Logo */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="flex justify-center"
+        >
+          <Image
+            src={logoSrc}
+            alt="uComis"
+            width={160}
+            height={32}
+            priority
+            className="h-8 w-auto"
+          />
+        </motion.div>
+
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="text-center space-y-2"
+        >
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Suas comissões, sob controle
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Acesse sua conta para continuar
+          </p>
+        </motion.div>
+
+        {/* Google Login */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <Button 
+            className="w-full" 
+            variant="outline" 
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            size="lg"
+          >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -255,124 +156,106 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
             </svg>
             Continuar com Google
           </Button>
+        </motion.div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">ou</span>
+        {/* Divider */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
+          className="relative"
+        >
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">ou</span>
+          </div>
+        </motion.div>
+
+        {/* Login Form */}
+        <motion.form 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+          onSubmit={handleSubmit} 
+          className="space-y-4"
+        >
+          <div className="space-y-2">
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              className="h-11"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="relative">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                className="h-11 pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'register')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="register">Criar conta</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login" className="mt-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-login">Email</Label>
-                  <Input
-                    id="email-login"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password-login">Senha</Label>
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                      onClick={() => setShowForgotPassword(true)}
-                    >
-                      Esqueci minha senha
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password-login"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <Button className="w-full" type="submit" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Entrar
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="register" className="mt-4">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-register">Email</Label>
-                  <Input
-                    id="email-register"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-register">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="password-register"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Mínimo 6 caracteres"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      minLength={6}
-                      required
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <Button className="w-full" type="submit" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Criar conta
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+          <Button 
+            className="w-full" 
+            type="submit" 
+            disabled={loading}
+            size="lg"
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Entrar
+          </Button>
+        </motion.form>
+
+        {/* Footer Links */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+          className="text-center space-y-2 text-sm"
+        >
+          <Link 
+            href="/auth/recuperar-senha" 
+            className="block text-muted-foreground hover:text-primary transition-colors"
+          >
+            Esqueci minha senha
+          </Link>
+          <div className="text-muted-foreground">
+            Não tem uma conta?{' '}
+            <Link 
+              href="/auth/cadastro" 
+              className="text-primary hover:underline font-medium"
+            >
+              Criar conta
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    </motion.div>
   )
 }

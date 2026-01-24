@@ -203,6 +203,62 @@ const currentUser = await getCurrentUser()
 
 ---
 
+## Billing System (Sistema de Planos e Assinaturas)
+
+O sistema de billing gerencia planos, assinaturas, trials e limites de uso dos usuários.
+
+**📖 Documentação completa:** Ver [`doc/billing.md`](./billing.md)
+
+### Resumo Arquitetural
+
+- **Fonte única da verdade:** `getEffectiveSubscription()` em `app/actions/billing/plans.ts`
+- **Cache inteligente:** 1h para pendentes, 8h para pagos
+- **Webhook Asaas:** Ativa planos automaticamente após pagamento
+- **Proteções:** Idempotência, rollback automático, verificação de segurança
+
+### Estrutura
+
+```
+app/actions/billing/
+├── plans.ts              # getEffectiveSubscription() ⭐ (FONTE ÚNICA DA VERDADE)
+├── subscriptions.ts      # createSubscription, activatePlan, verify
+├── utils.ts              # Constantes e helpers
+└── types.ts              # Tipos compartilhados
+
+app/api/webhooks/asaas/
+└── route.ts              # Webhook handler (idempotência)
+```
+
+### Integração com User Controller
+
+O `getCurrentUser()` consome `getEffectiveSubscription()` para popular `CurrentUser.billing`:
+
+```typescript
+// app/actions/user.ts
+import { getEffectiveSubscription } from './billing'
+
+export async function getCurrentUser() {
+  // ...
+  const billing = await getEffectiveSubscription(userId)
+  // Retorna CurrentUser com billing populado
+}
+```
+
+### Fluxo Principal
+
+1. **Criação de assinatura:** `createSubscription()` → Asaas → Banco (sem `current_period_end`)
+2. **Pagamento confirmado:** Webhook → `activatePlan()` → Seta `current_period_end`
+3. **Verificação de plano:** `getEffectiveSubscription()` → Cache inteligente → Retorna plano efetivo
+
+### Regras de Ouro
+
+1. **SEMPRE** use `getEffectiveSubscription()` como fonte da verdade
+2. **NUNCA** consulte `user_subscriptions` diretamente sem passar por ela
+3. **NUNCA** atualize `current_period_end` manualmente (só webhook/verificação)
+4. **SEMPRE** use cache inteligente (já embutido em `getEffectiveSubscription`)
+
+---
+
 ## Camadas
 
 | Camada             | Pasta                             | Responsabilidade                               | Reutilizável? |

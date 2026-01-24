@@ -13,7 +13,17 @@ const ORG_ROUTES = ['/', '/vendas', '/vendedores', '/regras', '/relatorios', '/c
 const NEUTRAL_ROUTES = ['/minhaconta']
 
 // Rotas que não exigem modo definido
-const PUBLIC_AUTH_ROUTES = ['/login', '/onboarding', '/auth/callback', '/reset-password', '/api/webhooks', '/site']
+const PUBLIC_AUTH_ROUTES = [
+  '/login', 
+  '/cadastro',
+  '/auth/cadastro',
+  '/auth/recuperar-senha',
+  '/onboarding', 
+  '/auth/callback', 
+  '/reset-password', 
+  '/api/webhooks', 
+  '/site'
+]
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
