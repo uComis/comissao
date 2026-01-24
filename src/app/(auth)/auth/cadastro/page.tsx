@@ -154,7 +154,7 @@ export default function CadastroPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="flex min-h-screen items-center justify-center bg-background p-4"
+      className="flex min-h-screen items-center justify-center p-4"
     >
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
