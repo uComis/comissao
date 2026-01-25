@@ -2,6 +2,36 @@
 
 Documentação técnica da estrutura do projeto, padrões e decisões de arquitetura.
 
+## Testes E2E
+
+O projeto utiliza Playwright para testes end-to-end com arquitetura híbrida: **Routines + Page Objects**.
+
+**📖 Documentação completa:** Ver [`e2e/arquitetura-testes.md`](../e2e/arquitetura-testes.md)
+
+### Resumo
+
+| Camada | Pasta | Responsabilidade |
+|--------|-------|------------------|
+| Routines | `e2e/routines/` | Funções atômicas reutilizáveis |
+| Pages | `e2e/pages/` | Page Objects que orquestram routines |
+| Specs | `e2e/specs/` | Arquivos de teste |
+
+### Princípios
+
+1. **Uma única fonte da verdade** - cada ação tem UMA rotina, nunca duplicar
+2. **Teste fluxo real, completo** - nada de atalhos, testar o que usuário faria
+3. **Routines atômicas, Pages orquestram** - separação clara de responsabilidades
+
+### Scripts
+
+```bash
+npm run e2e          # Roda todos os testes
+npm run e2e:headed   # Roda com browser visível
+npm run e2e:ui       # Abre UI do Playwright
+```
+
+---
+
 ## Stack Técnica
 
 ### Core
