@@ -39,13 +39,13 @@
 - rotina: `navigateToProfilePage`
 - processo: `updateNameAndDocument`
 - processo: `verifyProfileUpdated`
-- processo: `verifyAsaasCustomerUpdated`
 
 **Objetivo:**
-- Testar atualização de dados do perfil
-- Verificar sincronização com Asaas (update customer)
+- Testar atualização de dados do perfil (nome e CPF/CNPJ)
 - Verificar persistência no banco
-- Verificar feedback visual de sucesso
+- Verificar feedback visual de sucesso (toast)
+
+**Nota:** A atualização é apenas local. Os dados só são usados em futuras vendas/assinaturas, não há sincronização imediata com Asaas.
 
 ---
 
