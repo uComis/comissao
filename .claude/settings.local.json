@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell:*)",
+      "Bash(npm install:*)",
+      "Bash(npx @executeautomation/playwright-mcp-server:*)",
+      "Bash(claude mcp add playwright-mcp -- npx @executeautomation/playwright-mcp-server)"
+    ]
+  }
+}

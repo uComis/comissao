@@ -130,11 +130,7 @@ export function ConfirmarPlanoClient() {
       }
 
       // 2. Criar assinatura
-      const result = await createSubscription(
-        user.id,
-        planInfo.planGroup as 'pro' | 'ultra',
-        planInfo.interval === 'year'
-      )
+      const result = await createSubscription(planInfo.id)
 
       if (result.success) {
         toast.success('Fatura gerada! Redirecionando para pagamento...')

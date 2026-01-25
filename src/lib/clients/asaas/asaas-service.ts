@@ -20,7 +20,7 @@ export interface AsaasSubscriptionInput {
   billingType: 'BOLETO' | 'CREDIT_CARD' | 'PIX' | 'UNDEFINED';
   value: number;
   nextDueDate: string;
-  cycle: 'MONTHLY' | 'ANNUALLY';
+  cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY';
   description?: string;
   externalReference?: string;
   discount?: {
@@ -51,7 +51,7 @@ export interface AsaasSubscription {
   customer: string;
   value: number;
   status: string;
-  cycle: 'MONTHLY' | 'ANNUALLY';
+  cycle: 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'SEMIANNUALLY' | 'YEARLY';
   invoiceUrl?: string;
   lastInvoiceUrl?: string;
   externalReference?: string;
@@ -120,11 +120,11 @@ export class AsaasService {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Asaas API Error Details:', {
+      console.error('Asaas API Error Details:', JSON.stringify({
         status: response.status,
         endpoint,
         error: data
-      });
+      }, null, 2));
       throw new Error(data.errors?.[0]?.description || 'Erro na comunicação com Asaas');
     }
 
@@ -190,6 +190,7 @@ export class AsaasService {
    * Cria uma nova assinatura.
    */
   static async createSubscription(input: AsaasSubscriptionInput): Promise<AsaasSubscription> {
+    console.log('Asaas Subscription Input:', JSON.stringify(input, null, 2));
     const response = await this.request<AsaasSubscription>('/subscriptions', {
       method: 'POST',
       body: JSON.stringify(input),

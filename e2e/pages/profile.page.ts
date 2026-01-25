@@ -1,49 +1,70 @@
 import { Page } from '@playwright/test';
 import { BasePage } from './base.page';
-import { fillInput, clickButton } from '../routines';
+import { fillInputById, clickButton } from '../routines';
 
 /**
- * Page Object para a página de Perfil
+ * Page Object para a página de Perfil (/minhaconta/perfil)
  */
 export class ProfilePage extends BasePage {
   get path(): string {
-    return '/profile';
+    return '/minhaconta/perfil';
   }
 
   /**
-   * Atualiza o nome do usuário
+   * Abre o modal/drawer de edição de perfil
    */
-  async updateName(name: string): Promise<void> {
-    await fillInput(this.page, 'name', name);
+  async openEditDialog(): Promise<void> {
+    // Clica no botão de editar (ícone de lápis)
+    await this.page.click('button:has(svg.lucide-pencil)');
+    // Aguarda o dialog/drawer abrir
+    await this.page.waitForSelector('[role="dialog"], [role="presentation"]', { state: 'visible' });
   }
 
   /**
-   * Atualiza o documento (CPF/CNPJ)
+   * Preenche o nome completo no formulário de edição
    */
-  async updateDocument(document: string): Promise<void> {
-    await fillInput(this.page, 'document', document);
+  async fillFullName(name: string): Promise<void> {
+    await fillInputById(this.page, 'fullName', name);
+  }
+
+  /**
+   * Preenche o documento (CPF/CNPJ) no formulário de edição
+   */
+  async fillDocument(document: string): Promise<void> {
+    await fillInputById(this.page, 'document', document);
   }
 
   /**
    * Salva as alterações do perfil
    */
   async save(): Promise<void> {
-    await clickButton(this.page, 'Salvar');
+    await clickButton(this.page, 'Salvar Alterações');
   }
 
   /**
-   * Atualiza nome e documento e salva
+   * Fluxo completo: abre modal, atualiza nome e documento, salva
    */
-  async updateProfile(name: string, document: string): Promise<void> {
-    await this.updateName(name);
-    await this.updateDocument(document);
+  async updateProfile(fullName: string, document: string): Promise<void> {
+    await this.openEditDialog();
+    await this.fillFullName(fullName);
+    await this.fillDocument(document);
     await this.save();
   }
 
   /**
-   * Navega para a seção de assinatura
+   * Verifica se o nome está visível na página
    */
-  async goToSubscription(): Promise<void> {
-    await this.page.click('a:has-text("Assinatura")');
+  async getDisplayedName(): Promise<string | null> {
+    const nameElement = this.page.locator('h3.text-xl.font-semibold');
+    return nameElement.textContent();
+  }
+
+  /**
+   * Verifica se o documento está visível na página
+   */
+  async getDisplayedDocument(): Promise<string | null> {
+    const documentElement = this.page.locator('p:has-text("Número") + p, div:has(p:text("Número")) p.font-medium').last();
+    const text = await documentElement.textContent();
+    return text;
   }
 }

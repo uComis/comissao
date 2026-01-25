@@ -119,7 +119,7 @@ export async function createSubscription(planId: string): Promise<CreateSubscrip
         billingType: 'UNDEFINED',
         value: plan.price,
         nextDueDate: tomorrow.toISOString().split('T')[0],
-        cycle: plan.interval === 'month' ? 'MONTHLY' : 'ANNUALLY',
+        cycle: plan.interval === 'month' ? 'MONTHLY' : 'YEARLY',
         description: `Assinatura Plano ${plan.name} - uComis`,
         externalReference: user.id,
         discount

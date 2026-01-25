@@ -22,6 +22,13 @@ export async function fillInputByLabel(page: Page, label: string, value: string)
 }
 
 /**
+ * Preenche um input pelo id
+ */
+export async function fillInputById(page: Page, id: string, value: string): Promise<void> {
+  await page.fill(`#${id}`, value);
+}
+
+/**
  * Clica em um botão pelo texto
  */
 export async function clickButton(page: Page, text: string): Promise<void> {
