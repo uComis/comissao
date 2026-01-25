@@ -247,3 +247,35 @@ export async function getFullProfile(userId: string): Promise<unknown> {
     .single();
   return data;
 }
+
+/**
+ * Busca subscription do usuário
+ */
+export async function getUserSubscription(userId: string): Promise<{
+  user_id: string;
+  plan_group: string;
+  asaas_subscription_id: string | null;
+  asaas_customer_id: string | null;
+  current_period_end: string | null;
+} | null> {
+  const supabase = getSupabaseAdmin();
+  const { data } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+  return data;
+}
+
+/**
+ * Busca subscription pelo asaas_subscription_id
+ */
+export async function getSubscriptionByAsaasId(asaasSubscriptionId: string): Promise<unknown> {
+  const supabase = getSupabaseAdmin();
+  const { data } = await supabase
+    .from('user_subscriptions')
+    .select('*')
+    .eq('asaas_subscription_id', asaasSubscriptionId)
+    .single();
+  return data;
+}

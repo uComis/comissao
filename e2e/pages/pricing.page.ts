@@ -28,9 +28,29 @@ export class PricingPage extends BasePage {
    * Clica no botão "Escolher plano" do card que contém o nome do plano
    */
   async selectPlan(planName: string): Promise<void> {
-    // Localiza o card que contém o nome do plano e clica no botão
-    const planCard = this.page.locator(`div:has(h3:text("${planName}"), [class*="CardTitle"]:text("${planName}"))`);
-    await planCard.locator('button:has-text("Escolher plano")').click();
+    // Localiza o botão "Escolher plano" que está no mesmo card que contém o nome do plano
+    // O card é identificado pelo texto do plano (Pro, Ultra, etc)
+    const planButton = this.page.locator(`button:has-text("Escolher plano")`).filter({
+      has: this.page.locator(`xpath=ancestor::div[.//text()="${planName}"]`).first()
+    });
+
+    // Se o filtro acima não funcionar, usa abordagem alternativa
+    // Busca todos os botões e clica no que está no card correto
+    const buttons = this.page.locator('button:has-text("Escolher plano")');
+    const count = await buttons.count();
+
+    for (let i = 0; i < count; i++) {
+      const button = buttons.nth(i);
+      const card = button.locator('xpath=ancestor::div[contains(@class, "rounded") or contains(@class, "card") or contains(@class, "border")]').first();
+      const cardText = await card.textContent() || '';
+
+      if (cardText.includes(planName)) {
+        await button.click();
+        return;
+      }
+    }
+
+    throw new Error(`Plano "${planName}" não encontrado na página`);
   }
 
   /**
