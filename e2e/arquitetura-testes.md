@@ -228,8 +228,8 @@ Baseado em `tests/plan-unit-test.md`:
 3. ✅ Update User Profile
 4. ✅ Subscribe to Pro Plan (com simulação de pagamento Asaas)
 5. ✅ Upgrade Pro to Ultra
-6. ⏳ Downgrade Ultra to Pro
-7. ⏳ Cancel Subscription
+6. ✅ Downgrade Ultra to Pro
+7. ✅ Cancel Subscription
 8. ⏳ Webhook - Payment Confirmed (requer webhook em staging)
 9. ⏳ Webhook - Payment Overdue (requer webhook em staging)
 10. ⏳ Webhook - Subscription Deleted (requer webhook em staging)

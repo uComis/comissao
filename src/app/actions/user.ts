@@ -39,6 +39,9 @@ export interface UserBilling {
   isInTrial: boolean
   isPaidUp: boolean
   asaasSubscriptionId: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  pendingPlanGroup: 'free' | 'pro' | 'ultra' | null
   trial: TrialInfo
   renewalAlert: RenewalAlert | null
   limits: PlanLimits
@@ -129,6 +132,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     isInTrial: effectiveSub.isInTrial,
     isPaidUp: effectiveSub.isPaidUp,
     asaasSubscriptionId: effectiveSub.subscription.asaas_subscription_id,
+    currentPeriodEnd: effectiveSub.subscription.current_period_end,
+    cancelAtPeriodEnd: effectiveSub.subscription.cancel_at_period_end ?? false,
+    pendingPlanGroup: effectiveSub.subscription.pending_plan_group ?? null,
     trial: effectiveSub.trial,
     renewalAlert: effectiveSub.renewalAlert,
     limits: effectiveSub.limits

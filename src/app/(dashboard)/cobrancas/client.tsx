@@ -1,12 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  Card, 
+import {
+  Card,
   CardContent,
   CardDescription,
-  CardHeader, 
-  CardTitle 
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card'
 import {
   Table,
@@ -18,11 +18,13 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ExternalLink, Receipt, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { ExternalLink, Receipt, AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { PaymentBridgeModal } from '@/components/billing/payment-bridge-modal'
+import { CancelSubscriptionModal } from '@/components/billing/cancel-subscription-modal'
+import { useCurrentUser } from '@/contexts/current-user-context'
 
 interface Invoice {
   id: string
@@ -39,6 +41,12 @@ interface CobrancasClientProps {
 
 export function CobrancasClient({ initialInvoices }: CobrancasClientProps) {
   const [invoices] = useState<Invoice[]>(initialInvoices)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const { currentUser, refresh } = useCurrentUser()
+
+  const billing = currentUser?.billing
+  const hasPaidPlan = billing?.planGroup && billing.planGroup !== 'free'
+  const isCanceling = billing?.cancelAtPeriodEnd
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -142,6 +150,59 @@ export function CobrancasClient({ initialInvoices }: CobrancasClientProps) {
           </Button>
         </div>
       )}
+
+      {/* Cancel Subscription Section */}
+      {hasPaidPlan && !isCanceling && (
+        <div className="border-t pt-8 mt-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Gerenciar assinatura</h4>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Você pode cancelar sua assinatura a qualquer momento
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => setCancelModalOpen(true)}
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Cancelar assinatura
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Info */}
+      {isCanceling && billing?.currentPeriodEnd && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mt-8">
+          <div className="flex items-start gap-4">
+            <div className="bg-amber-100 p-3 rounded-full">
+              <AlertCircle className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-lg text-amber-900">Assinatura marcada para cancelamento</h4>
+              <p className="text-amber-700 text-sm mt-1">
+                Seu acesso ao plano {billing.planGroup?.toUpperCase()} continua até{' '}
+                <strong>{format(new Date(billing.currentPeriodEnd), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</strong>.
+                Após essa data, você voltará para o plano Free.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Subscription Modal */}
+      <CancelSubscriptionModal
+        open={cancelModalOpen}
+        onOpenChange={setCancelModalOpen}
+        currentPlan={billing?.planGroup?.toUpperCase() || 'Atual'}
+        periodEnd={billing?.currentPeriodEnd || null}
+        onSuccess={() => {
+          refresh?.()
+        }}
+      />
     </div>
   )
 }

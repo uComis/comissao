@@ -5,7 +5,7 @@ import { AsaasService } from '@/lib/clients/asaas'
 import { getCurrentUser } from '../user'
 import { revalidatePath } from 'next/cache'
 import type { UserSubscription, PlanGroup, CreateSubscriptionResult } from './types'
-import { calculateUpgradeCredit, isUpgrade, PLAN_HIERARCHY } from './utils'
+import { calculateUpgradeCredit, isUpgrade, isDowngrade, PLAN_HIERARCHY } from './utils'
 
 // =====================================================
 // 1. createSubscription() - Criar Assinatura
@@ -318,6 +318,277 @@ export async function verifySubscriptionStatus(
       .from('user_subscriptions')
       .update({ last_verified_at: new Date().toISOString() })
       .eq('user_id', userId)
+  }
+}
+
+// =====================================================
+// HELPERS PRIVADOS
+// =====================================================
+
+// =====================================================
+// 4. scheduleDowngrade() - Agendar Downgrade
+// =====================================================
+
+/**
+ * Agenda um downgrade de plano para o próximo ciclo de cobrança.
+ *
+ * O plano atual continua ativo até current_period_end.
+ * Quando o período acabar, o sistema troca para o novo plano.
+ */
+export async function scheduleDowngrade(planId: string): Promise<{
+  success: boolean
+  error?: string
+  message?: string
+  scheduledFor?: string
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  try {
+    // 1. Buscar plano desejado
+    const { data: newPlan, error: planError } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', planId)
+      .single()
+
+    if (planError || !newPlan) {
+      return { success: false, error: 'PLAN_NOT_FOUND', message: 'Plano não encontrado' }
+    }
+
+    // 2. Buscar subscription atual
+    const { data: currentSub, error: subError } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (subError || !currentSub) {
+      return { success: false, error: 'NO_SUBSCRIPTION', message: 'Você não possui assinatura ativa' }
+    }
+
+    // 3. Verificar se é realmente um downgrade
+    const newPlanGroup = newPlan.plan_group as PlanGroup
+    if (!isDowngrade(currentSub.plan_group, newPlanGroup)) {
+      return {
+        success: false,
+        error: 'NOT_DOWNGRADE',
+        message: 'Este não é um downgrade. Use a opção de upgrade.'
+      }
+    }
+
+    // 4. Verificar se tem período ativo
+    if (!currentSub.current_period_end) {
+      return {
+        success: false,
+        error: 'NO_ACTIVE_PERIOD',
+        message: 'Você não possui um período de assinatura ativo'
+      }
+    }
+
+    // 5. Agendar downgrade
+    const { error: updateError } = await supabase
+      .from('user_subscriptions')
+      .update({
+        pending_plan_group: newPlanGroup,
+        pending_plan_id: planId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('[scheduleDowngrade] Erro ao atualizar:', updateError)
+      return { success: false, error: 'UPDATE_ERROR', message: 'Erro ao agendar downgrade' }
+    }
+
+    revalidatePath('/')
+
+    return {
+      success: true,
+      scheduledFor: currentSub.current_period_end
+    }
+
+  } catch (error) {
+    console.error('[scheduleDowngrade] Erro:', error)
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      message: error instanceof Error ? error.message : 'Erro desconhecido'
+    }
+  }
+}
+
+/**
+ * Cancela um downgrade agendado.
+ */
+export async function cancelScheduledDowngrade(): Promise<{
+  success: boolean
+  error?: string
+  message?: string
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  const { error } = await supabase
+    .from('user_subscriptions')
+    .update({
+      pending_plan_group: null,
+      pending_plan_id: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', user.id)
+
+  if (error) {
+    return { success: false, error: 'UPDATE_ERROR', message: 'Erro ao cancelar downgrade' }
+  }
+
+  revalidatePath('/')
+  return { success: true }
+}
+
+// =====================================================
+// 5. cancelSubscription() - Cancelar Assinatura
+// =====================================================
+
+/**
+ * Marca a assinatura para cancelamento no fim do período atual.
+ *
+ * O usuário mantém acesso até current_period_end.
+ * Após essa data, volta para o plano Free.
+ */
+export async function cancelSubscription(reason?: string): Promise<{
+  success: boolean
+  error?: string
+  message?: string
+  accessUntil?: string
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  try {
+    // 1. Buscar subscription atual
+    const { data: currentSub, error: subError } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (subError || !currentSub) {
+      return { success: false, error: 'NO_SUBSCRIPTION', message: 'Você não possui assinatura ativa' }
+    }
+
+    // 2. Verificar se já está marcado para cancelar
+    if (currentSub.cancel_at_period_end) {
+      return {
+        success: false,
+        error: 'ALREADY_CANCELING',
+        message: 'Sua assinatura já está marcada para cancelamento'
+      }
+    }
+
+    // 3. Verificar se tem assinatura no Asaas para cancelar
+    if (currentSub.asaas_subscription_id) {
+      try {
+        // Cancela no Asaas (não gera mais cobranças)
+        await AsaasService.cancelSubscription(currentSub.asaas_subscription_id)
+      } catch (asaasError) {
+        console.warn('[cancelSubscription] Erro ao cancelar no Asaas:', asaasError)
+        // Continua mesmo assim - pode já estar cancelada
+      }
+    }
+
+    // 4. Marcar para cancelamento no banco
+    const { error: updateError } = await supabase
+      .from('user_subscriptions')
+      .update({
+        cancel_at_period_end: true,
+        canceled_at: new Date().toISOString(),
+        cancel_reason: reason || null,
+        // Limpa downgrade pendente se tiver
+        pending_plan_group: null,
+        pending_plan_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('[cancelSubscription] Erro ao atualizar:', updateError)
+      return { success: false, error: 'UPDATE_ERROR', message: 'Erro ao cancelar assinatura' }
+    }
+
+    revalidatePath('/')
+
+    return {
+      success: true,
+      accessUntil: currentSub.current_period_end || undefined
+    }
+
+  } catch (error) {
+    console.error('[cancelSubscription] Erro:', error)
+    return {
+      success: false,
+      error: 'UNKNOWN_ERROR',
+      message: error instanceof Error ? error.message : 'Erro desconhecido'
+    }
+  }
+}
+
+/**
+ * Reverte o cancelamento (se ainda estiver no período ativo).
+ */
+export async function revertCancellation(): Promise<{
+  success: boolean
+  error?: string
+  message?: string
+}> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Usuário não autenticado')
+
+  try {
+    // 1. Buscar subscription
+    const { data: currentSub } = await supabase
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!currentSub?.cancel_at_period_end) {
+      return { success: false, error: 'NOT_CANCELING', message: 'Sua assinatura não está marcada para cancelamento' }
+    }
+
+    // 2. Verificar se ainda está no período
+    if (currentSub.current_period_end && new Date() > new Date(currentSub.current_period_end)) {
+      return { success: false, error: 'PERIOD_ENDED', message: 'O período de assinatura já terminou' }
+    }
+
+    // 3. Reverter no banco
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .update({
+        cancel_at_period_end: false,
+        canceled_at: null,
+        cancel_reason: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+
+    if (error) {
+      return { success: false, error: 'UPDATE_ERROR', message: 'Erro ao reverter cancelamento' }
+    }
+
+    // Nota: Não recriamos a subscription no Asaas aqui.
+    // O usuário precisaria assinar novamente se quiser continuar após o período.
+
+    revalidatePath('/')
+    return { success: true }
+
+  } catch (error) {
+    console.error('[revertCancellation] Erro:', error)
+    return { success: false, error: 'UNKNOWN_ERROR', message: 'Erro desconhecido' }
   }
 }
 

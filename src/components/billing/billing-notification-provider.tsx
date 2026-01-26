@@ -13,7 +13,7 @@ export function BillingNotificationProvider({ children }: { children: React.Reac
     if (!user) return
     try {
       const sub = await getSubscription(user.id)
-      setSubscription(sub)
+      setSubscription(sub as Subscription | null)
     } catch (err) {
       console.error('Erro ao atualizar assinatura no provider:', err)
     }

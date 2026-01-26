@@ -16,6 +16,7 @@ export async function sendTestPaymentOverdueEmail(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = createClient();
+    if (!supabase) throw new Error('Supabase client not available');
     const { data: { user } } = await supabase.auth.getUser();
     
     const { data: profile } = await supabase
@@ -51,6 +52,7 @@ export async function sendTestAccountSuspendedEmail(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = createClient();
+    if (!supabase) throw new Error('Supabase client not available');
     const { data: { user } } = await supabase.auth.getUser();
     
     const { data: profile } = await supabase
@@ -86,6 +88,7 @@ export async function sendTestSubscriptionCancelledEmail(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = createClient();
+    if (!supabase) throw new Error('Supabase client not available');
     const { data: { user } } = await supabase.auth.getUser();
     
     const { data: profile } = await supabase

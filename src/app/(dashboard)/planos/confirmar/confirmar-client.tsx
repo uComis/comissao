@@ -56,11 +56,11 @@ export function ConfirmarPlanoClient() {
     })
 
     // Pré-preencher com dados existentes
-    if (currentUser?.full_name) {
-      setFullName(currentUser.full_name)
+    if (currentUser?.profile?.full_name) {
+      setFullName(currentUser.profile.full_name)
     }
-    if (currentUser?.document) {
-      setDocument(formatDocument(currentUser.document))
+    if (currentUser?.profile?.document) {
+      setDocument(formatDocument(currentUser.profile.document))
     }
   }, [searchParams, currentUser, router])
 
@@ -118,7 +118,7 @@ export function ConfirmarPlanoClient() {
     try {
       // 1. Atualizar perfil se necessário
       const needsUpdate =
-        currentUser?.full_name !== fullName || currentUser?.document !== digits
+        currentUser?.profile?.full_name !== fullName || currentUser?.profile?.document !== digits
 
       if (needsUpdate) {
         await updateProfile({

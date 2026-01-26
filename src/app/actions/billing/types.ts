@@ -20,6 +20,13 @@ export interface UserSubscription {
   last_verified_at: string
   created_at: string
   updated_at: string
+  // Downgrade fields
+  pending_plan_group: PlanGroup | null
+  pending_plan_id: string | null
+  // Cancel fields
+  cancel_at_period_end: boolean
+  canceled_at: string | null
+  cancel_reason: string | null
 }
 
 export interface TrialInfo {

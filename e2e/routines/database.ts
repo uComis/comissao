@@ -302,6 +302,42 @@ export async function getSubscriptionByAsaasId(asaasSubscriptionId: string): Pro
   return data;
 }
 
+/**
+ * Define current_period_end para a subscription do usuário
+ * Útil para simular um usuário com assinatura ativa
+ */
+export async function setCurrentPeriodEnd(
+  userId: string,
+  daysFromNow: number = 30
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+
+  await supabase
+    .from('user_subscriptions')
+    .update({ current_period_end: date.toISOString() })
+    .eq('user_id', userId);
+}
+
+/**
+ * Limpa campos de downgrade e cancelamento para reset de testes
+ */
+export async function resetSubscriptionState(userId: string): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  await supabase
+    .from('user_subscriptions')
+    .update({
+      pending_plan_group: null,
+      pending_plan_id: null,
+      cancel_at_period_end: false,
+      canceled_at: null,
+      cancel_reason: null,
+    })
+    .eq('user_id', userId);
+}
+
 // =====================================================
 // ROTINAS INTELIGENTES DE REUTILIZAÇÃO DE USUÁRIOS
 // =====================================================

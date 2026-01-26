@@ -8,12 +8,19 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/auth-context'
 import { useCurrentUser } from '@/contexts/current-user-context'
+import { DowngradeModal } from '@/components/billing/downgrade-modal'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+
+const PLAN_HIERARCHY: Record<string, number> = {
+  free: 0,
+  pro: 1,
+  ultra: 2,
+}
 
 interface Plan {
   id: string
@@ -35,8 +42,10 @@ interface PlanosPageClientProps {
 export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
   const router = useRouter()
   const { user } = useAuth()
-  const { currentUser } = useCurrentUser()
+  const { currentUser, refresh } = useCurrentUser()
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year')
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false)
+  const [selectedDowngradePlan, setSelectedDowngradePlan] = useState<Plan | null>(null)
 
   const loading = !user
 
@@ -123,7 +132,23 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
     const selectedPlan = initialPlans.find(p => p.id === planId)
     if (!selectedPlan) return
 
-    // Redirecionar para página de confirmação com dados do plano
+    const billing = currentUser?.billing
+    const currentPlanGroup = billing?.planGroup || 'free'
+    const newPlanGroup = selectedPlan.plan_group
+
+    // Check if it's a downgrade
+    const currentLevel = PLAN_HIERARCHY[currentPlanGroup] || 0
+    const newLevel = PLAN_HIERARCHY[newPlanGroup] || 0
+    const isDowngrade = newLevel < currentLevel && billing?.currentPeriodEnd
+
+    if (isDowngrade) {
+      // Open downgrade modal instead of redirecting
+      setSelectedDowngradePlan(selectedPlan)
+      setDowngradeModalOpen(true)
+      return
+    }
+
+    // Normal flow: redirect to confirmation page
     const params = new URLSearchParams({
       plan_id: selectedPlan.id,
       plan_name: selectedPlan.name,
@@ -316,6 +341,27 @@ export function PlanosPageClient({ initialPlans }: PlanosPageClientProps) {
           </Accordion>
         </div>
       </div>
+
+      {/* Downgrade Modal */}
+      {selectedDowngradePlan && (
+        <DowngradeModal
+          open={downgradeModalOpen}
+          onOpenChange={setDowngradeModalOpen}
+          currentPlan={currentUser?.billing?.planGroup?.toUpperCase() || 'Atual'}
+          newPlan={{
+            id: selectedDowngradePlan.id,
+            name: selectedDowngradePlan.name,
+            price: selectedDowngradePlan.price,
+            interval: selectedDowngradePlan.interval,
+            max_suppliers: selectedDowngradePlan.max_suppliers,
+            max_sales_month: selectedDowngradePlan.max_sales_month,
+          }}
+          periodEnd={currentUser?.billing?.currentPeriodEnd || null}
+          onSuccess={() => {
+            refresh?.()
+          }}
+        />
+      )}
     </>
   )
 }
