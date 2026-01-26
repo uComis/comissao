@@ -57,14 +57,17 @@ export async function callAsaasApi(
 /**
  * Simula confirmação de pagamento no Asaas (sandbox)
  * Usa o endpoint receiveInCash para marcar como pago
+ *
+ * @param paymentDate - Data do pagamento (usar dueDate do payment para evitar erro de data)
  */
 export async function simulatePaymentConfirmation(
   request: APIRequestContext,
   paymentId: string,
-  value?: number
+  value?: number,
+  paymentDate?: string
 ): Promise<void> {
   const payload: Record<string, unknown> = {
-    paymentDate: new Date().toISOString().split('T')[0],
+    paymentDate: paymentDate || new Date().toISOString().split('T')[0],
   };
 
   // Só passa o valor se for informado (caso contrário usa o valor original do pagamento)
@@ -123,8 +126,8 @@ export async function cancelAsaasSubscription(
 export async function findAsaasPaymentsBySubscription(
   request: APIRequestContext,
   subscriptionId: string
-): Promise<{ data: Array<{ id: string; status: string; value: number }> }> {
-  return callAsaasApi(request, 'GET', `/payments?subscription=${subscriptionId}`) as Promise<{ data: Array<{ id: string; status: string; value: number }> }>;
+): Promise<{ data: Array<{ id: string; status: string; value: number; dueDate: string }> }> {
+  return callAsaasApi(request, 'GET', `/payments?subscription=${subscriptionId}`) as Promise<{ data: Array<{ id: string; status: string; value: number; dueDate: string }> }>;
 }
 
 /**
@@ -133,7 +136,7 @@ export async function findAsaasPaymentsBySubscription(
 export async function findPendingPayment(
   request: APIRequestContext,
   subscriptionId: string
-): Promise<{ id: string; status: string; value: number } | null> {
+): Promise<{ id: string; status: string; value: number; dueDate: string } | null> {
   const payments = await findAsaasPaymentsBySubscription(request, subscriptionId);
   return payments.data?.find(p => p.status === 'PENDING') || null;
 }

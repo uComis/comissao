@@ -1,4 +1,3 @@
-import { Page } from '@playwright/test';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
@@ -6,6 +5,30 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  */
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+/**
+ * Senha padrão para todos os usuários de teste
+ */
+export const TEST_PASSWORD = 'Test@123456';
+
+/**
+ * Domínio de email para usuários de teste
+ */
+export const TEST_EMAIL_DOMAIN = '@test.ucomis.com';
+
+/**
+ * Tipo de plano
+ */
+export type PlanType = 'free' | 'pro' | 'ultra';
+
+/**
+ * Credenciais de usuário de teste
+ */
+export interface TestUserCredentials {
+  id: string;
+  email: string;
+  password: string;
+}
 
 let supabaseAdmin: SupabaseClient | null = null;
 
@@ -73,19 +96,18 @@ export async function createTestUser(
  */
 export async function createTestUserWithCredentials(
   prefix: string = 'e2e-test'
-): Promise<{ email: string; password: string; id: string }> {
+): Promise<TestUserCredentials> {
   const timestamp = Date.now();
-  const email = `${prefix}-${timestamp}@test.ucomis.com`;
-  const password = 'Test@123456';
+  const email = `${prefix}-${timestamp}${TEST_EMAIL_DOMAIN}`;
 
-  const user = await createTestUser(email, password, {
+  const user = await createTestUser(email, TEST_PASSWORD, {
     name: `Test User ${timestamp}`,
   });
 
   return {
     id: user.id,
     email: user.email,
-    password,
+    password: TEST_PASSWORD,
   };
 }
 
@@ -278,4 +300,153 @@ export async function getSubscriptionByAsaasId(asaasSubscriptionId: string): Pro
     .eq('asaas_subscription_id', asaasSubscriptionId)
     .single();
   return data;
+}
+
+// =====================================================
+// ROTINAS INTELIGENTES DE REUTILIZAÇÃO DE USUÁRIOS
+// =====================================================
+
+/**
+ * Busca um usuário de teste existente por plano
+ * Usuários de teste são identificados pelo domínio @test.ucomis.com
+ */
+export async function findTestUserByPlan(plan: PlanType): Promise<TestUserCredentials | null> {
+  const supabase = getSupabaseAdmin();
+
+  // Busca usuários de teste (email termina com @test.ucomis.com)
+  const { data: users } = await supabase.auth.admin.listUsers();
+  const testUsers = users?.users?.filter(u => u.email?.endsWith(TEST_EMAIL_DOMAIN)) || [];
+
+  for (const user of testUsers) {
+    // Busca a subscription do usuário
+    const { data: subscription } = await supabase
+      .from('user_subscriptions')
+      .select('plan_group')
+      .eq('user_id', user.id)
+      .single();
+
+    const userPlan = subscription?.plan_group || 'free';
+
+    if (userPlan === plan) {
+      return {
+        id: user.id,
+        email: user.email!,
+        password: TEST_PASSWORD,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Busca qualquer usuário de teste existente
+ */
+export async function findAnyTestUser(): Promise<TestUserCredentials | null> {
+  const supabase = getSupabaseAdmin();
+
+  const { data: users } = await supabase.auth.admin.listUsers();
+  const testUser = users?.users?.find(u => u.email?.endsWith(TEST_EMAIL_DOMAIN));
+
+  if (testUser) {
+    return {
+      id: testUser.id,
+      email: testUser.email!,
+      password: TEST_PASSWORD,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Garante que existe um usuário de teste (qualquer plano)
+ * Se não existir, cria um novo
+ */
+export async function ensureTestUser(): Promise<TestUserCredentials> {
+  // 1. Tenta encontrar um usuário de teste existente
+  const existing = await findAnyTestUser();
+  if (existing) {
+    console.log(`[ensureTestUser] Reutilizando usuário existente: ${existing.email}`);
+    return existing;
+  }
+
+  // 2. Se não existe, cria um novo
+  console.log('[ensureTestUser] Criando novo usuário de teste...');
+  const newUser = await createTestUserWithCredentials('e2e-test');
+  return {
+    id: newUser.id,
+    email: newUser.email,
+    password: TEST_PASSWORD,
+  };
+}
+
+/**
+ * Garante que existe um usuário de teste com plano específico
+ *
+ * Fluxo:
+ * 1. Busca usuário de teste com o plano desejado → Retorna se encontrar
+ * 2. Busca usuário de teste com plano inferior → Retorna para fazer upgrade via UI
+ * 3. Se não encontrar ninguém → Cria novo usuário
+ *
+ * NOTA: Esta função NÃO faz a assinatura automaticamente.
+ * Retorna { user, needsSubscription: true } se precisar assinar via UI.
+ */
+export async function ensureTestUserWithPlan(plan: PlanType): Promise<{
+  user: TestUserCredentials;
+  needsSubscription: boolean;
+  currentPlan: PlanType;
+}> {
+  // 1. Busca usuário com o plano exato
+  const exactMatch = await findTestUserByPlan(plan);
+  if (exactMatch) {
+    console.log(`[ensureTestUserWithPlan] Encontrou usuário com plano ${plan}: ${exactMatch.email}`);
+    return { user: exactMatch, needsSubscription: false, currentPlan: plan };
+  }
+
+  // 2. Se precisa de 'pro' ou 'ultra', busca usuário com plano inferior para upgrade
+  if (plan !== 'free') {
+    // Tenta encontrar usuário free para assinar
+    const freeUser = await findTestUserByPlan('free');
+    if (freeUser) {
+      console.log(`[ensureTestUserWithPlan] Encontrou usuário free para assinar ${plan}: ${freeUser.email}`);
+      return { user: freeUser, needsSubscription: true, currentPlan: 'free' };
+    }
+
+    // Se precisa de 'ultra', tenta encontrar usuário 'pro' para upgrade
+    if (plan === 'ultra') {
+      const proUser = await findTestUserByPlan('pro');
+      if (proUser) {
+        console.log(`[ensureTestUserWithPlan] Encontrou usuário pro para upgrade: ${proUser.email}`);
+        return { user: proUser, needsSubscription: true, currentPlan: 'pro' };
+      }
+    }
+  }
+
+  // 3. Busca qualquer usuário de teste
+  const anyUser = await findAnyTestUser();
+  if (anyUser) {
+    // Descobre o plano atual
+    const supabase = getSupabaseAdmin();
+    const { data: subscription } = await supabase
+      .from('user_subscriptions')
+      .select('plan_group')
+      .eq('user_id', anyUser.id)
+      .single();
+
+    const currentPlan = (subscription?.plan_group || 'free') as PlanType;
+    const needsSubscription = currentPlan !== plan;
+
+    console.log(`[ensureTestUserWithPlan] Usando usuário existente (${currentPlan}): ${anyUser.email}`);
+    return { user: anyUser, needsSubscription, currentPlan };
+  }
+
+  // 4. Não encontrou ninguém, cria novo
+  console.log(`[ensureTestUserWithPlan] Criando novo usuário para plano ${plan}...`);
+  const newUser = await createTestUserWithCredentials('e2e-test');
+  return {
+    user: { id: newUser.id, email: newUser.email, password: TEST_PASSWORD },
+    needsSubscription: plan !== 'free',
+    currentPlan: 'free',
+  };
 }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createTestUserWithCredentials, cleanupTestUser } from '../routines/database';
+import { ensureTestUser, TestUserCredentials } from '../routines/database';
 import { ProfilePage } from '../pages/profile.page';
 import { LoginPage } from '../pages/login.page';
 import { expectSuccessToast } from '../routines/assertions';
@@ -14,20 +14,18 @@ import { expectSuccessToast } from '../routines/assertions';
  * 4. Atualizar nome e documento
  * 5. Salvar e verificar toast de sucesso
  * 6. Verificar que os dados foram atualizados na página
+ *
+ * NOTA: Este teste reutiliza usuário existente (qualquer plano serve)
  */
 test.describe('Update User Profile', () => {
-  let testUser: { email: string; password: string; id: string };
+  let testUser: TestUserCredentials;
 
   test.beforeAll(async () => {
-    // Cria usuário via API Admin para testar atualização de perfil
-    testUser = await createTestUserWithCredentials('e2e-profile');
+    // Reutiliza usuário existente ou cria novo se não houver
+    testUser = await ensureTestUser();
   });
 
-  test.afterAll(async () => {
-    if (testUser?.email) {
-      await cleanupTestUser(testUser.email);
-    }
-  });
+  // Não faz cleanup - usuário pode ser reutilizado por outros testes
 
   test('deve permitir atualizar nome e documento do perfil', async ({ page }) => {
     // 1. Faz login

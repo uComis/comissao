@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createTestUserWithCredentials, cleanupTestUser } from '../routines/database';
+import { ensureTestUser, TestUserCredentials } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { expectRedirect, expectText } from '../routines/assertions';
 import { navigateTo } from '../routines/navigation';
@@ -12,21 +12,18 @@ import { navigateTo } from '../routines/navigation';
  * 2. Login com credenciais inválidas (deve mostrar erro)
  * 3. Verificar sessão ativa após login
  * 4. Verificar acesso a rotas protegidas
+ *
+ * NOTA: Este teste reutiliza usuário existente (qualquer plano serve para login)
  */
 test.describe('Login User', () => {
-  let testUser: { email: string; password: string; id: string };
+  let testUser: TestUserCredentials;
 
   test.beforeAll(async () => {
-    // Cria usuário via API Admin (já confirmado) para testar login
-    // Aqui usamos API porque estamos testando LOGIN, não registro
-    testUser = await createTestUserWithCredentials('e2e-login');
+    // Reutiliza usuário existente ou cria novo se não houver
+    testUser = await ensureTestUser();
   });
 
-  test.afterAll(async () => {
-    if (testUser?.email) {
-      await cleanupTestUser(testUser.email);
-    }
-  });
+  // Não faz cleanup - usuário pode ser reutilizado por outros testes
 
   test('deve fazer login com credenciais válidas', async ({ page }) => {
     // 1. Acessa página de login
