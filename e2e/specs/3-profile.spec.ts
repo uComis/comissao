@@ -1,31 +1,33 @@
 import { test, expect } from '@playwright/test';
-import { ensureTestUser, TestUserCredentials } from '../routines/database';
 import { ProfilePage } from '../pages/profile.page';
 import { LoginPage } from '../pages/login.page';
 import { expectSuccessToast } from '../routines/assertions';
+import { requireTestUser, SharedTestUser } from '../state/shared-user';
 
 /**
  * Teste E2E #3: Update User Profile
  *
- * Testa o fluxo completo de atualização de perfil:
- * 1. Login com usuário existente
+ * TERCEIRO TESTE DA CADEIA REAL:
+ * Register → Login → Profile → Subscribe → Upgrade
+ *
+ * Este teste USA o usuário criado pelo teste de Register.
+ * Se Register não rodou, este teste FALHA.
+ *
+ * Fluxo:
+ * 1. Login com usuário da cadeia
  * 2. Navegar para página de perfil
  * 3. Abrir modal de edição
  * 4. Atualizar nome e documento
  * 5. Salvar e verificar toast de sucesso
  * 6. Verificar que os dados foram atualizados na página
- *
- * NOTA: Este teste reutiliza usuário existente (qualquer plano serve)
  */
 test.describe('Update User Profile', () => {
-  let testUser: TestUserCredentials;
+  let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // Reutiliza usuário existente ou cria novo se não houver
-    testUser = await ensureTestUser();
+    // USA o usuário criado pelo teste de Register
+    testUser = requireTestUser();
   });
-
-  // Não faz cleanup - usuário pode ser reutilizado por outros testes
 
   test('deve permitir atualizar nome e documento do perfil', async ({ page }) => {
     // 1. Faz login

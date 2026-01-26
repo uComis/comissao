@@ -1,29 +1,32 @@
 import { test, expect } from '@playwright/test';
-import { ensureTestUser, TestUserCredentials } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { expectRedirect, expectText } from '../routines/assertions';
 import { navigateTo } from '../routines/navigation';
+import { requireTestUser, SharedTestUser } from '../state/shared-user';
 
 /**
  * Teste E2E #2: Login User
  *
- * Testa o fluxo de login:
- * 1. Login com credenciais válidas
+ * SEGUNDO TESTE DA CADEIA REAL:
+ * Register → Login → Profile → Subscribe → Upgrade
+ *
+ * Este teste USA o usuário criado pelo teste de Register.
+ * Se Register não rodou, este teste FALHA.
+ *
+ * Fluxo:
+ * 1. Login com credenciais válidas (do Register)
  * 2. Login com credenciais inválidas (deve mostrar erro)
  * 3. Verificar sessão ativa após login
  * 4. Verificar acesso a rotas protegidas
- *
- * NOTA: Este teste reutiliza usuário existente (qualquer plano serve para login)
  */
 test.describe('Login User', () => {
-  let testUser: TestUserCredentials;
+  let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // Reutiliza usuário existente ou cria novo se não houver
-    testUser = await ensureTestUser();
+    // USA o usuário criado pelo teste de Register
+    // Se Register não rodou, este teste FALHA
+    testUser = requireTestUser();
   });
-
-  // Não faz cleanup - usuário pode ser reutilizado por outros testes
 
   test('deve fazer login com credenciais válidas', async ({ page }) => {
     // 1. Acessa página de login

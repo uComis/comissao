@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ensureTestUserWithPlan, getSubscriptionByAsaasId, TestUserCredentials } from '../routines/database';
+import { getSubscriptionByAsaasId } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { PricingPage, ConfirmPlanPage } from '../pages/pricing.page';
 import {
@@ -8,28 +8,39 @@ import {
   findPendingPayment,
   simulatePaymentConfirmation,
 } from '../routines/api';
+import { requireTestUser, updateTestUserPlan, SharedTestUser } from '../state/shared-user';
 
 /**
  * Teste E2E #5: Upgrade Pro to Ultra
  *
- * IMPORTANTE: Os testes rodam em ordem sequencial.
- * Testes de VALIDAÇÃO vêm primeiro (não mudam estado).
- * Teste de UPGRADE vem por último (muda usuário de pro para ultra).
+ * QUINTO TESTE DA CADEIA REAL:
+ * Register → Login → Profile → Subscribe → Upgrade
  *
- * NOTA: Este teste precisa de usuário PRO. Se não houver, busca free para assinar primeiro.
+ * Este teste USA o usuário criado pelo teste de Register.
+ * O usuário deve estar com plano PRO (após o teste Subscribe).
+ * Após este teste, o usuário terá plano ULTRA.
+ *
+ * Fluxo REAL:
+ * 1. Login via UI
+ * 2. Navega para planos via UI
+ * 3. Seleciona Ultra via UI
+ * 4. Preenche dados via UI
+ * 5. Cria subscription REAL no Asaas
+ * 6. Simula pagamento via API Asaas (justificável)
+ * 7. Verifica no banco
  */
 test.describe('Upgrade Pro to Ultra', () => {
-  let testUser: TestUserCredentials;
+  let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // Busca usuário pro para testar upgrade
-    const result = await ensureTestUserWithPlan('pro');
-    testUser = result.user;
+    // USA o usuário criado pelo teste de Register (deve ser PRO após Subscribe)
+    testUser = requireTestUser();
 
-    if (result.currentPlan !== 'pro') {
-      console.log(`[Upgrade] Aviso: usuário tem plano ${result.currentPlan}, pode precisar assinar Pro primeiro`);
+    if (testUser.plan !== 'pro') {
+      console.log(`[Upgrade] ⚠️ Usuário tem plano ${testUser.plan}, deveria ser PRO`);
+      console.log(`[Upgrade] ⚠️ Verifique se o teste Subscribe rodou antes`);
     } else {
-      console.log(`[Upgrade] Usuário Pro encontrado: ${testUser.email}`);
+      console.log(`[Upgrade] ✅ Usuário Pro encontrado: ${testUser.email}`);
     }
   });
 
@@ -205,8 +216,12 @@ test.describe('Upgrade Pro to Ultra', () => {
     expect(subscription.asaas_subscription_id).toBe(subscriptionId);
     expect(subscription.plan_group).toBe('ultra');
 
-    // 15. Log de sucesso
+    // 15. Atualiza o plano no estado compartilhado
+    updateTestUserPlan('ultra');
+
+    // 16. Log de sucesso
     console.log(`[Test] ✅ Upgrade concluído: ${subscriptionId}`);
     console.log(`[Test] ✅ Novo plano: ${subscription.plan_group}`);
+    console.log(`[Test] ✅ Usuário da cadeia atualizado para plano ULTRA`);
   });
 });

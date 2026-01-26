@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ensureTestUserWithPlan, getSubscriptionByAsaasId, TestUserCredentials } from '../routines/database';
+import { getSubscriptionByAsaasId } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { PricingPage, ConfirmPlanPage } from '../pages/pricing.page';
 import { expectSuccessToast } from '../routines/assertions';
@@ -11,30 +11,39 @@ import {
   simulatePaymentConfirmation,
   waitForWebhookProcessing,
 } from '../routines/api';
+import { requireTestUser, updateTestUserPlan, SharedTestUser } from '../state/shared-user';
 
 /**
  * Teste E2E #4: Subscribe to Pro Plan
  *
- * IMPORTANTE: Os testes rodam em ordem sequencial.
- * Testes de VALIDAÇÃO vêm primeiro (não mudam estado).
- * Teste de ASSINATURA vem por último (muda usuário de free para pro).
+ * QUARTO TESTE DA CADEIA REAL:
+ * Register → Login → Profile → Subscribe → Upgrade
  *
- * NOTA: Este teste precisa de usuário FREE. Se não houver, cria um novo.
+ * Este teste USA o usuário criado pelo teste de Register.
+ * O usuário deve estar com plano FREE (recém criado).
+ * Após este teste, o usuário terá plano PRO.
+ *
+ * Fluxo REAL:
+ * 1. Login via UI
+ * 2. Navega para planos via UI
+ * 3. Seleciona Pro via UI
+ * 4. Preenche dados via UI
+ * 5. Cria customer REAL no Asaas
+ * 6. Cria subscription REAL no Asaas
+ * 7. Simula pagamento via API Asaas (justificável - não tem como pagar de verdade)
+ * 8. Verifica no banco
  */
 test.describe('Subscribe to Pro Plan', () => {
-  let testUser: TestUserCredentials;
+  let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // Busca ou cria usuário free para testar assinatura
-    const result = await ensureTestUserWithPlan('free');
-    testUser = result.user;
+    // USA o usuário criado pelo teste de Register
+    testUser = requireTestUser();
 
-    if (result.currentPlan !== 'free') {
-      console.log(`[Subscribe] Aviso: usuário já tem plano ${result.currentPlan}`);
+    if (testUser.plan !== 'free') {
+      console.log(`[Subscribe] ⚠️ Usuário já tem plano ${testUser.plan} - teste pode falhar ou ser redundante`);
     }
   });
-
-  // Não faz cleanup - usuário pode ser reutilizado por outros testes (upgrade, etc)
 
   // =========================================================================
   // TESTES DE VALIDAÇÃO (não mudam estado do usuário)
@@ -232,8 +241,12 @@ test.describe('Subscribe to Pro Plan', () => {
     expect(subscription.asaas_subscription_id).toBe(subscriptionId);
     expect(subscription.plan_group).toBe('pro');
 
-    // 15. Log de sucesso
+    // 15. Atualiza o plano no estado compartilhado
+    updateTestUserPlan('pro');
+
+    // 16. Log de sucesso
     console.log(`[Test] ✅ Assinatura criada no Asaas: ${subscriptionId}`);
     console.log(`[Test] ✅ Assinatura registrada no banco: plano ${subscription.plan_group}`);
+    console.log(`[Test] ✅ Usuário da cadeia atualizado para plano PRO`);
   });
 });

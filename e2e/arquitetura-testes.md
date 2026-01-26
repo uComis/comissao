@@ -33,10 +33,18 @@ e2e/
 │   ├── profile.page.ts
 │   └── dashboard.page.ts
 │
-├── specs/                 # Arquivos de teste
-│   ├── register.spec.ts   # Teste E2E #1: Register User
-│   ├── login.spec.ts      # Teste E2E #2: Login User
-│   └── ...
+├── state/                 # Estado compartilhado entre testes
+│   ├── shared-user.ts     # Gerenciador de usuário da cadeia
+│   └── test-user.json     # Credenciais salvas (git ignored)
+│
+├── specs/                 # Arquivos de teste (ordem numérica = ordem de execução)
+│   ├── 1-register.spec.ts # Teste E2E #1: Register User (CRIA usuário)
+│   ├── 2-login.spec.ts    # Teste E2E #2: Login User (USA usuário)
+│   ├── 3-profile.spec.ts  # Teste E2E #3: Update Profile
+│   ├── 4-subscribe.spec.ts# Teste E2E #4: Subscribe Pro
+│   ├── 5-upgrade.spec.ts  # Teste E2E #5: Upgrade to Ultra
+│   ├── 6-downgrade.spec.ts# Teste E2E #6: Downgrade (UI)
+│   └── 7-cancel.spec.ts   # Teste E2E #7: Cancel (UI)
 │
 └── arquitetura-testes.md  # Este documento
 ```
@@ -105,6 +113,39 @@ test('deve fazer login', async ({ page }) => {
   await expectRedirect(page, '/home');
 });
 ```
+
+## Cadeia Real de Testes
+
+Os testes 1-5 formam uma **cadeia real** onde cada teste depende do anterior:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CADEIA REAL (testes 1-5)                                       │
+│                                                                 │
+│  1-register ──► 2-login ──► 3-profile ──► 4-subscribe ──► 5-upgrade
+│       │                                                         │
+│       │  Cria usuário via UI e salva credenciais                │
+│       │                                                         │
+│       ▼                                                         │
+│  Se REGISTER falhar, TODOS os outros falham ✅                   │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  TESTES DE UI (testes 6-7)                                      │
+│                                                                 │
+│  6-downgrade, 7-cancel                                          │
+│  - Usam atalhos no banco para configurar ambiente               │
+│  - Testam se a interface funciona                               │
+│  - Aceitável porque testes 1-5 garantem fluxo real              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Simulações justificáveis
+
+| Simulação | Motivo | Onde |
+|-----------|--------|------|
+| Confirmação de email | Impossível clicar em email real | 1-register |
+| Pagamento Asaas | Impossível cobrança real em teste | 4-subscribe, 5-upgrade |
 
 ## Princípios
 

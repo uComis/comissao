@@ -3,25 +3,37 @@ import { cleanupTestUser, confirmUserEmailByEmail, findUserByEmail } from '../ro
 import { RegisterPage } from '../pages/register.page';
 import { LoginPage } from '../pages/login.page';
 import { expectRedirect } from '../routines/assertions';
+import { saveTestUser, clearTestUser } from '../state/shared-user';
 
 /**
  * Teste E2E #1: Register User
  *
- * Testa o fluxo COMPLETO de registro de usuário:
- * 1. Preenche formulário de cadastro
+ * PRIMEIRO TESTE DA CADEIA REAL:
+ * Register → Login → Profile → Subscribe → Upgrade
+ *
+ * Este teste CRIA o usuário que será usado por TODOS os outros testes.
+ * Se este teste falhar, TODOS os outros falham também.
+ *
+ * Fluxo:
+ * 1. Preenche formulário de cadastro via UI
  * 2. Verifica envio de email (se falhar, teste falha)
- * 3. Confirma email (simula clique no link)
+ * 3. Confirma email via API (simulação justificável - não tem como clicar no email)
  * 4. Faz login com as credenciais criadas
  * 5. Verifica acesso à plataforma
+ * 6. SALVA as credenciais para os próximos testes
  */
 test.describe('Register User', () => {
   const timestamp = Date.now();
-  const testEmail = `e2e-register-${timestamp}@test.ucomis.com`;
+  const testEmail = `e2e-chain-${timestamp}@test.ucomis.com`;
   const testPassword = 'Test@123456';
 
-  test.afterAll(async () => {
-    await cleanupTestUser(testEmail);
+  test.beforeAll(async () => {
+    // Limpa estado anterior para garantir cadeia limpa
+    clearTestUser();
   });
+
+  // NÃO faz cleanup - o usuário será reutilizado pelos próximos testes
+  // O cleanup acontece quando uma nova cadeia começa (beforeAll acima)
 
   test('deve permitir que um novo usuário se cadastre na plataforma', async ({ page }) => {
     // 1. Acessa página de registro
@@ -56,6 +68,7 @@ test.describe('Register User', () => {
     expect(user?.email).toBe(testEmail);
 
     // 7. Confirma email via API (simula clique no link do email)
+    // SIMULAÇÃO JUSTIFICÁVEL: Não tem como automatizar clique em email real
     await confirmUserEmailByEmail(testEmail);
 
     // 8. Faz login com as credenciais criadas
@@ -65,5 +78,15 @@ test.describe('Register User', () => {
 
     // 9. Verifica se conseguiu acessar a plataforma
     await expectRedirect(page, '/home');
+
+    // 10. SALVA as credenciais para os próximos testes da cadeia
+    saveTestUser({
+      id: user!.id,
+      email: testEmail,
+      password: testPassword,
+      plan: 'free',
+    });
+
+    console.log('[Register] ✅ Usuário criado e salvo para cadeia de testes');
   });
 });

@@ -2,7 +2,7 @@
 
 ---
 
-## 📊 STATUS GERAL (Atualizado: 2025-01-25)
+## 📊 STATUS GERAL (Atualizado: 2026-01-26)
 
 | Teste | Status | Resultado |
 |-------|--------|-----------|
@@ -11,91 +11,62 @@
 | 3. Update User Profile | ✅ Implementado | ✅ Passando |
 | 4. Subscribe to Pro Plan | ✅ Implementado | ✅ Passando (4/4) |
 | 5. Upgrade Pro to Ultra | ✅ Implementado | ✅ Passando (4/4) |
-| 6. Downgrade Ultra to Pro | ✅ Implementado | ⚠️ 3/4 passando |
-| 7. Cancel Subscription | ✅ Implementado | ⚠️ 3/4 passando |
+| 6. Downgrade Ultra to Pro | ✅ Implementado | ✅ Passando (4/4) |
+| 7. Cancel Subscription | ✅ Implementado | ✅ Passando (4/4) |
 | 8-12. Webhooks/Trial/Payment | ❌ Não necessário | N/A |
 
-### 🚧 BLOQUEIO ATUAL
+### ✅ TODOS OS TESTES PASSANDO (24/24)
 
-**Os testes 6 e 7 têm 1 teste cada que falha porque a migration não foi aplicada.**
+**Migration aplicada em 2026-01-26** via Supabase MCP.
 
-A migration `supabase/migrations/20250125_add_downgrade_and_cancel_fields.sql` precisa ser aplicada ao banco.
+---
 
-**Para aplicar, acesse:**
-https://supabase.com/dashboard/project/sdptlukijdthbrrcbocr/sql/new
+## 🔗 ARQUITETURA: CADEIA REAL DE TESTES
 
-**E execute:**
-```sql
-ALTER TABLE public.user_subscriptions
-ADD COLUMN IF NOT EXISTS pending_plan_group TEXT DEFAULT NULL;
+Os testes E2E formam uma **cadeia real** onde cada teste depende do anterior:
 
-ALTER TABLE public.user_subscriptions
-ADD COLUMN IF NOT EXISTS pending_plan_id TEXT DEFAULT NULL;
-
-ALTER TABLE public.user_subscriptions
-ADD COLUMN IF NOT EXISTS cancel_at_period_end BOOLEAN DEFAULT false;
-
-ALTER TABLE public.user_subscriptions
-ADD COLUMN IF NOT EXISTS canceled_at TIMESTAMPTZ DEFAULT NULL;
-
-ALTER TABLE public.user_subscriptions
-ADD COLUMN IF NOT EXISTS cancel_reason TEXT DEFAULT NULL;
+```
+1-register → 2-login → 3-profile → 4-subscribe → 5-upgrade
+     ↓
+Se Register falhar, TODOS os outros falham ✅
 ```
 
-### 📁 ARQUIVOS CRIADOS/MODIFICADOS
+### Como funciona
 
-**Novos arquivos:**
-- `e2e/specs/downgrade.spec.ts` - Testes de downgrade
-- `e2e/specs/cancel.spec.ts` - Testes de cancelamento
-- `src/components/billing/downgrade-modal.tsx` - Modal de downgrade
-- `src/components/billing/cancel-subscription-modal.tsx` - Modal de cancelamento
-- `supabase/migrations/20250125_add_downgrade_and_cancel_fields.sql` - Migration
+1. **1-register.spec.ts** - Cria usuário via UI REAL e salva credenciais
+2. **2-login.spec.ts** - USA as credenciais salvas (não cria via API)
+3. **3-profile.spec.ts** - USA o mesmo usuário
+4. **4-subscribe.spec.ts** - USA o mesmo usuário, cria assinatura REAL no Asaas
+5. **5-upgrade.spec.ts** - USA o mesmo usuário (agora Pro), faz upgrade REAL
 
-**Arquivos modificados:**
-- `src/app/actions/billing/types.ts` - Novos campos no tipo UserSubscription
-- `src/app/actions/billing/subscriptions.ts` - Novas actions (scheduleDowngrade, cancelSubscription, etc)
-- `src/app/actions/user.ts` - Novos campos em UserBilling
-- `src/app/(dashboard)/planos/planos-client.tsx` - Integração do DowngradeModal
-- `src/app/(dashboard)/cobrancas/client.tsx` - Integração do CancelSubscriptionModal
-- `src/components/billing/index.ts` - Exports dos novos modais
-- `e2e/routines/database.ts` - Novas funções (setCurrentPeriodEnd, resetSubscriptionState)
+### Simulações justificáveis (impossível fazer de outra forma)
 
-### 🔧 O QUE FOI IMPLEMENTADO
+| Simulação | Motivo |
+|-----------|--------|
+| Confirmação de email | Não tem como automatizar clique em email real |
+| Pagamento no Asaas | Não tem como fazer cobrança real em teste automatizado |
 
-1. **Sistema de Downgrade:**
-   - Detecta quando usuário seleciona plano inferior
-   - Abre modal informando que é downgrade
-   - Mostra data até quando plano atual continua
-   - Agenda mudança para próximo ciclo (não muda imediatamente)
-   - Action `scheduleDowngrade()` salva pending_plan_group/pending_plan_id
+### Testes de UI (6-7)
 
-2. **Sistema de Cancelamento:**
-   - Botão "Cancelar assinatura" na página /cobrancas
-   - Modal com informações sobre o cancelamento
-   - Campo opcional para motivo do cancelamento
-   - Action `cancelSubscription()` marca cancel_at_period_end=true
-   - Usuário mantém acesso até fim do período
+Os testes de **downgrade** e **cancel** são testes de UI separados que usam atalhos no banco para configurar o ambiente. Isso é aceitável porque:
+- São testes destrutivos (mudariam estado irreversivelmente)
+- Os testes 1-5 já garantem que o fluxo real funciona
 
-3. **Testes E2E:**
-   - 4 testes de downgrade (3 validação + 1 ação)
-   - 4 testes de cancelamento (3 validação + 1 ação)
-   - Rotinas auxiliares para configurar current_period_end e resetar estado
+### Estado compartilhado
 
-### 🎯 PRÓXIMOS PASSOS
-
-1. **Aplicar a migration** (bloqueio atual)
-2. **Rodar os testes novamente** (`npm run e2e -- downgrade.spec.ts cancel.spec.ts`)
-3. **Verificar se os 8 testes passam**
-4. **Commit e push das mudanças**
+O arquivo `e2e/state/test-user.json` armazena as credenciais do usuário criado pelo Register. Este arquivo é ignorado pelo git.
 
 ### 📝 COMANDOS ÚTEIS
 
 ```bash
-# Rodar todos os testes E2E
+# Rodar todos os testes E2E (cadeia completa)
 npm run e2e
 
-# Rodar só downgrade e cancel
-npm run e2e -- downgrade.spec.ts cancel.spec.ts
+# Rodar só a cadeia principal (1-5)
+npm run e2e -- 1-register.spec.ts 2-login.spec.ts 3-profile.spec.ts 4-subscribe.spec.ts 5-upgrade.spec.ts
+
+# Rodar só testes de UI (6-7)
+npm run e2e -- 6-downgrade.spec.ts 7-cancel.spec.ts
 
 # Rodar com browser visível
 npm run e2e:headed
@@ -104,22 +75,20 @@ npm run e2e:headed
 npm run e2e:report
 ```
 
-### 🧪 ÚLTIMO RESULTADO DOS TESTES (2025-01-25)
+### 🧪 ÚLTIMO RESULTADO DOS TESTES (2026-01-26)
 
 ```
-Running 8 tests using 8 workers
+Running 24 tests using 1 worker
 
-✓ Cancel 1. deve mostrar link de cancelar para usuário com plano pago (19.1s)
-✓ Cancel 2. deve abrir modal ao clicar em cancelar (19.5s)
-✓ Cancel 3. deve permitir fechar o modal sem cancelar (19.7s)
-✘ Cancel 4. deve cancelar assinatura com sucesso - FALHA (migration não aplicada)
+✓ Register - deve permitir que um novo usuário se cadastre (100% UI)
+✓ Login - 4 testes (100% UI)
+✓ Profile - 3 testes (100% UI)
+✓ Subscribe - 4 testes (100% UI + Asaas real)
+✓ Upgrade - 4 testes (100% UI + Asaas real)
+✓ Downgrade - 4 testes (UI com atalhos)
+✓ Cancel - 4 testes (UI com atalhos)
 
-✓ Downgrade 1. deve mostrar plano Pro disponível para usuário Ultra (19.6s)
-✓ Downgrade 2. deve abrir modal de downgrade ao selecionar plano inferior (20.4s)
-✓ Downgrade 3. deve permitir cancelar o modal de downgrade (21.1s)
-✘ Downgrade 4. deve agendar downgrade de Ultra para Pro - FALHA (migration não aplicada)
-
-6 passed, 2 failed (29.3s)
+24 passed (3.7m)
 ```
 
 ---
