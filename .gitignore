@@ -52,3 +52,11 @@ next-env.d.ts
 # temp (contexto local de desenvolvimento)
 /temp/
 .playwright-mcp/
+
+# Supabase CLI temp files
+supabase/.temp/
+
+# Local scripts (may contain tokens/secrets)
+*.ps1
+schema-dev.sql
+nul
