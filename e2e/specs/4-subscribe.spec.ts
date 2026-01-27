@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-report';
-import { getSubscriptionByAsaasId, getUserSubscription } from '../routines/database';
+import { getSubscriptionByAsaasId, getUserSubscription, createTestUser, confirmUserEmail, TEST_PASSWORD } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { PricingPage, ConfirmPlanPage } from '../pages/pricing.page';
 import {
@@ -9,27 +9,49 @@ import {
   simulatePaymentConfirmation,
   findAsaasPaymentsByCustomer,
 } from '../routines/api';
-import { requireTestUser, updateTestUserPlan, SharedTestUser } from '../state/shared-user';
+import { getTestUser, saveTestUser, updateTestUserPlan, SharedTestUser } from '../state/shared-user';
 import { debugPause } from '../config/debug';
 
 /**
  * Teste E2E #4: Subscribe to Pro Plan
  *
- * QUARTO TESTE DA CADEIA REAL:
- * Register → Login → Profile → Subscribe → Upgrade
+ * Este teste pode rodar de duas formas:
+ * 1. Se existe usuário "free" no estado → usa ele
+ * 2. Se não existe OU usuário já tem plano → cria novo usuário automaticamente
  *
- * Este teste USA o usuário criado pelo teste de Register.
  * Fluxo completo: validações → navegação → assinatura real no Asaas
  */
 test.describe('Subscribe to Pro Plan', () => {
   let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    testUser = requireTestUser();
+    const existingUser = getTestUser();
 
-    if (testUser.plan !== 'free') {
-      console.log(`[Subscribe] ⚠️ Usuário já tem plano ${testUser.plan}`);
+    // Se existe usuário E ele está no plano free → usa ele
+    if (existingUser && existingUser.plan === 'free') {
+      testUser = existingUser;
+      console.log(`[Subscribe] ✅ Usando usuário existente: ${testUser.email}`);
+      return;
     }
+
+    // Caso contrário, cria novo usuário
+    console.log('[Subscribe] Criando novo usuário para teste de assinatura...');
+    const timestamp = Date.now();
+    const email = `e2e-subscribe-${timestamp}@test.ucomis.com`;
+
+    const newUser = await createTestUser(email, TEST_PASSWORD, { name: `Test Subscribe ${timestamp}` });
+
+    testUser = {
+      id: newUser.id,
+      email: newUser.email,
+      password: TEST_PASSWORD,
+      plan: 'free',
+      createdAt: new Date().toISOString(),
+    };
+
+    // Salva para os próximos testes
+    saveTestUser(testUser);
+    console.log(`[Subscribe] ✅ Novo usuário criado: ${testUser.email}`);
   });
 
   test('deve validar dados e permitir assinar plano Pro', async ({ page, request, testReport }) => {
