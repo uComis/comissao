@@ -6,18 +6,12 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Sheet,
   SheetContent,
@@ -195,63 +189,36 @@ export function ClientPicker({
     )
   }
 
-  // Desktop: Combobox + Button
+  // Desktop: Select + Button
   return (
     <div className={cn('flex gap-2', className)}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className={cn('flex-1 justify-between font-normal bg-transparent px-3 border-input')}
-            disabled={loading}
-          >
-            <span className={cn('truncate', !displayValue && 'text-muted-foreground')}>
-              {loading ? 'Carregando...' : displayValue || placeholder}
-            </span>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-          <Command shouldFilter={false}>
-            <CommandInput
-              placeholder="Pesquisar cliente..."
-              value={search}
-              onValueChange={setSearch}
-            />
-            <CommandList>
-              {filteredClients.length === 0 && (
-                <CommandEmpty>Nenhum cliente encontrado</CommandEmpty>
-              )}
-              <CommandGroup>
-                {filteredClients.map((client) => (
-                  <CommandItem
-                    key={client.id}
-                    value={client.id}
-                    onSelect={() => handleSelect(client)}
-                  >
-                    <Check
-                      className={cn(
-                        'mr-2 h-4 w-4',
-                        value === client.id ? 'opacity-100' : 'opacity-0'
-                      )}
-                    />
-                    <div className="flex flex-col">
-                      <span>{client.name}</span>
-                      {(client.cpf || client.cnpj) && (
-                        <span className="text-xs text-muted-foreground">
-                          {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
-                        </span>
-                      )}
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
+      <Select
+        value={value || ''}
+        onValueChange={(val) => {
+          const client = clients.find((c) => c.id === val)
+          if (client) {
+            onChange(client.id, client.name)
+          }
+        }}
+        disabled={loading}
+      >
+        <SelectTrigger className="flex-1">
+          <SelectValue placeholder={loading ? 'Carregando...' : placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {clients.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Nenhum cliente encontrado
+            </div>
+          ) : (
+            clients.map((client) => (
+              <SelectItem key={client.id} value={client.id}>
+                {client.name}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
       <Button
         type="button"
         variant="outline"

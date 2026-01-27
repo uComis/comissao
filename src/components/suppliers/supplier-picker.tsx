@@ -178,11 +178,17 @@ export function SupplierPicker({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {suppliers.map((supplier) => (
-            <SelectItem key={supplier.id} value={supplier.id}>
-              {supplier.name}
-            </SelectItem>
-          ))}
+          {suppliers.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Nenhum fornecedor encontrado
+            </div>
+          ) : (
+            suppliers.map((supplier) => (
+              <SelectItem key={supplier.id} value={supplier.id}>
+                {supplier.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       <Button

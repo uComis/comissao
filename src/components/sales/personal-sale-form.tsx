@@ -136,9 +136,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         productName: item.product_name,
       }))
     }
+    // Use a stable ID for the initial entry to avoid hydration mismatch
     return [
       {
-        id: crypto.randomUUID(),
+        id: 'initial-entry',
         quantity: 1,
         grossValue: sale?.gross_value?.toString() || '',
         taxRate: sale?.tax_rate?.toString() || '',
