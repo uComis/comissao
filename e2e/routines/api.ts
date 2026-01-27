@@ -58,7 +58,7 @@ export async function callAsaasApi(
  * Simula confirmação de pagamento no Asaas (sandbox)
  * Usa o endpoint receiveInCash para marcar como pago
  *
- * @param paymentDate - Data do pagamento (usar dueDate do payment para evitar erro de data)
+ * @param paymentDate - Data do pagamento (se for futura, usa hoje automaticamente)
  */
 export async function simulatePaymentConfirmation(
   request: APIRequestContext,
@@ -66,8 +66,18 @@ export async function simulatePaymentConfirmation(
   value?: number,
   paymentDate?: string
 ): Promise<void> {
+  const today = new Date().toISOString().split('T')[0];
+
+  // Se a data informada for futura, usa hoje (Asaas não permite simular pagamento futuro)
+  let effectiveDate = today;
+  if (paymentDate) {
+    const dueDate = new Date(paymentDate);
+    const now = new Date();
+    effectiveDate = dueDate > now ? today : paymentDate;
+  }
+
   const payload: Record<string, unknown> = {
-    paymentDate: paymentDate || new Date().toISOString().split('T')[0],
+    paymentDate: effectiveDate,
   };
 
   // Só passa o valor se for informado (caso contrário usa o valor original do pagamento)
@@ -75,6 +85,7 @@ export async function simulatePaymentConfirmation(
     payload.value = value;
   }
 
+  console.log(`[Asaas API] Simulando pagamento ${paymentId} com data ${effectiveDate}`);
   await callAsaasApi(request, 'POST', `/payments/${paymentId}/receiveInCash`, payload);
 }
 
