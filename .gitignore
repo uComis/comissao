@@ -51,3 +51,4 @@ next-env.d.ts
 
 # temp (contexto local de desenvolvimento)
 /temp/
+.playwright-mcp/
