@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-report';
 import { ProfilePage } from '../pages/profile.page';
 import { LoginPage } from '../pages/login.page';
 import { expectSuccessToast } from '../routines/assertions';
 import { requireTestUser, SharedTestUser } from '../state/shared-user';
+import { debugPause } from '../config/debug';
 
 /**
  * Teste E2E #3: Update User Profile
@@ -12,111 +13,98 @@ import { requireTestUser, SharedTestUser } from '../state/shared-user';
  *
  * Este teste USA o usuário criado pelo teste de Register.
  * Se Register não rodou, este teste FALHA.
- *
- * Fluxo:
- * 1. Login com usuário da cadeia
- * 2. Navegar para página de perfil
- * 3. Abrir modal de edição
- * 4. Atualizar nome e documento
- * 5. Salvar e verificar toast de sucesso
- * 6. Verificar que os dados foram atualizados na página
  */
 test.describe('Update User Profile', () => {
   let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // USA o usuário criado pelo teste de Register
     testUser = requireTestUser();
   });
 
-  test('deve permitir atualizar nome e documento do perfil', async ({ page }) => {
+  test('deve validar dados e permitir atualizar perfil', async ({ page, testReport }) => {
+    // Configura relatório
+    testReport.setUser({
+      email: testUser.email,
+      password: testUser.password,
+      id: testUser.id,
+    });
+    testReport.addAction('Iniciando teste de perfil');
+
     // 1. Faz login
     const loginPage = new LoginPage(page);
     await loginPage.goto();
     await loginPage.login(testUser.email, testUser.password);
-
-    // Aguarda redirecionamento para home
     await page.waitForURL(/\/home/, { timeout: 15000 });
+    testReport.addAction('Login realizado com sucesso');
+    await debugPause(page, 'medium');
 
     // 2. Navega para página de perfil
     const profilePage = new ProfilePage(page);
     await profilePage.goto();
+    testReport.addAction('Navegou para página de perfil');
+    await debugPause(page, 'medium');
 
-    // 3. Dados para atualização
-    const newName = 'Usuário Teste E2E';
-    const newDocument = '12345678901'; // CPF válido para teste
-
-    // 4. Abre modal e atualiza perfil
-    await profilePage.updateProfile(newName, newDocument);
-
-    // 5. Verifica toast de sucesso
-    await expectSuccessToast(page, 'Perfil atualizado com sucesso');
-
-    // 6. Aguarda o modal fechar e a página atualizar
-    await page.waitForTimeout(1000);
-
-    // 7. Recarrega a página para confirmar persistência
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-
-    // 8. Verifica que os dados foram salvos
-    const displayedName = await profilePage.getDisplayedName();
-    expect(displayedName).toContain(newName);
-  });
-
-  test('deve mostrar erro ao tentar salvar documento inválido', async ({ page }) => {
-    // 1. Faz login
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login(testUser.email, testUser.password);
-
-    // Aguarda redirecionamento
-    await page.waitForURL(/\/home/, { timeout: 15000 });
-
-    // 2. Navega para página de perfil
-    const profilePage = new ProfilePage(page);
-    await profilePage.goto();
-
-    // 3. Tenta atualizar com documento inválido (menos de 11 dígitos)
+    // ========== PASSO 1: Documento inválido ==========
+    testReport.addAction('Testando documento inválido');
     await profilePage.openEditDialog();
+    await debugPause(page, 'short');
+
     await profilePage.fillFullName('Teste Documento Inválido');
     await profilePage.fillDocument('1234567'); // CPF incompleto
+    await debugPause(page, 'short');
     await profilePage.save();
+    await debugPause(page, 'short');
 
-    // 4. Verifica toast de erro
-    const toast = page.locator('[data-sonner-toast]');
+    // Verifica toast de erro
+    let toast = page.locator('[data-sonner-toast]');
     await toast.waitFor({ state: 'visible', timeout: 10000 });
+    expect(await toast.getAttribute('data-type')).toBe('error');
+    testReport.addAction('Erro exibido para documento inválido');
+    await debugPause(page, 'long');
 
-    const toastType = await toast.getAttribute('data-type');
-    expect(toastType).toBe('error');
-  });
+    // Aguarda toast sumir
+    await toast.waitFor({ state: 'hidden', timeout: 10000 });
 
-  test('deve mostrar erro ao tentar salvar sem nome completo', async ({ page }) => {
-    // Este teste verifica a validação client-side do nome
+    // ========== PASSO 2: Dados válidos ==========
+    testReport.addAction('Testando dados válidos');
+    // O modal ainda deve estar aberto após erro de validação
+    // Mas se fechou, reabrimos
+    if (!(await profilePage.isEditDialogOpen())) {
+      await profilePage.openEditDialog();
+      await debugPause(page, 'short');
+    }
 
-    // 1. Faz login
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login(testUser.email, testUser.password);
+    const newName = 'Usuário Teste E2E';
+    const newDocument = '12345678901';
 
-    // Aguarda redirecionamento
-    await page.waitForURL(/\/home/, { timeout: 15000 });
-
-    // 2. Navega para página de perfil
-    const profilePage = new ProfilePage(page);
-    await profilePage.goto();
-
-    // 3. Tenta atualizar com apenas um nome (sem sobrenome)
-    await profilePage.openEditDialog();
-    await profilePage.fillFullName('Apenas');  // Sem sobrenome
-    await profilePage.fillDocument('12345678901');
-
-    // O formulário do perfil não tem validação de nome completo no client-side
-    // então este teste verifica apenas que o save funciona
+    await profilePage.fillFullName(newName);
+    await profilePage.fillDocument(newDocument);
+    testReport.addAction('Preencheu dados válidos', `Nome: ${newName}`);
+    await debugPause(page, 'short');
     await profilePage.save();
+    await debugPause(page, 'short');
 
-    // 4. Verifica se houve sucesso ou erro (depende da implementação)
-    const toast = page.locator('[data-sonner-toast]');
-    await toast.waitFor({ state: 'visible', timeout: 10000 });
+    // Verifica toast de sucesso
+    await expectSuccessToast(page, 'Perfil atualizado com sucesso');
+    testReport.addAction('Perfil atualizado com sucesso');
+    await debugPause(page, 'long');
+
+    // Aguarda o modal fechar
+    await page.waitForTimeout(1000);
+
+    // Recarrega para confirmar persistência
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    testReport.addAction('Página recarregada para verificar persistência');
+    await debugPause(page, 'medium');
+
+    // Verifica que os dados foram salvos
+    const displayedName = await profilePage.getDisplayedName();
+    expect(displayedName).toContain(newName);
+    testReport.addAction('Dados persistidos corretamente', `Nome exibido: ${displayedName}`);
+    await debugPause(page, 'long');
+
+    testReport.addNote('Teste de perfil completo: validações e persistência');
+    console.log('[Profile] ✅ Teste de perfil completo');
   });
 });

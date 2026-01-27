@@ -7,7 +7,7 @@ Documentação da estrutura e padrões de testes end-to-end do projeto.
 | Camada | Tecnologia |
 |--------|------------|
 | Framework | Playwright |
-| Viewport | 2560x1440 (2K) |
+| Viewport | 1280x720 (HD) |
 | Browser | Chromium |
 | Ambiente | Deve rodar em staging/homologação, NUNCA em produção |
 
@@ -15,6 +15,12 @@ Documentação da estrutura e padrões de testes end-to-end do projeto.
 
 ```
 e2e/
+├── fixtures/              # Fixtures customizadas do Playwright
+│   └── test-report.ts     # Fixture que gera relatórios HTML
+│
+├── reports/               # Relatórios HTML gerados (git ignored)
+│   └── *.html             # Um arquivo por execução de teste
+│
 ├── routines/              # Funções atômicas reutilizáveis (os "Legos")
 │   ├── index.ts           # Re-exporta TUDO (única fonte de importação)
 │   ├── navigation.ts      # navigateTo(), waitForUrl()
@@ -45,6 +51,30 @@ e2e/
 │   ├── 5-upgrade.spec.ts  # Teste E2E #5: Upgrade to Ultra
 │   ├── 6-downgrade.spec.ts# Teste E2E #6: Downgrade (UI)
 │   └── 7-cancel.spec.ts   # Teste E2E #7: Cancel (UI)
+│
+├── scripts/               # Scripts utilitários
+│   └── cleanup-pending-payments.ts  # Limpa cobranças órfãs no Asaas
+│
+├── config/                # Configurações dos testes
+│   └── debug.ts           # Modo debug visual (pausas controladas)
+│
+├── run/                   # Scripts para executar testes (Windows .bat)
+│   ├── all.bat            # Executa TODOS os testes
+│   ├── all-debug.bat      # Executa TODOS com pausas visuais
+│   ├── 1-register.bat     # Executa só Register
+│   ├── 1-register-debug.bat
+│   ├── 2-login.bat        # Executa só Login
+│   ├── 2-login-debug.bat
+│   ├── 3-profile.bat      # Executa só Profile
+│   ├── 3-profile-debug.bat
+│   ├── 4-subscribe.bat    # Executa só Subscribe
+│   ├── 4-subscribe-debug.bat
+│   ├── 5-upgrade.bat      # Executa só Upgrade
+│   ├── 5-upgrade-debug.bat
+│   ├── 6-downgrade.bat    # Executa só Downgrade
+│   ├── 6-downgrade-debug.bat
+│   ├── 7-cancel.bat       # Executa só Cancel
+│   └── 7-cancel-debug.bat
 │
 └── arquitetura-testes.md  # Este documento
 ```
@@ -240,15 +270,179 @@ await confirmUserEmailByEmail(testEmail);
 - `expectVisible(page, testId)` - Verifica elemento visível
 - `expectText(page, text)` - Verifica texto na página
 
-## Scripts NPM
+## Executando Testes
+
+### Scripts .bat (Windows) - Recomendado
+
+Todos os scripts estão em `e2e/run/`:
+
+**Modo Normal (rápido):**
+```bash
+e2e/run/all.bat        # Executa TODOS os testes
+e2e/run/1-register.bat # Executa só Register
+e2e/run/2-login.bat    # Executa só Login
+e2e/run/3-profile.bat  # Executa só Profile
+e2e/run/4-subscribe.bat# Executa só Subscribe
+e2e/run/5-upgrade.bat  # Executa só Upgrade
+e2e/run/6-downgrade.bat# Executa só Downgrade
+e2e/run/7-cancel.bat   # Executa só Cancel
+```
+
+**Modo Debug Visual (com pausas):**
+```bash
+e2e/run/all-debug.bat        # TODOS com pausas visuais
+e2e/run/1-register-debug.bat # Register com pausas
+e2e/run/2-login-debug.bat    # Login com pausas
+e2e/run/3-profile-debug.bat  # Profile com pausas
+e2e/run/4-subscribe-debug.bat# Subscribe com pausas
+e2e/run/5-upgrade-debug.bat  # Upgrade com pausas
+e2e/run/6-downgrade-debug.bat# Downgrade com pausas
+e2e/run/7-cancel-debug.bat   # Cancel com pausas
+```
+
+### Scripts NPM
 
 ```bash
-npm run e2e          # Roda todos os testes
+npm run e2e          # Roda todos os testes (headless)
 npm run e2e:ui       # Abre UI do Playwright
 npm run e2e:headed   # Roda com browser visível
 npm run e2e:debug    # Modo debug
 npm run e2e:report   # Abre relatório
 ```
+
+## Sistema de Relatórios HTML
+
+Cada teste gera automaticamente um relatório HTML amigável ao final da execução.
+
+### O que o relatório inclui
+
+| Seção | Descrição |
+|-------|-----------|
+| **Header** | Nome do teste, status (passou/falhou), duração |
+| **Usuário de Teste** | Email, senha, ID (com botão copiar) |
+| **Asaas** | Customer ID com links diretos para o sandbox |
+| **Faturas Antes** | Tabela com todas as faturas pendentes antes do teste |
+| **Faturas Depois** | Tabela com faturas após o teste (para comparação) |
+| **Ações Executadas** | Timeline cronológica de tudo que foi feito |
+| **Notas** | Observações importantes do teste |
+
+### Onde ficam os relatórios
+
+```
+e2e/reports/
+├── 2026-01-27T10-30-45_1-register-spec-ts.html
+├── 2026-01-27T10-31-20_2-login-spec-ts.html
+└── ...
+```
+
+### Abertura automática
+
+O relatório abre automaticamente no navegador quando:
+- `E2E_DEBUG=true` (modo debug visual)
+- `E2E_OPEN_REPORT=true` (forçar abertura)
+
+**Via scripts .bat (recomendado):**
+```bash
+e2e/run/7-cancel-debug.bat  # Abre relatório automaticamente
+```
+
+**Via variável de ambiente:**
+```bash
+set E2E_OPEN_REPORT=true
+npx playwright test e2e/specs/7-cancel.spec.ts
+```
+
+### Como usar no código
+
+```typescript
+import { test, expect } from '../fixtures/test-report';
+
+test('meu teste', async ({ page, testReport }) => {
+  // Configura usuário (aparece no relatório)
+  testReport.setUser({ email: 'user@test.com', password: '123' });
+
+  // Configura customer do Asaas (com links diretos)
+  testReport.setAsaasCustomer({ id: 'cus_123456' });
+
+  // Registra faturas antes do teste
+  testReport.setInvoicesBefore([
+    { id: 'pay_1', value: 49.90, status: 'PENDING', dueDate: '2026-02-01' }
+  ]);
+
+  // Adiciona ações executadas (aparecem na timeline)
+  testReport.addAction('Login realizado', 'Usuário redirecionado para /home');
+  testReport.addAction('Clicou em cancelar');
+
+  // Registra faturas após o teste
+  testReport.setInvoicesAfter([]);
+
+  // Adiciona notas importantes
+  testReport.addNote('Todas as cobranças foram canceladas no Asaas');
+});
+```
+
+### Fixture `testReport`
+
+A fixture é disponibilizada automaticamente quando você importa de `../fixtures/test-report`:
+
+```typescript
+// Antes (sem relatório)
+import { test, expect } from '@playwright/test';
+
+// Depois (com relatório)
+import { test, expect } from '../fixtures/test-report';
+```
+
+O relatório é gerado automaticamente ao final do teste, independente de passar ou falhar.
+
+---
+
+## Modo Debug Visual
+
+O modo debug adiciona **pausas controladas** nos testes para permitir visualização do que está acontecendo.
+
+### Tempos de Pausa
+
+| Tipo | Tempo | Quando usar |
+|------|-------|-------------|
+| `short` | 300ms | Após cliques, preenchimento de campos |
+| `medium` | 800ms | Após navegação, mudança de página |
+| `long` | 2.5s | Para ler mensagens, toasts, verificar estado |
+
+### Como usar
+
+**Via .bat (recomendado):**
+```bash
+e2e/run/2-login-debug.bat
+```
+
+**Via variável de ambiente:**
+```bash
+set E2E_DEBUG=true
+npx playwright test --headed
+```
+
+### No código
+
+```typescript
+import { debugPause } from '../config/debug';
+
+// Após clique
+await loginPage.login(email, password);
+await debugPause(page, 'short');
+
+// Após navegação
+await expectRedirect(page, '/home');
+await debugPause(page, 'medium');
+
+// Para ler toast
+await expectSuccessToast(page, 'Sucesso!');
+await debugPause(page, 'long');
+```
+
+### Quando desativado
+
+Quando `E2E_DEBUG` não está definido, todas as pausas são **0ms** - sem impacto na performance.
 
 ## Ambientes
 
@@ -260,19 +454,122 @@ npm run e2e:report   # Abre relatório
 
 **Regra:** Testes E2E criam e modificam dados. NUNCA rodar em produção.
 
+## Políticas de Teste
+
+### Desktop vs Mobile
+
+- Testes rodam apenas em viewport desktop (2560x1440)
+- CSS responsivo não requer teste E2E separado
+- Testar mobile separadamente **APENAS** se houver componentes ou fluxos diferentes
+
+**Exemplos que NÃO precisam de teste mobile:**
+- Layout que apenas reorganiza (grid → stack)
+- Fontes/espaçamentos menores
+- Mesmo fluxo, mesmos botões
+
+**Exemplos que PRECISAM de teste mobile:**
+- Menu hamburger no mobile vs sidebar no desktop
+- Drawer/modal no mobile vs inline no desktop
+- Fluxo em steps no mobile vs tudo visível no desktop
+- Componentes condicionais (`isMobile ? <A /> : <B />`)
+
+> **INSTRUÇÃO PARA IA:** Ao criar ou modificar componentes que tenham renderização condicional baseada em viewport/breakpoint (ex: `useMediaQuery`, `isMobile`, classes como `hidden md:block`), você DEVE notificar o desenvolvedor com a seguinte mensagem:
+>
+> "⚠️ **ATENÇÃO:** Este componente tem comportamento diferente no mobile vs desktop. Pode ser necessário criar um teste E2E separado para mobile. Verifique se o fluxo/interação muda significativamente."
+
 ## Plano de Testes
 
-Baseado em `tests/plan-unit-test.md`:
+### Status Geral
 
-1. ✅ Register User
-2. ✅ Login User
-3. ✅ Update User Profile
-4. ✅ Subscribe to Pro Plan (com simulação de pagamento Asaas)
-5. ✅ Upgrade Pro to Ultra
-6. ✅ Downgrade Ultra to Pro
-7. ✅ Cancel Subscription
-8. ⏳ Webhook - Payment Confirmed (requer webhook em staging)
-9. ⏳ Webhook - Payment Overdue (requer webhook em staging)
-10. ⏳ Webhook - Subscription Deleted (requer webhook em staging)
-11. ⏳ Trial Expiration
-12. ⏳ Payment Failure
+| Teste | Arquivo | Fluxo Consolidado |
+|-------|---------|-------------------|
+| 1. Register User | `1-register.spec.ts` | 1 teste |
+| 2. Login User | `2-login.spec.ts` | 2 testes |
+| 3. Update Profile | `3-profile.spec.ts` | 1 teste |
+| 4. Subscribe Pro | `4-subscribe.spec.ts` | 1 teste |
+| 5. Upgrade Ultra | `5-upgrade.spec.ts` | 1 teste |
+| 6. Downgrade | `6-downgrade.spec.ts` | 1 teste |
+| 7. Cancel | `7-cancel.spec.ts` | 1 teste |
+
+**Total: 8 testes (consolidados de 24)**
+
+### Filosofia: Fluxos Consolidados
+
+Cada teste representa um **fluxo completo** que o usuário faria, incluindo:
+- Tentativas com dados inválidos → verifica erro
+- Correção dos dados → verifica sucesso
+- Navegação (voltar/avançar) quando aplicável
+
+**Exemplo - Login:**
+```
+Email inválido → erro → corrige email, senha errada → erro → corrige senha → sucesso
+```
+
+**Benefícios:**
+- Menos setup/teardown repetido
+- Execução mais rápida (~2min vs ~5min)
+- Mais parecido com fluxo real do usuário
+- Código mais enxuto
+
+### Descrição dos Testes
+
+#### 1. Register User (`1-register.spec.ts`)
+- Cadastro de novo usuário via UI
+- Verifica criação no Supabase Auth e profile no banco
+- **Salva credenciais** em `e2e/state/test-user.json`
+
+#### 2. Login User (`2-login.spec.ts`)
+**Teste 1 - Fluxo de validação e login:**
+- Email inválido → erro
+- Email correto, senha errada → erro
+- Credenciais corretas → sucesso e redirecionamento
+
+**Teste 2 - Proteção de rotas:**
+- Acesso a rota protegida sem autenticação → redireciona para login
+
+#### 3. Update Profile (`3-profile.spec.ts`)
+**Fluxo completo:**
+- Documento inválido → erro
+- Nome incompleto → erro/sucesso (depende do backend)
+- Dados válidos → sucesso e persistência
+
+#### 4. Subscribe Pro (`4-subscribe.spec.ts`)
+**Fluxo completo:**
+- Documento inválido → erro
+- Nome incompleto → erro
+- Botão voltar → retorna para planos
+- Dados válidos → cria assinatura real no Asaas
+
+#### 5. Upgrade Ultra (`5-upgrade.spec.ts`)
+**Fluxo completo:**
+- Verifica opção de upgrade disponível
+- Documento inválido → erro
+- Botão voltar → retorna para planos
+- Dados válidos → faz upgrade real no Asaas
+
+#### 6. Downgrade (`6-downgrade.spec.ts`)
+**Fluxo completo:**
+- Verifica plano Pro disponível
+- Abre modal de downgrade
+- Cancela modal → permanece na página
+- Reabre e confirma → agenda downgrade
+
+#### 7. Cancel (`7-cancel.spec.ts`)
+**Fluxo completo:**
+- Verifica botão de cancelar visível
+- Abre modal de cancelamento
+- Fecha modal sem cancelar
+- Reabre e confirma → cancela assinatura
+
+### Testes Pendentes
+
+#### Mobile: Profile (`3-profile.mobile.spec.ts`)
+- **Status:** Pendente
+- **Motivo:** O componente usa Drawer no mobile vs Dialog no desktop
+- **Prioridade:** Média
+
+#### 8-12. Webhooks, Trial e Payment Failure
+**Não implementados** - considerados desnecessários:
+- **Webhooks:** Já testados implicitamente nos testes de subscribe/upgrade
+- **Trial Expiration:** Funciona automaticamente (14 dias ULTRA, depois FREE)
+- **Payment Failure:** Gerenciado pelo Asaas, sistema apenas reage aos webhooks

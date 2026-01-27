@@ -65,20 +65,21 @@ export async function createSubscription(planId: string): Promise<CreateSubscrip
       }
     )
 
-    // 5. LIMPAR subscription antiga (se existir)
+    // 5. VERIFICAR subscription existente (evitar duplicação de faturas)
     if (currentSub?.asaas_subscription_id) {
       try {
-        await AsaasService.cancelSubscription(currentSub.asaas_subscription_id)
-      } catch (error) {
-        // Erro? Verificar se está paga
         const asaasSub = await AsaasService.getSubscription(currentSub.asaas_subscription_id)
         const payments = await AsaasService.getSubscriptionPayments(asaasSub.id)
-        const isPaid = payments.data.some(p => 
+
+        const paidPayment = payments.data.find(p =>
           p.status === 'CONFIRMED' || p.status === 'RECEIVED'
         )
-        
-        if (isPaid) {
-          // Já pago! Ativar e retornar erro
+        const pendingPayment = payments.data.find(p =>
+          p.status === 'PENDING' || p.status === 'OVERDUE'
+        )
+
+        // Caso 1: Já tem pagamento confirmado
+        if (paidPayment) {
           await activatePlan(user.id, currentSub.asaas_subscription_id)
           return {
             success: false,
@@ -86,8 +87,31 @@ export async function createSubscription(planId: string): Promise<CreateSubscrip
             message: 'Você já possui um plano ativo pago.'
           }
         }
-        
-        // Não pago: força limpeza local
+
+        // Caso 2: Tem fatura pendente do MESMO plano → reutiliza
+        if (pendingPayment && currentSub.plan_group === plan.plan_group) {
+          console.log(`[createSubscription] Reutilizando fatura existente: ${pendingPayment.id}`)
+          return {
+            success: true,
+            subscriptionId: currentSub.asaas_subscription_id,
+            invoiceUrl: pendingPayment.invoiceUrl,
+            invoiceId: pendingPayment.id
+          }
+        }
+
+        // Caso 3: Tem fatura pendente de OUTRO plano → cancela tudo
+        if (pendingPayment) {
+          console.log(`[createSubscription] Cancelando subscription antiga e cobranças pendentes`)
+          const canceledCount = await AsaasService.cancelPendingPayments(currentSub.asaas_subscription_id)
+          console.log(`[createSubscription] ${canceledCount} cobranças canceladas`)
+        }
+
+        // Cancela a subscription antiga (para não gerar mais cobranças)
+        await AsaasService.cancelSubscription(currentSub.asaas_subscription_id)
+
+      } catch (error) {
+        console.warn('[createSubscription] Erro ao verificar subscription antiga:', error)
+        // Força limpeza local para poder criar nova
         await supabase
           .from('user_subscriptions')
           .update({ asaas_subscription_id: null })
@@ -489,13 +513,26 @@ export async function cancelSubscription(reason?: string): Promise<{
       }
     }
 
-    // 3. Verificar se tem assinatura no Asaas para cancelar
+    // 3. Cancelar cobranças pendentes e subscription no Asaas
+    // IMPORTANTE: Usa customer ID para pegar TODAS as cobranças (inclusive órfãs)
+    if (currentSub.asaas_customer_id) {
+      try {
+        const canceledCount = await AsaasService.cancelPendingPaymentsByCustomer(currentSub.asaas_customer_id)
+        if (canceledCount > 0) {
+          console.log(`[cancelSubscription] ${canceledCount} cobrança(s) pendente(s) cancelada(s)`)
+        }
+      } catch (asaasError) {
+        console.warn('[cancelSubscription] Erro ao cancelar cobranças:', asaasError)
+      }
+    }
+
+    // Cancela a subscription no Asaas (não gera mais cobranças)
     if (currentSub.asaas_subscription_id) {
       try {
-        // Cancela no Asaas (não gera mais cobranças)
         await AsaasService.cancelSubscription(currentSub.asaas_subscription_id)
+        console.log(`[cancelSubscription] Subscription ${currentSub.asaas_subscription_id} cancelada`)
       } catch (asaasError) {
-        console.warn('[cancelSubscription] Erro ao cancelar no Asaas:', asaasError)
+        console.warn('[cancelSubscription] Erro ao cancelar subscription:', asaasError)
         // Continua mesmo assim - pode já estar cancelada
       }
     }

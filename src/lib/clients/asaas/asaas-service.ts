@@ -263,6 +263,64 @@ export class AsaasService {
   }
 
   /**
+   * Cancela uma cobrança específica.
+   * Só funciona para cobranças PENDING ou OVERDUE.
+   */
+  static async cancelPayment(paymentId: string): Promise<AsaasPayment> {
+    return this.request<AsaasPayment>(`/payments/${paymentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Cancela todas as cobranças pendentes de uma subscription.
+   * Retorna quantidade de cobranças canceladas.
+   */
+  static async cancelPendingPayments(subscriptionId: string): Promise<number> {
+    const payments = await this.getSubscriptionPayments(subscriptionId);
+    const pending = payments.data.filter(p =>
+      p.status === 'PENDING' || p.status === 'OVERDUE'
+    );
+
+    let canceled = 0;
+    for (const payment of pending) {
+      try {
+        await this.cancelPayment(payment.id);
+        canceled++;
+      } catch (err) {
+        console.warn(`[Asaas] Erro ao cancelar cobrança ${payment.id}:`, err);
+      }
+    }
+
+    return canceled;
+  }
+
+  /**
+   * Cancela todas as cobranças pendentes de um CLIENTE.
+   * Mais abrangente que cancelPendingPayments - pega cobranças órfãs também.
+   * Retorna quantidade de cobranças canceladas.
+   */
+  static async cancelPendingPaymentsByCustomer(customerId: string): Promise<number> {
+    const payments = await this.getCustomerPayments(customerId);
+    const pending = payments.data.filter(p =>
+      p.status === 'PENDING' || p.status === 'OVERDUE'
+    );
+
+    let canceled = 0;
+    for (const payment of pending) {
+      try {
+        await this.cancelPayment(payment.id);
+        canceled++;
+        console.log(`[Asaas] Cobrança ${payment.id} cancelada`);
+      } catch (err) {
+        console.warn(`[Asaas] Erro ao cancelar cobrança ${payment.id}:`, err);
+      }
+    }
+
+    return canceled;
+  }
+
+  /**
    * Simula pagamento de uma fatura no sandbox.
    * ⚠️ Só funciona no ambiente sandbox (api-sandbox.asaas.com)
    * 

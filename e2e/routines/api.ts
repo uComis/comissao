@@ -152,3 +152,35 @@ export async function waitForWebhookProcessing(
   // Em produção, podemos implementar polling mais inteligente
   await page.waitForTimeout(timeoutMs);
 }
+
+/**
+ * Busca todas as cobranças de um cliente no Asaas
+ */
+export async function findAsaasPaymentsByCustomer(
+  request: APIRequestContext,
+  customerId: string
+): Promise<{ data: Array<{ id: string; status: string; value: number; dueDate: string; description?: string }> }> {
+  return callAsaasApi(request, 'GET', `/payments?customer=${customerId}`) as Promise<{ data: Array<{ id: string; status: string; value: number; dueDate: string; description?: string }> }>;
+}
+
+/**
+ * Conta cobranças pendentes de um cliente
+ */
+export async function countPendingPayments(
+  request: APIRequestContext,
+  customerId: string
+): Promise<number> {
+  const payments = await findAsaasPaymentsByCustomer(request, customerId);
+  return payments.data?.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE').length || 0;
+}
+
+/**
+ * Verifica se todas as cobranças pendentes foram canceladas
+ */
+export async function verifyNoPendingPayments(
+  request: APIRequestContext,
+  customerId: string
+): Promise<{ success: boolean; pendingCount: number }> {
+  const pendingCount = await countPendingPayments(request, customerId);
+  return { success: pendingCount === 0, pendingCount };
+}

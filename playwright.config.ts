@@ -39,7 +39,7 @@ export default defineConfig({
     baseURL: 'http://localhost:4000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    viewport: { width: 2560, height: 1440 },
+    viewport: { width: 1280, height: 720 },
   },
 
   projects: [
@@ -47,7 +47,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        viewport: { width: 2560, height: 1440 },
+        viewport: { width: 1280, height: 720 },
       },
     },
   ],

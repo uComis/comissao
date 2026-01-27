@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/test-report';
 import { LoginPage } from '../pages/login.page';
-import { expectRedirect, expectText } from '../routines/assertions';
+import { expectRedirect } from '../routines/assertions';
 import { navigateTo } from '../routines/navigation';
 import { requireTestUser, SharedTestUser } from '../state/shared-user';
+import { debugPause } from '../config/debug';
 
 /**
  * Teste E2E #2: Login User
@@ -12,83 +13,103 @@ import { requireTestUser, SharedTestUser } from '../state/shared-user';
  *
  * Este teste USA o usuário criado pelo teste de Register.
  * Se Register não rodou, este teste FALHA.
- *
- * Fluxo:
- * 1. Login com credenciais válidas (do Register)
- * 2. Login com credenciais inválidas (deve mostrar erro)
- * 3. Verificar sessão ativa após login
- * 4. Verificar acesso a rotas protegidas
  */
 test.describe('Login User', () => {
   let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // USA o usuário criado pelo teste de Register
-    // Se Register não rodou, este teste FALHA
     testUser = requireTestUser();
   });
 
-  test('deve fazer login com credenciais válidas', async ({ page }) => {
-    // 1. Acessa página de login
+  test('deve validar credenciais e fazer login com sucesso', async ({ page, testReport }) => {
+    // Configura relatório
+    testReport.setUser({
+      email: testUser.email,
+      password: testUser.password,
+      id: testUser.id,
+    });
+    testReport.addAction('Iniciando teste de login');
+
     const loginPage = new LoginPage(page);
     await loginPage.goto();
+    testReport.addAction('Acessou página de login');
+    await debugPause(page, 'medium');
 
-    // 2. Preenche e submete formulário
+    // ========== PASSO 1: Email inválido ==========
+    testReport.addAction('Testando email inválido');
+    await loginPage.login('email-inexistente@teste.com', 'senha123');
+    await debugPause(page, 'short');
+
+    // Verifica toast de erro
+    let toast = page.locator('[data-sonner-toast]');
+    await toast.waitFor({ state: 'visible', timeout: 10000 });
+    expect(await toast.getAttribute('data-type')).toBe('error');
+    testReport.addAction('Erro exibido para email inválido');
+    await debugPause(page, 'long');
+
+    // Deve permanecer na página de login
+    await expect(page).toHaveURL(/\/login/);
+
+    // Aguarda toast sumir antes de continuar
+    await toast.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // ========== PASSO 2: Email correto, senha incorreta ==========
+    testReport.addAction('Testando senha incorreta');
+    await loginPage.login(testUser.email, 'senha-errada-123');
+    await debugPause(page, 'short');
+
+    // Verifica toast de erro
+    toast = page.locator('[data-sonner-toast]');
+    await toast.waitFor({ state: 'visible', timeout: 10000 });
+    expect(await toast.getAttribute('data-type')).toBe('error');
+    testReport.addAction('Erro exibido para senha incorreta');
+    await debugPause(page, 'long');
+
+    // Deve permanecer na página de login
+    await expect(page).toHaveURL(/\/login/);
+
+    // Aguarda toast sumir
+    await toast.waitFor({ state: 'hidden', timeout: 10000 });
+
+    // ========== PASSO 3: Credenciais corretas ==========
+    testReport.addAction('Testando credenciais corretas');
     await loginPage.login(testUser.email, testUser.password);
+    await debugPause(page, 'short');
 
-    // 3. Deve redirecionar para home
+    // Deve redirecionar para home
     await expectRedirect(page, '/home');
+    testReport.addAction('Login realizado com sucesso', 'Redirecionado para /home');
+    await debugPause(page, 'medium');
 
-    // 4. Verifica se está logado (sessão ativa)
-    // Tenta acessar uma rota protegida - não deve redirecionar para login
+    // Verifica sessão ativa
     await navigateTo(page, '/home');
     await expect(page).not.toHaveURL(/\/login/);
+    testReport.addAction('Sessão verificada - usuário permanece logado');
+    await debugPause(page, 'long');
+
+    testReport.addNote('Teste de login completo: validações e sucesso');
+    console.log('[Login] ✅ Teste de login completo');
   });
 
-  test('deve mostrar erro com email inválido', async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
+  test('deve redirecionar para login ao acessar rota protegida sem autenticação', async ({ page, testReport }) => {
+    // Configura relatório
+    testReport.addAction('Iniciando teste de proteção de rotas');
 
-    // Tenta login com email que não existe
-    await loginPage.login('email-inexistente@teste.com', 'senha123');
-
-    // Deve mostrar toast de erro
-    const toast = page.locator('[data-sonner-toast]');
-    await toast.waitFor({ state: 'visible', timeout: 10000 });
-
-    const toastType = await toast.getAttribute('data-type');
-    expect(toastType).toBe('error');
-
-    // Deve permanecer na página de login
-    await expect(page).toHaveURL(/\/login/);
-  });
-
-  test('deve mostrar erro com senha incorreta', async ({ page }) => {
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-
-    // Tenta login com senha errada
-    await loginPage.login(testUser.email, 'senha-errada-123');
-
-    // Deve mostrar toast de erro
-    const toast = page.locator('[data-sonner-toast]');
-    await toast.waitFor({ state: 'visible', timeout: 10000 });
-
-    const toastType = await toast.getAttribute('data-type');
-    expect(toastType).toBe('error');
-
-    // Deve permanecer na página de login
-    await expect(page).toHaveURL(/\/login/);
-  });
-
-  test('deve redirecionar para login ao acessar rota protegida sem autenticação', async ({ page }) => {
     // Limpa qualquer sessão existente
     await page.context().clearCookies();
+    testReport.addAction('Cookies limpos');
 
     // Tenta acessar rota protegida
     await navigateTo(page, '/home');
+    testReport.addAction('Tentativa de acesso a /home sem autenticação');
+    await debugPause(page, 'medium');
 
     // Deve redirecionar para login
     await expectRedirect(page, '/login');
+    testReport.addAction('Redirecionado para /login corretamente');
+    await debugPause(page, 'long');
+
+    testReport.addNote('Proteção de rotas funcionando');
+    console.log('[Login] ✅ Proteção de rotas verificada');
   });
 });

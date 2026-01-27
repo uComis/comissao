@@ -14,10 +14,21 @@ export class ProfilePage extends BasePage {
    * Abre o modal/drawer de edição de perfil
    */
   async openEditDialog(): Promise<void> {
-    // Clica no botão de editar (ícone de lápis)
-    await this.page.click('button:has(svg.lucide-pencil)');
+    // Clica no botão de editar (ícone de lápis) - busca botão com SVG lucide
+    const editButton = this.page.locator('button:has(svg.lucide-pencil), button:has(svg[class*="lucide-pencil"])').first();
+    await editButton.click();
     // Aguarda o dialog/drawer abrir
-    await this.page.waitForSelector('[role="dialog"], [role="presentation"]', { state: 'visible' });
+    await this.page.waitForSelector('[role="dialog"], [role="presentation"]', { state: 'visible', timeout: 10000 });
+    // Aguarda o formulário carregar
+    await this.page.waitForSelector('#fullName', { state: 'visible', timeout: 10000 });
+  }
+
+  /**
+   * Verifica se o modal de edição está aberto
+   */
+  async isEditDialogOpen(): Promise<boolean> {
+    const dialog = this.page.locator('[role="dialog"], [role="presentation"]');
+    return dialog.isVisible();
   }
 
   /**

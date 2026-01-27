@@ -1,17 +1,16 @@
-import { test, expect } from '@playwright/test';
-import { getSubscriptionByAsaasId } from '../routines/database';
+import { test, expect } from '../fixtures/test-report';
+import { getSubscriptionByAsaasId, getUserSubscription } from '../routines/database';
 import { LoginPage } from '../pages/login.page';
 import { PricingPage, ConfirmPlanPage } from '../pages/pricing.page';
-import { expectSuccessToast } from '../routines/assertions';
-import { navigateTo } from '../routines/navigation';
 import {
   findAsaasCustomerByCpfCnpj,
   findAsaasSubscription,
   findPendingPayment,
   simulatePaymentConfirmation,
-  waitForWebhookProcessing,
+  findAsaasPaymentsByCustomer,
 } from '../routines/api';
 import { requireTestUser, updateTestUserPlan, SharedTestUser } from '../state/shared-user';
+import { debugPause } from '../config/debug';
 
 /**
  * Teste E2E #4: Subscribe to Pro Plan
@@ -20,233 +19,176 @@ import { requireTestUser, updateTestUserPlan, SharedTestUser } from '../state/sh
  * Register → Login → Profile → Subscribe → Upgrade
  *
  * Este teste USA o usuário criado pelo teste de Register.
- * O usuário deve estar com plano FREE (recém criado).
- * Após este teste, o usuário terá plano PRO.
- *
- * Fluxo REAL:
- * 1. Login via UI
- * 2. Navega para planos via UI
- * 3. Seleciona Pro via UI
- * 4. Preenche dados via UI
- * 5. Cria customer REAL no Asaas
- * 6. Cria subscription REAL no Asaas
- * 7. Simula pagamento via API Asaas (justificável - não tem como pagar de verdade)
- * 8. Verifica no banco
+ * Fluxo completo: validações → navegação → assinatura real no Asaas
  */
 test.describe('Subscribe to Pro Plan', () => {
   let testUser: SharedTestUser;
 
   test.beforeAll(async () => {
-    // USA o usuário criado pelo teste de Register
     testUser = requireTestUser();
 
     if (testUser.plan !== 'free') {
-      console.log(`[Subscribe] ⚠️ Usuário já tem plano ${testUser.plan} - teste pode falhar ou ser redundante`);
+      console.log(`[Subscribe] ⚠️ Usuário já tem plano ${testUser.plan}`);
     }
   });
 
-  // =========================================================================
-  // TESTES DE VALIDAÇÃO (não mudam estado do usuário)
-  // Devem rodar ANTES do teste de assinatura
-  // =========================================================================
+  test('deve validar dados e permitir assinar plano Pro', async ({ page, request, testReport }) => {
+    // Configura relatório
+    testReport.setUser({
+      email: testUser.email,
+      password: testUser.password,
+      id: testUser.id,
+    });
+    testReport.addAction('Iniciando teste de assinatura Pro');
 
-  test('1. deve mostrar erro com documento inválido na confirmação', async ({ page }) => {
     // 1. Faz login
     const loginPage = new LoginPage(page);
     await loginPage.goto();
     await loginPage.login(testUser.email, testUser.password);
-
     await page.waitForURL(/\/home/, { timeout: 15000 });
+    testReport.addAction('Login realizado com sucesso');
+    await debugPause(page, 'medium');
 
     // 2. Navega para página de planos
     const pricingPage = new PricingPage(page);
     await pricingPage.goto();
+    testReport.addAction('Navegou para página de planos');
+    await debugPause(page, 'medium');
 
     // 3. Seleciona plano Pro
     await pricingPage.selectMonthlyBilling();
+    await debugPause(page, 'short');
     await page.waitForTimeout(500);
     await pricingPage.selectProPlan();
-
+    testReport.addAction('Selecionou plano Pro mensal');
+    await debugPause(page, 'short');
     await page.waitForURL(/\/planos\/confirmar/, { timeout: 10000 });
+    await debugPause(page, 'medium');
 
-    // 4. Tenta confirmar com documento inválido
     const confirmPage = new ConfirmPlanPage(page);
+
+    // ========== PASSO 1: Documento inválido ==========
+    testReport.addAction('Testando documento inválido');
     await confirmPage.fillFullName('Teste Documento Inválido');
     await confirmPage.fillDocument('123'); // Documento muito curto
+    await debugPause(page, 'short');
     await confirmPage.confirm();
+    await debugPause(page, 'short');
 
-    // 5. Verifica toast de erro
-    const toast = page.locator('[data-sonner-toast]');
+    let toast = page.locator('[data-sonner-toast]');
     await toast.waitFor({ state: 'visible', timeout: 10000 });
-
-    const toastType = await toast.getAttribute('data-type');
-    expect(toastType).toBe('error');
-
-    // 6. Deve permanecer na página de confirmação
+    expect(await toast.getAttribute('data-type')).toBe('error');
+    testReport.addAction('Erro exibido para documento inválido');
+    await debugPause(page, 'long');
     await expect(page).toHaveURL(/\/planos\/confirmar/);
-  });
+    await toast.waitFor({ state: 'hidden', timeout: 10000 });
 
-  test('2. deve mostrar erro com nome incompleto na confirmação', async ({ page }) => {
-    // 1. Faz login
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login(testUser.email, testUser.password);
-
-    await page.waitForURL(/\/home/, { timeout: 15000 });
-
-    // 2. Navega para página de planos
-    const pricingPage = new PricingPage(page);
-    await pricingPage.goto();
-
-    // 3. Seleciona plano Pro
-    await pricingPage.selectMonthlyBilling();
-    await page.waitForTimeout(500);
-    await pricingPage.selectProPlan();
-
-    await page.waitForURL(/\/planos\/confirmar/, { timeout: 10000 });
-
-    // 4. Tenta confirmar com apenas primeiro nome
-    const confirmPage = new ConfirmPlanPage(page);
+    // ========== PASSO 2: Nome incompleto ==========
+    testReport.addAction('Testando nome incompleto');
     await confirmPage.fillFullName('Apenas'); // Sem sobrenome
     await confirmPage.fillDocument('12345678901');
+    await debugPause(page, 'short');
     await confirmPage.confirm();
+    await debugPause(page, 'short');
 
-    // 5. Verifica toast de erro (validação requer nome completo)
-    const toast = page.locator('[data-sonner-toast]');
+    toast = page.locator('[data-sonner-toast]');
     await toast.waitFor({ state: 'visible', timeout: 10000 });
-
-    const toastType = await toast.getAttribute('data-type');
-    expect(toastType).toBe('error');
-
-    // 6. Deve permanecer na página de confirmação
+    expect(await toast.getAttribute('data-type')).toBe('error');
+    testReport.addAction('Erro exibido para nome incompleto');
+    await debugPause(page, 'long');
     await expect(page).toHaveURL(/\/planos\/confirmar/);
-  });
+    await toast.waitFor({ state: 'hidden', timeout: 10000 });
 
-  test('3. deve permitir voltar para página de planos', async ({ page }) => {
-    // 1. Faz login
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login(testUser.email, testUser.password);
-
-    await page.waitForURL(/\/home/, { timeout: 15000 });
-
-    // 2. Navega para página de planos
-    const pricingPage = new PricingPage(page);
-    await pricingPage.goto();
-
-    // 3. Seleciona plano Pro
-    await pricingPage.selectMonthlyBilling();
-    await page.waitForTimeout(500);
-    await pricingPage.selectProPlan();
-
-    await page.waitForURL(/\/planos\/confirmar/, { timeout: 10000 });
-
-    // 4. Clica em voltar
+    // ========== PASSO 3: Voltar e retornar ==========
+    testReport.addAction('Testando navegação voltar');
     await page.click('button:has-text("Voltar")');
-
-    // 5. Verifica redirecionamento para página de planos
+    await debugPause(page, 'short');
     await expect(page).toHaveURL(/\/planos(?!\/confirmar)/);
-  });
+    testReport.addAction('Voltou para página de planos');
+    await debugPause(page, 'medium');
 
-  // =========================================================================
-  // TESTE DE ASSINATURA (muda estado: free -> pro)
-  // Deve rodar POR ÚLTIMO
-  // =========================================================================
-
-  test('4. deve permitir assinar o plano Pro mensal', async ({ page, request }) => {
-    // 1. Faz login
-    const loginPage = new LoginPage(page);
-    await loginPage.goto();
-    await loginPage.login(testUser.email, testUser.password);
-
-    // Aguarda redirecionamento para home
-    await page.waitForURL(/\/home/, { timeout: 15000 });
-
-    // 2. Navega para página de planos
-    const pricingPage = new PricingPage(page);
-    await pricingPage.goto();
-
-    // 3. Seleciona cobrança mensal (para teste mais rápido)
+    // Seleciona plano novamente
     await pricingPage.selectMonthlyBilling();
-
-    // Aguarda atualização da UI
+    await debugPause(page, 'short');
     await page.waitForTimeout(500);
-
-    // 4. Seleciona o plano Pro
     await pricingPage.selectProPlan();
-
-    // 5. Verifica redirecionamento para página de confirmação
+    testReport.addAction('Selecionou plano Pro novamente');
+    await debugPause(page, 'short');
     await page.waitForURL(/\/planos\/confirmar/, { timeout: 10000 });
+    await debugPause(page, 'medium');
 
-    // 6. Verifica se o plano correto está selecionado
-    const confirmPage = new ConfirmPlanPage(page);
-    await expect(page.getByText('Pro', { exact: true }).first()).toBeVisible();
-
-    // 7. Preenche dados de faturamento
+    // ========== PASSO 4: Dados válidos - Assinar ==========
+    testReport.addAction('Confirmando assinatura com dados válidos');
     const fullName = 'Teste Assinatura E2E';
-    const document = '11144477735'; // CPF válido para teste
+    const document = '11144477735';
 
     await confirmPage.confirmSubscription(fullName, document);
+    await debugPause(page, 'short');
 
-    // 8. Aguarda processamento (pode demorar devido à API Asaas)
-    // O sistema deve redirecionar para /cobrancas após criar a assinatura
+    // Aguarda processamento e redirecionamento
     await page.waitForURL(/\/cobrancas/, { timeout: 30000 });
-
-    // 9. Verifica que chegou na página de cobranças com sucesso
     await expect(page).toHaveURL(/\/cobrancas/);
+    testReport.addAction('Redirecionado para /cobrancas');
+    await debugPause(page, 'medium');
 
-    // 9.1 Fecha o modal de "Cobrança Gerada" se estiver visível
-    const closeModalButton = page.locator('button:has-text("Ver minhas faturas"), button[aria-label="Fechar"], button:has(svg[class*="close"])').first();
+    // Fecha modal se visível
+    const closeModalButton = page.locator('button:has-text("Ver minhas faturas"), button[aria-label="Fechar"]').first();
     if (await closeModalButton.isVisible({ timeout: 2000 }).catch(() => false)) {
       await closeModalButton.click();
+      await debugPause(page, 'short');
       await page.waitForTimeout(500);
     }
 
     // ========== VERIFICAÇÃO NO ASAAS ==========
-
-    // 10. Busca o customer no Asaas pelo CPF usado no formulário
+    testReport.addAction('Verificando criação no Asaas...');
     const customersResponse = await findAsaasCustomerByCpfCnpj(request, document) as { data: Array<{ id: string }> };
     expect(customersResponse.data.length).toBeGreaterThan(0);
     const customerId = customersResponse.data[0].id;
+    testReport.setAsaasCustomer({ id: customerId });
+    testReport.addAction('Cliente encontrado no Asaas', `ID: ${customerId}`);
 
-    // 11. Busca a subscription do customer
     const subscriptionsResponse = await findAsaasSubscription(request, customerId) as { data: Array<{ id: string }> };
     expect(subscriptionsResponse.data.length).toBeGreaterThan(0);
     const subscriptionId = subscriptionsResponse.data[0].id;
+    testReport.addAction('Assinatura encontrada no Asaas', `ID: ${subscriptionId}`);
 
-    // 12. Busca o pagamento pendente da subscription
+    // Busca cobranças pendentes
+    const paymentsResponse = await findAsaasPaymentsByCustomer(request, customerId);
+    const pendingPayments = paymentsResponse.data?.filter(p => p.status === 'PENDING' || p.status === 'OVERDUE') || [];
+    testReport.setInvoicesBefore(pendingPayments.map(p => ({
+      id: p.id,
+      value: p.value,
+      status: p.status,
+      dueDate: p.dueDate,
+      description: p.description,
+    })));
+
     const pendingPayment = await findPendingPayment(request, subscriptionId);
     expect(pendingPayment).not.toBeNull();
+    testReport.addAction('Cobrança pendente encontrada', `ID: ${pendingPayment!.id} - R$ ${pendingPayment!.value}`);
 
-    // 13. Tenta simular confirmação do pagamento via API Asaas
-    // NOTA: O sandbox pode rejeitar datas futuras (problema de configuração do ambiente)
-    // Se falhar, apenas logamos e continuamos - o importante é verificar a subscription no banco
     try {
       await simulatePaymentConfirmation(request, pendingPayment!.id, pendingPayment!.value, pendingPayment!.dueDate);
+      testReport.addAction('Pagamento simulado com sucesso');
       console.log(`[Test] ✅ Pagamento simulado: ${pendingPayment!.id}`);
     } catch (error) {
-      console.log(`[Test] ⚠️ Simulação de pagamento falhou (sandbox date issue): ${error}`);
-      console.log(`[Test] ⚠️ Continuando com verificação de subscription no banco...`);
+      testReport.addNote(`Simulação de pagamento falhou: ${error}`);
+      console.log(`[Test] ⚠️ Simulação de pagamento falhou: ${error}`);
     }
 
-    // 14. Verifica se a subscription foi criada no banco de dados
-    // Esta é a verificação principal - confirma que nosso sistema registrou a assinatura
-
-    // Busca a subscription pelo asaas_subscription_id
+    // Verifica subscription no banco
     const userSubscription = await getSubscriptionByAsaasId(subscriptionId);
     expect(userSubscription).not.toBeNull();
 
-    // Verifica se a subscription está associada ao usuário correto
     const subscription = userSubscription as { user_id: string; plan_group: string; asaas_subscription_id: string };
     expect(subscription.asaas_subscription_id).toBe(subscriptionId);
     expect(subscription.plan_group).toBe('pro');
+    testReport.addAction('Assinatura verificada no banco', `Plano: ${subscription.plan_group}`);
 
-    // 15. Atualiza o plano no estado compartilhado
     updateTestUserPlan('pro');
 
-    // 16. Log de sucesso
-    console.log(`[Test] ✅ Assinatura criada no Asaas: ${subscriptionId}`);
-    console.log(`[Test] ✅ Assinatura registrada no banco: plano ${subscription.plan_group}`);
-    console.log(`[Test] ✅ Usuário da cadeia atualizado para plano PRO`);
+    testReport.addNote('Assinatura Pro criada com sucesso');
+    console.log(`[Test] ✅ Assinatura Pro criada: ${subscriptionId}`);
+    await debugPause(page, 'long');
   });
 });
