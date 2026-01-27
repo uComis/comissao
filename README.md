@@ -21,6 +21,16 @@ Uma plataforma pessoal onde o vendedor cadastra suas pastas (representadas), lan
 - Representantes comerciais autônomos (multi-pastas)
 - Consultoras de venda direta (Natura, Avon, etc.)
 - Qualquer vendedor comissionado que quer controle sobre sua receita
+- *(Futuro)* Empresas que querem gerenciar comissões dos seus vendedores
+
+## Modos de Uso
+
+| Modo | Descrição | Status |
+| ---- | --------- | ------ |
+| **Vendedor** | O vendedor cadastra suas vendas e acompanha suas comissões/recebíveis | Ativo |
+| **Empresa** | A empresa cadastra e gerencia as comissões dos seus vendedores | Desabilitado |
+
+> **Foco atual:** 100% no Modo Vendedor. O Modo Empresa será implementado após a conclusão da Fase 1.
 
 ## Funcionalidades (Fase Atual)
 
