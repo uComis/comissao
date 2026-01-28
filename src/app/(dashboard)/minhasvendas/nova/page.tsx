@@ -17,16 +17,17 @@ async function NovaVendaContent() {
   }
 
   return (
-    <>
-      <PageHeader 
-        title="Nova Venda" 
-        description="Registre uma nova venda e calcule a comissão automaticamente"
-      />
-      <PersonalSaleForm 
-        suppliers={suppliers} 
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-5">
+        <PageHeader
+          title="Registro de venda"
+        />
+      </div>
+      <PersonalSaleForm
+        suppliers={suppliers}
         productsBySupplier={productsBySupplier}
       />
-    </>
+    </div>
   )
 }
 

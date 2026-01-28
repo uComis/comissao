@@ -23,7 +23,7 @@ export function RenewalAlert() {
   const daysText = renewalAlert.daysRemaining === 1 ? 'amanhã' : `em ${renewalAlert.daysRemaining} dias`
 
   return (
-    <div className="w-full z-40">
+    <div className="w-full z-30">
       <div className={`
         py-3 px-4 flex items-center justify-between text-sm font-medium
         ${isUrgent 

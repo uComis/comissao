@@ -596,14 +596,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="mx-auto max-w-7xl">
-        {/* Mobile: Stack everything vertically */}
-        <div className="lg:hidden space-y-6">
+      <form onSubmit={handleSubmit} className="w-full">
+        <div className="space-y-6">
           <IdentificationSection
             suppliers={suppliersList}
             supplierId={supplierId}
             clientId={clientId}
             clientRefreshTrigger={clientRefreshTrigger}
+            showClient={isEdit || !!supplierId}
             onSupplierChange={handleSupplierChange}
             onClientChange={handleClientChange}
             onSupplierAddClick={(name) => {
@@ -616,175 +616,81 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             }}
           />
 
-          <ValuesSection
-            informItems={informItems}
-            supplierId={supplierId}
-            valueEntries={valueEntries}
-            removingIds={removingIds}
-            swipedItemId={swipedItemId}
-            selectedSupplier={selectedSupplier}
-            onInformItemsChange={setInformItems}
-            onAddValueEntry={handleAddValueEntry}
-            onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
-            onRemoveValueEntry={handleRemoveValueEntry}
-            onUpdateValueEntry={handleUpdateValueEntry}
-            onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}
-            onSwipedItemIdChange={setSwipedItemId}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-            onEditingEntryClick={(entryId) => {
-              setEditingEntryId(entryId)
-              setIsDrawerOpen(true)
-            }}
-            calculateTieredRate={calculateTieredRate}
-          />
+          {(isEdit || !!clientId) && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <ValuesSection
+                informItems={informItems}
+                supplierId={supplierId}
+                valueEntries={valueEntries}
+                removingIds={removingIds}
+                swipedItemId={swipedItemId}
+                selectedSupplier={selectedSupplier}
+                onInformItemsChange={setInformItems}
+                onAddValueEntry={handleAddValueEntry}
+                onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
+                onRemoveValueEntry={handleRemoveValueEntry}
+                onUpdateValueEntry={handleUpdateValueEntry}
+                onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}
+                onSwipedItemIdChange={setSwipedItemId}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                onEditingEntryClick={(entryId) => {
+                  setEditingEntryId(entryId)
+                  setIsDrawerOpen(true)
+                }}
+                calculateTieredRate={calculateTieredRate}
+              />
 
-          <PaymentConditionSection
-            saleDate={saleDate}
-            firstInstallmentDate={firstInstallmentDate}
-            paymentType={paymentType}
-            installments={installments}
-            interval={interval}
-            firstInstallmentDays={firstInstallmentDays}
-            quickCondition={quickCondition}
-            irregularPatternWarning={irregularPatternWarning}
-            totalValue={totalValue}
-            onSaleDateChange={handleSaleDateChange}
-            onFirstInstallmentDateChange={handleFirstDateChange}
-            onPaymentTypeChange={handlePaymentTypeChange}
-            onInstallmentsChange={(val) => {
-                          setInstallments(val)
-                          setHasChangedSteppers(true)
-                        }}
-            onIntervalChange={(val) => {
-                          setInterval(val)
-                          setHasChangedSteppers(true)
-                        }}
-            onFirstInstallmentDaysChange={(val) => {
-                          setFirstInstallmentDays(val)
-                          setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
-                          setHasChangedSteppers(true)
-                        }}
-            onQuickConditionChange={(value) => {
-              setQuickCondition(value)
-              setIsUpdatingFromQuick(true)
-              setIrregularPatternWarning(null)
-            }}
-            onQuickConditionBlur={handleQuickConditionBlur}
-            onSelectSuggestion={handleSelectSuggestion}
-            onDismissWarning={() => setIrregularPatternWarning(null)}
-            onViewAllInstallments={() => setInstallmentsSheetOpen(true)}
-          />
+              <PaymentConditionSection
+                saleDate={saleDate}
+                firstInstallmentDate={firstInstallmentDate}
+                paymentType={paymentType}
+                installments={installments}
+                interval={interval}
+                firstInstallmentDays={firstInstallmentDays}
+                quickCondition={quickCondition}
+                irregularPatternWarning={irregularPatternWarning}
+                totalValue={totalValue}
+                onSaleDateChange={handleSaleDateChange}
+                onFirstInstallmentDateChange={handleFirstDateChange}
+                onPaymentTypeChange={handlePaymentTypeChange}
+                onInstallmentsChange={(val) => {
+                  setInstallments(val)
+                  setHasChangedSteppers(true)
+                }}
+                onIntervalChange={(val) => {
+                  setInterval(val)
+                  setHasChangedSteppers(true)
+                }}
+                onFirstInstallmentDaysChange={(val) => {
+                  setFirstInstallmentDays(val)
+                  setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
+                  setHasChangedSteppers(true)
+                }}
+                onQuickConditionChange={(value) => {
+                  setQuickCondition(value)
+                  setIsUpdatingFromQuick(true)
+                  setIrregularPatternWarning(null)
+                }}
+                onQuickConditionBlur={handleQuickConditionBlur}
+                onSelectSuggestion={handleSelectSuggestion}
+                onDismissWarning={() => setIrregularPatternWarning(null)}
+                onViewAllInstallments={() => setInstallmentsSheetOpen(true)}
+              />
 
-          <NotesSection notes={notes} onNotesChange={setNotes} />
+              <NotesSection notes={notes} onNotesChange={setNotes} />
 
-          <div className="flex justify-end gap-4 pb-10">
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={saving} size="lg">
-              {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
-                                  </Button>
-                                </div>
-                      </div>
-
-        {/* Desktop: 2-column layout */}
-        <div className="hidden lg:grid lg:grid-cols-[1fr_400px] lg:gap-6">
-          {/* Left Column: Values + Payment */}
-          <div className="space-y-6">
-            <ValuesSection
-              informItems={informItems}
-              supplierId={supplierId}
-              valueEntries={valueEntries}
-              removingIds={removingIds}
-              swipedItemId={swipedItemId}
-              selectedSupplier={selectedSupplier}
-              onInformItemsChange={setInformItems}
-              onAddValueEntry={handleAddValueEntry}
-              onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
-              onRemoveValueEntry={handleRemoveValueEntry}
-              onUpdateValueEntry={handleUpdateValueEntry}
-              onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}
-              onSwipedItemIdChange={setSwipedItemId}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
-              onEditingEntryClick={(entryId) => {
-                setEditingEntryId(entryId)
-                setIsDrawerOpen(true)
-              }}
-              calculateTieredRate={calculateTieredRate}
-            />
-
-            <PaymentConditionSection
-              saleDate={saleDate}
-              firstInstallmentDate={firstInstallmentDate}
-              paymentType={paymentType}
-              installments={installments}
-              interval={interval}
-              firstInstallmentDays={firstInstallmentDays}
-              quickCondition={quickCondition}
-              irregularPatternWarning={irregularPatternWarning}
-              totalValue={totalValue}
-              onSaleDateChange={handleSaleDateChange}
-              onFirstInstallmentDateChange={handleFirstDateChange}
-              onPaymentTypeChange={handlePaymentTypeChange}
-              onInstallmentsChange={(val) => {
-                setInstallments(val)
-                setHasChangedSteppers(true)
-              }}
-              onIntervalChange={(val) => {
-                setInterval(val)
-                setHasChangedSteppers(true)
-              }}
-              onFirstInstallmentDaysChange={(val) => {
-                setFirstInstallmentDays(val)
-                setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
-                setHasChangedSteppers(true)
-              }}
-              onQuickConditionChange={(value) => {
-                setQuickCondition(value)
-                setIsUpdatingFromQuick(true)
-                setIrregularPatternWarning(null)
-              }}
-              onQuickConditionBlur={handleQuickConditionBlur}
-              onSelectSuggestion={handleSelectSuggestion}
-              onDismissWarning={() => setIrregularPatternWarning(null)}
-              onViewAllInstallments={() => setInstallmentsSheetOpen(true)}
-            />
-
-        <div className="flex justify-end gap-4 pb-10">
-          <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={saving} size="lg">
-            {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
-          </Button>
-        </div>
-          </div>
-
-          {/* Right Sidebar: Identification + Notes */}
-          <div className="space-y-6">
-            <IdentificationSection
-              suppliers={suppliersList}
-              supplierId={supplierId}
-              clientId={clientId}
-              clientRefreshTrigger={clientRefreshTrigger}
-              onSupplierChange={handleSupplierChange}
-              onClientChange={handleClientChange}
-              onSupplierAddClick={(name) => {
-                setSupplierInitialName(name || '')
-                setSupplierDialogOpen(true)
-              }}
-              onClientAddClick={(name) => {
-                setClientInitialName(name || '')
-                setClientDialogOpen(true)
-              }}
-            />
-
-            <NotesSection notes={notes} onNotesChange={setNotes} />
+              <div className="flex justify-end gap-4 pb-10">
+                <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={saving} size="lg">
+                  {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
+                </Button>
+              </div>
             </div>
+          )}
         </div>
       </form>
 

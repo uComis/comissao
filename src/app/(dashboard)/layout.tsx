@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="flex flex-col">
-          <div className="sticky top-0 z-[60] w-full bg-background">
+          <div className="sticky top-0 z-30 w-full bg-background">
             <BillingBanners />
             <Header />
           </div>

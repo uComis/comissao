@@ -23,6 +23,15 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { getBlockedSuppliers } from '@/app/actions/billing'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
 type Props = {
   suppliers: PersonalSupplierWithRules[]
   value: string
@@ -37,7 +46,7 @@ export function SupplierPicker({
   value,
   onChange,
   onAddClick,
-  placeholder = 'Selecione o fornecedor',
+  placeholder = 'Selecione a pasta',
   className,
 }: Props) {
   const isMobile = useIsMobile()
@@ -74,18 +83,29 @@ export function SupplierPicker({
           role="combobox"
           onClick={() => setOpen(true)}
           className={cn(
-            'h-12 justify-between font-normal w-full',
+            'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
             !displayValue && 'text-muted-foreground',
             className
           )}
         >
-          <span className="truncate">{displayValue || placeholder}</span>
+          <span className="flex items-center gap-3 truncate">
+            {displayValue ? (
+              <>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#409eff]/15 text-sm font-semibold text-[#409eff]">
+                  {getInitials(displayValue)}
+                </span>
+                <span className="font-medium text-foreground">{displayValue}</span>
+              </>
+            ) : (
+              placeholder
+            )}
+          </span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent 
-            side="right" 
+          <SheetContent
+            side="right"
             className="w-full sm:max-w-full h-full flex flex-col p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
@@ -170,36 +190,34 @@ export function SupplierPicker({
     )
   }
 
-  // Desktop: Select + Button
+  // Desktop: Select (sem botão "+")
   return (
-    <div className={cn('flex gap-2', className)}>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="flex-1">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {suppliers.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Nenhum fornecedor encontrado
-            </div>
-          ) : (
-            suppliers.map((supplier) => (
-              <SelectItem key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </SelectItem>
-            ))
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={cn('!h-[60px] rounded-xl bg-muted/30', className)}>
+        <SelectValue placeholder={placeholder}>
+          {displayValue && (
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#409eff]/15 text-sm font-semibold text-[#409eff]">
+                {getInitials(displayValue)}
+              </span>
+              <span className="font-medium">{displayValue}</span>
+            </span>
           )}
-        </SelectContent>
-      </Select>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={() => onAddClick()}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
-    </div>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {suppliers.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum fornecedor encontrado
+          </div>
+        ) : (
+          suppliers.map((supplier) => (
+            <SelectItem key={supplier.id} value={supplier.id}>
+              {supplier.name}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
   )
 }
-

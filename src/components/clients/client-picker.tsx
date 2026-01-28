@@ -22,6 +22,15 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { getPersonalClients } from '@/app/actions/personal-clients'
 import type { PersonalClient } from '@/types'
 
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
 type Props = {
   value: string | null
   onChange: (clientId: string | null, clientName: string) => void
@@ -91,20 +100,31 @@ export function ClientPicker({
           onClick={() => setOpen(true)}
           disabled={loading}
           className={cn(
-            'h-12 justify-between font-normal w-full',
+            'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
             !displayValue && 'text-muted-foreground',
             className
           )}
         >
-          <span className="truncate">
-            {loading ? 'Carregando...' : displayValue || placeholder}
+          <span className="flex items-center gap-3 truncate">
+            {loading ? (
+              'Carregando...'
+            ) : displayValue ? (
+              <>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
+                  {getInitials(displayValue)}
+                </span>
+                <span className="font-medium text-foreground">{displayValue}</span>
+              </>
+            ) : (
+              placeholder
+            )}
           </span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
 
         <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent 
-            side="right" 
+          <SheetContent
+            side="right"
             className="w-full sm:max-w-full h-full flex flex-col p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
@@ -189,45 +209,43 @@ export function ClientPicker({
     )
   }
 
-  // Desktop: Select + Button
+  // Desktop: Select (sem botão "+")
   return (
-    <div className={cn('flex gap-2', className)}>
-      <Select
-        value={value || ''}
-        onValueChange={(val) => {
-          const client = clients.find((c) => c.id === val)
-          if (client) {
-            onChange(client.id, client.name)
-          }
-        }}
-        disabled={loading}
-      >
-        <SelectTrigger className="flex-1">
-          <SelectValue placeholder={loading ? 'Carregando...' : placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {clients.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Nenhum cliente encontrado
-            </div>
-          ) : (
-            clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
-                {client.name}
-              </SelectItem>
-            ))
+    <Select
+      value={value || ''}
+      onValueChange={(val) => {
+        const client = clients.find((c) => c.id === val)
+        if (client) {
+          onChange(client.id, client.name)
+        }
+      }}
+      disabled={loading}
+    >
+      <SelectTrigger className={cn('!h-[60px] rounded-xl bg-muted/30', className)}>
+        <SelectValue placeholder={loading ? 'Carregando...' : placeholder}>
+          {displayValue && (
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
+                {getInitials(displayValue)}
+              </span>
+              <span className="font-medium">{displayValue}</span>
+            </span>
           )}
-        </SelectContent>
-      </Select>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={() => onAddClick()}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
-    </div>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {clients.length === 0 ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum cliente encontrado
+          </div>
+        ) : (
+          clients.map((client) => (
+            <SelectItem key={client.id} value={client.id}>
+              {client.name}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
   )
 }
-

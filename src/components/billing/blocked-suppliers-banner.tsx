@@ -36,7 +36,7 @@ export function BlockedSuppliersBanner() {
     <>
       <div 
         className={`
-          w-full z-40
+          w-full z-30
           ${isClosing ? 'max-h-0 opacity-0 overflow-hidden transition-all duration-500' : ''}
         `}
       >

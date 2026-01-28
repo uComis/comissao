@@ -120,7 +120,7 @@ export function TrialBanner() {
 
   return (
     <div 
-      className="w-full z-[70] overflow-hidden will-change-[height,opacity,transform]"
+      className="w-full z-40 overflow-hidden will-change-[height,opacity,transform]"
       style={getContainerStyle()}
     >
       <div 
