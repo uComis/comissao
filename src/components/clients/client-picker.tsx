@@ -1,17 +1,26 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Check, ChevronDown, Plus, Search } from 'lucide-react'
+import { ChevronDown, Package, Plus, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Item,
+  ItemMedia,
+  ItemContent,
+  ItemTitle,
+  ItemDescription,
+  ItemActions,
+  ItemGroup,
+  ItemSeparator,
+} from '@/components/ui/item'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Sheet,
   SheetContent,
@@ -89,163 +98,142 @@ export function ClientPicker({
     onAddClick(nameToPass)
   }
 
-  // Mobile: Drawer fullscreen
-  if (isMobile) {
-    return (
-      <>
+  const listContent = (
+    <>
+      <div className="px-4 py-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-[55px] shadow-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto min-h-[200px]">
+        {filteredClients.length > 0 ? (
+          <div className="flex flex-col gap-2 px-[25px] py-2">
+            {filteredClients.map((client) => (
+                <Item
+                  key={client.id}
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'cursor-pointer rounded-xl hover:bg-accent/50',
+                    value === client.id && 'bg-accent'
+                  )}
+                  onClick={() => handleSelect(client)}
+                >
+                  <ItemMedia>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-xs font-semibold text-[#f59e0b]">
+                      {getInitials(client.name)}
+                    </span>
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{client.name}</ItemTitle>
+                    {(client.cpf || client.cnpj) && (
+                      <ItemDescription>
+                        {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
+                      </ItemDescription>
+                    )}
+                  </ItemContent>
+                  <ItemActions>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setOpen(false)
+                        onAddClick(client.name)
+                      }}
+                    >
+                      Editar
+                    </Button>
+                  </ItemActions>
+                </Item>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Package className="h-12 w-12 mb-3 opacity-30" />
+            <p className="text-sm">Nenhum registro encontrado</p>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4">
         <Button
           type="button"
-          variant="outline"
-          role="combobox"
-          onClick={() => setOpen(true)}
-          disabled={loading}
-          className={cn(
-            'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
-            !displayValue && 'text-muted-foreground',
-            className
-          )}
+          onClick={handleAddNew}
+          className="w-full h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
         >
-          <span className="flex items-center gap-3 truncate">
-            {loading ? (
-              'Carregando...'
-            ) : displayValue ? (
-              <>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
-                  {getInitials(displayValue)}
-                </span>
-                <span className="font-medium text-foreground">{displayValue}</span>
-              </>
-            ) : (
-              placeholder
-            )}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <Plus className="h-4 w-4" />
+          Novo Cliente
         </Button>
+      </div>
+    </>
+  )
 
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        role="combobox"
+        onClick={() => setOpen(true)}
+        disabled={loading}
+        className={cn(
+          'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
+          !displayValue && 'text-muted-foreground',
+          className
+        )}
+      >
+        <span className="flex items-center gap-3 truncate">
+          {loading ? (
+            'Carregando...'
+          ) : displayValue ? (
+            <>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
+                {getInitials(displayValue)}
+              </span>
+              <span className="font-medium text-foreground">{displayValue}</span>
+            </>
+          ) : (
+            placeholder
+          )}
+        </span>
+        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+
+      {isMobile ? (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent
             side="right"
             className="w-full sm:max-w-full h-full flex flex-col p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <SheetHeader className="border-b px-4 py-3">
-              <SheetTitle>Selecionar Cliente</SheetTitle>
+            <SheetHeader className="px-5 py-4">
+              <SheetTitle className="text-lg">Selecionar Cliente</SheetTitle>
             </SheetHeader>
-
-            {/* Search Input */}
-            <div className="px-4 py-3 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cliente..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-12"
-                />
-              </div>
-            </div>
-
-            {/* List */}
-            <div className="flex-1 overflow-auto">
-              {/* Create New Option */}
-              {search && filteredClients.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={handleAddNew}
-                  className="w-full px-4 py-4 text-left flex items-center gap-3 hover:bg-muted transition-colors text-primary font-medium"
-                >
-                  <Plus className="h-5 w-5" />
-                  <span>Criar &quot;{search}&quot;</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleAddNew}
-                    className="w-full px-4 py-4 text-left flex items-center gap-3 hover:bg-muted transition-colors border-b text-primary"
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span className="font-medium">Novo Cliente</span>
-                  </button>
-
-                  {filteredClients.map((client) => (
-                    <button
-                      key={client.id}
-                      type="button"
-                      onClick={() => handleSelect(client)}
-                      className={cn(
-                        'w-full px-4 py-4 text-left flex items-center gap-3 hover:bg-muted transition-colors border-b',
-                        value === client.id && 'bg-muted'
-                      )}
-                    >
-                      <Check
-                        className={cn(
-                          'h-5 w-5 text-primary shrink-0',
-                          value === client.id ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate">{client.name}</span>
-                        {(client.cpf || client.cnpj) && (
-                          <span className="text-xs text-muted-foreground">
-                            {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </>
-              )}
-
-              {filteredClients.length === 0 && !search && (
-                <div className="px-4 py-8 text-center text-muted-foreground">
-                  Nenhum cliente cadastrado
-                </div>
-              )}
-            </div>
+            {listContent}
           </SheetContent>
         </Sheet>
-      </>
-    )
-  }
-
-  // Desktop: Select (sem botão "+")
-  return (
-    <Select
-      value={value || ''}
-      onValueChange={(val) => {
-        const client = clients.find((c) => c.id === val)
-        if (client) {
-          onChange(client.id, client.name)
-        }
-      }}
-      disabled={loading}
-    >
-      <SelectTrigger className={cn('!h-[60px] rounded-xl bg-muted/30', className)}>
-        <SelectValue placeholder={loading ? 'Carregando...' : placeholder}>
-          {displayValue && (
-            <span className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
-                {getInitials(displayValue)}
-              </span>
-              <span className="font-medium">{displayValue}</span>
-            </span>
-          )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {clients.length === 0 ? (
-          <div className="py-6 text-center text-sm text-muted-foreground">
-            Nenhum cliente encontrado
-          </div>
-        ) : (
-          clients.map((client) => (
-            <SelectItem key={client.id} value={client.id}>
-              {client.name}
-            </SelectItem>
-          ))
-        )}
-      </SelectContent>
-    </Select>
+      ) : (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
+            <DialogHeader className="px-5 py-4">
+              <DialogTitle className="text-lg">Selecionar Cliente</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col max-h-[60vh]">
+              {listContent}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }
