@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, ChevronLeft, Package, Plus, Search, Loader2 } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, Package, Plus, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -121,8 +121,8 @@ export function SupplierPicker({
     return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(e?: React.FormEvent) {
+    e?.preventDefault()
 
     if (!formName.trim()) {
       toast.error('Nome é obrigatório')
@@ -231,32 +231,11 @@ export function SupplierPicker({
         )}
       </div>
 
-      <div className="p-4">
-        <Button
-          type="button"
-          onClick={() => handleNavigateToForm()}
-          className="w-full h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
-        >
-          <Plus className="h-4 w-4" />
-          Novo Fornecedor
-        </Button>
-      </div>
     </>
   )
 
   const formContent = (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-3 border-b">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Voltar
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit} className="flex-1 overflow-auto px-5 py-4 space-y-4">
         <div className="space-y-2">
           <Label htmlFor="picker-supplier-name">Nome da Empresa/Fábrica *</Label>
@@ -266,7 +245,6 @@ export function SupplierPicker({
             onChange={(e) => setFormName(e.target.value)}
             placeholder="Ex: Tintas Coral"
             required
-            autoFocus
           />
         </div>
 
@@ -314,21 +292,60 @@ export function SupplierPicker({
           )}
         </div>
 
-        <div className="pt-2">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Criar Pasta
-          </Button>
-        </div>
       </form>
     </div>
   )
 
-  const innerContent = view === 'list' ? listContent : formContent
+  const renderSlidingContent = (containerClass: string) => (
+    <div className={cn("flex flex-col", containerClass)}>
+      <div className="relative flex-1 overflow-hidden">
+        <div
+          className="flex h-full w-[200%] transition-transform duration-300 ease-in-out"
+          style={{ transform: view === 'form' ? 'translateX(-50%)' : 'translateX(0)' }}
+        >
+          <div className="w-1/2 flex flex-col h-full overflow-hidden">
+            {listContent}
+          </div>
+          <div className="w-1/2 flex flex-col h-full overflow-hidden">
+            {formContent}
+          </div>
+        </div>
+      </div>
+      <div className="shrink-0 p-4 border-t">
+        {view === 'list' ? (
+          <Button
+            type="button"
+            onClick={() => handleNavigateToForm()}
+            variant="outline"
+            className="w-full h-12 gap-2 font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Fornecedor
+          </Button>
+        ) : (
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1 h-12 font-medium"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={loading}
+              className="flex-1 h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Salvar
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   return (
     <>
@@ -365,25 +382,33 @@ export function SupplierPicker({
             className="w-full sm:max-w-full h-full flex flex-col p-0"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <SheetHeader className="px-5 py-4">
-              <SheetTitle className="text-lg">
+            <SheetHeader className="h-[60px] shrink-0 flex flex-row items-center px-5 text-left">
+              <SheetTitle className="text-lg flex items-center gap-2">
+                {view === 'form' && (
+                  <button type="button" onClick={handleBack} className="hover:opacity-70 transition-opacity">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                )}
                 {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
               </SheetTitle>
             </SheetHeader>
-            {innerContent}
+            {renderSlidingContent("flex-1")}
           </SheetContent>
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
-            <DialogHeader className="px-5 py-4">
-              <DialogTitle className="text-lg">
+          <DialogContent className="max-w-md p-0 gap-0 overflow-hidden [&>[data-slot=dialog-close]]:top-[22px]" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <DialogHeader className="h-[60px] shrink-0 flex flex-row items-center px-5 text-left">
+              <DialogTitle className="text-lg flex items-center gap-2">
+                {view === 'form' && (
+                  <button type="button" onClick={handleBack} className="hover:opacity-70 transition-opacity">
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                )}
                 {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
               </DialogTitle>
             </DialogHeader>
-            <div className="flex flex-col max-h-[60vh]">
-              {innerContent}
-            </div>
+            {renderSlidingContent("h-[60vh]")}
           </DialogContent>
         </Dialog>
       )}
