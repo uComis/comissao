@@ -11,7 +11,7 @@ type IdentificationSectionProps = {
   showClient: boolean
   onSupplierChange: (id: string) => void
   onClientChange: (id: string | null, name: string) => void
-  onSupplierAddClick: (name?: string) => void
+  onSupplierCreated: (supplier: PersonalSupplierWithRules) => void
   onClientAddClick: (name?: string) => void
 }
 
@@ -23,7 +23,7 @@ export function IdentificationSection({
   showClient,
   onSupplierChange,
   onClientChange,
-  onSupplierAddClick,
+  onSupplierCreated,
   onClientAddClick,
 }: IdentificationSectionProps) {
   return (
@@ -42,7 +42,7 @@ export function IdentificationSection({
             suppliers={suppliers}
             value={supplierId}
             onChange={onSupplierChange}
-            onAddClick={onSupplierAddClick}
+            onSupplierCreated={onSupplierCreated}
             placeholder="Selecione a pasta"
             className="w-full"
           />

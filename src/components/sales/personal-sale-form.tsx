@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientDialog } from '@/components/clients'
-import { SupplierDialog } from '@/components/suppliers'
 import { ProductDialog } from '@/components/products'
 import { createPersonalSale, updatePersonalSale } from '@/app/actions/personal-sales'
 import { updateProduct } from '@/app/actions/products'
@@ -168,8 +167,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [clientInitialName, setClientInitialName] = useState('')
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
-  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
-  const [supplierInitialName, setSupplierInitialName] = useState('')
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
   const [productRefreshTrigger, setProductRefreshTrigger] = useState(0)
@@ -606,10 +603,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             showClient={isEdit || !!supplierId}
             onSupplierChange={handleSupplierChange}
             onClientChange={handleClientChange}
-            onSupplierAddClick={(name) => {
-              setSupplierInitialName(name || '')
-              setSupplierDialogOpen(true)
-            }}
+            onSupplierCreated={handleSupplierCreated}
             onClientAddClick={(name) => {
               setClientInitialName(name || '')
               setClientDialogOpen(true)
@@ -734,12 +728,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         initialName={clientInitialName}
       />
 
-      <SupplierDialog
-        open={supplierDialogOpen}
-        onOpenChange={setSupplierDialogOpen}
-        onSuccess={handleSupplierCreated}
-        initialName={supplierInitialName}
-      />
 
       {supplierId && (
         <ProductDialog

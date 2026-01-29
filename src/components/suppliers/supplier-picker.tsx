@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronDown, Package, Plus, Search } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown, ChevronLeft, Package, Plus, Search, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Item,
   ItemMedia,
@@ -12,8 +13,6 @@ import {
   ItemTitle,
   ItemDescription,
   ItemActions,
-  ItemGroup,
-  ItemSeparator,
 } from '@/components/ui/item'
 import {
   Dialog,
@@ -28,6 +27,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { RuleForm, type RuleFormRef } from '@/components/rules'
+import { createPersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 function getInitials(name: string) {
@@ -43,7 +45,7 @@ type Props = {
   suppliers: PersonalSupplierWithRules[]
   value: string
   onChange: (value: string) => void
-  onAddClick: (initialName?: string) => void
+  onSupplierCreated?: (supplier: PersonalSupplierWithRules) => void
   placeholder?: string
   className?: string
 }
@@ -52,13 +54,21 @@ export function SupplierPicker({
   suppliers,
   value,
   onChange,
-  onAddClick,
+  onSupplierCreated,
   placeholder = 'Selecione a pasta',
   className,
 }: Props) {
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [view, setView] = useState<'list' | 'form'>('list')
+
+  // Form state
+  const ruleFormRef = useRef<RuleFormRef>(null)
+  const [formName, setFormName] = useState('')
+  const [formCnpj, setFormCnpj] = useState('')
+  const [hasCommission, setHasCommission] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const selectedSupplier = suppliers.find((s) => s.id === value)
   const displayValue = selectedSupplier?.name || ''
@@ -67,17 +77,94 @@ export function SupplierPicker({
     s.name.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Reset to list view whenever modal opens or closes
+  useEffect(() => {
+    if (open) {
+      // Immediately show list on open
+      setView('list')
+      setSearch('')
+      resetForm()
+    }
+  }, [open])
+
+  function resetForm() {
+    setFormName('')
+    setFormCnpj('')
+    setHasCommission(false)
+    setLoading(false)
+  }
+
   function handleSelect(supplierId: string) {
     onChange(supplierId)
     setOpen(false)
     setSearch('')
   }
 
-  function handleAddNew() {
-    const nameToPass = search.trim() || undefined
-    setOpen(false)
-    setSearch('')
-    onAddClick(nameToPass)
+  function handleNavigateToForm(initialName?: string) {
+    setFormName(initialName || search.trim() || '')
+    setFormCnpj('')
+    setHasCommission(false)
+    setView('form')
+  }
+
+  function handleBack() {
+    setView('list')
+    resetForm()
+  }
+
+  function formatCnpj(value: string): string {
+    const digits = value.replace(/\D/g, '').slice(0, 14)
+    if (digits.length <= 2) return digits
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (!formName.trim()) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+
+    if (hasCommission && !ruleFormRef.current?.validate()) {
+      toast.error('Configure a regra de comissão')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const ruleData = hasCommission && ruleFormRef.current ? ruleFormRef.current.getData() : null
+      const cleanCnpj = formCnpj.replace(/\D/g, '') || undefined
+
+      const result = await createPersonalSupplierWithRule({
+        name: formName,
+        cnpj: cleanCnpj,
+        rule: ruleData ? {
+          name: ruleData.name || `${formName} - Regra`,
+          type: ruleData.type,
+          target: ruleData.target,
+          percentage: ruleData.percentage,
+          tiers: ruleData.tiers,
+          is_default: ruleData.is_default,
+        } : null,
+      })
+
+      if (result.success) {
+        toast.success('Fornecedor criado')
+        onSupplierCreated?.(result.data)
+        // Auto-select and go back to list
+        onChange(result.data.id)
+        setOpen(false)
+      } else {
+        toast.error(result.error)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const listContent = (
@@ -127,8 +214,7 @@ export function SupplierPicker({
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                       onClick={(e) => {
                         e.stopPropagation()
-                        setOpen(false)
-                        onAddClick(supplier.name)
+                        handleNavigateToForm(supplier.name)
                       }}
                     >
                       Editar
@@ -148,7 +234,7 @@ export function SupplierPicker({
       <div className="p-4">
         <Button
           type="button"
-          onClick={handleAddNew}
+          onClick={() => handleNavigateToForm()}
           className="w-full h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
         >
           <Plus className="h-4 w-4" />
@@ -157,6 +243,92 @@ export function SupplierPicker({
       </div>
     </>
   )
+
+  const formContent = (
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-3 border-b">
+        <button
+          type="button"
+          onClick={handleBack}
+          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Voltar
+        </button>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex-1 overflow-auto px-5 py-4 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="picker-supplier-name">Nome da Empresa/Fábrica *</Label>
+          <Input
+            id="picker-supplier-name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder="Ex: Tintas Coral"
+            required
+            autoFocus
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="picker-supplier-cnpj">CNPJ</Label>
+          <Input
+            id="picker-supplier-cnpj"
+            value={formCnpj}
+            onChange={(e) => setFormCnpj(formatCnpj(e.target.value))}
+            placeholder="00.000.000/0000-00"
+          />
+          <p className="text-muted-foreground text-xs">Opcional.</p>
+        </div>
+
+        <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base font-semibold">Regra de Comissão</Label>
+              <p className="text-sm text-muted-foreground">
+                Opcional. Você pode configurar depois.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="picker-has-commission"
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                checked={hasCommission}
+                onChange={(e) => setHasCommission(e.target.checked)}
+              />
+              <Label htmlFor="picker-has-commission" className="font-normal cursor-pointer">
+                Configurar agora
+              </Label>
+            </div>
+          </div>
+
+          {hasCommission && (
+            <div className="pt-2 border-t mt-2">
+              <RuleForm
+                ref={ruleFormRef}
+                showName={false}
+                showDefault={false}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2">
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 gap-2 font-medium bg-foreground text-background hover:bg-foreground/90"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Criar Pasta
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+
+  const innerContent = view === 'list' ? listContent : formContent
 
   return (
     <>
@@ -194,19 +366,23 @@ export function SupplierPicker({
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <SheetHeader className="px-5 py-4">
-              <SheetTitle className="text-lg">Selecionar Fornecedor</SheetTitle>
+              <SheetTitle className="text-lg">
+                {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
+              </SheetTitle>
             </SheetHeader>
-            {listContent}
+            {innerContent}
           </SheetContent>
         </Sheet>
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
             <DialogHeader className="px-5 py-4">
-              <DialogTitle className="text-lg">Selecionar Fornecedor</DialogTitle>
+              <DialogTitle className="text-lg">
+                {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
+              </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col max-h-[60vh]">
-              {listContent}
+              {innerContent}
             </div>
           </DialogContent>
         </Dialog>
