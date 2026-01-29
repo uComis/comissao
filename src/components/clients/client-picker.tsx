@@ -27,11 +27,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { getPersonalClients, createPersonalClient, updatePersonalClient } from '@/app/actions/personal-clients'
 import { toast } from 'sonner'
@@ -223,7 +223,7 @@ export function ClientPicker({
     loadClients()
   }
 
-  // --- Mobile: Sheet with sliding content ---
+  // --- Mobile: Bottom drawer with sliding content ---
   if (isMobile) {
     const listContent = (
       <>
@@ -386,25 +386,21 @@ export function ClientPicker({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
 
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent
-            side="right"
-            className="w-full sm:max-w-full h-full flex flex-col p-0"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <SheetHeader className="h-[60px] shrink-0 flex flex-row items-center px-5 text-left">
-              <SheetTitle className="text-lg flex items-center gap-2">
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="max-h-[85vh] flex flex-col p-0">
+            <DrawerHeader className="shrink-0 flex flex-row items-center px-5 text-left">
+              <DrawerTitle className="text-lg flex items-center gap-2">
                 {view === 'form' && (
                   <button type="button" onClick={handleBack} className="hover:opacity-70 transition-opacity">
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                 )}
                 {view === 'list' ? 'Selecionar Cliente' : editingClientId ? 'Editar Cliente' : 'Novo Cliente'}
-              </SheetTitle>
-            </SheetHeader>
-            {renderSlidingContent("flex-1")}
-          </SheetContent>
-        </Sheet>
+              </DrawerTitle>
+            </DrawerHeader>
+            {renderSlidingContent("flex-1 overflow-hidden")}
+          </DrawerContent>
+        </Drawer>
       </>
     )
   }

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { ClientPicker } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type IdentificationSectionProps = {
@@ -12,10 +14,12 @@ type IdentificationSectionProps = {
   clientId: string | null
   clientRefreshTrigger: number
   showClient: boolean
+  isDefaultSupplier: boolean
   onSupplierChange: (id: string) => void
   onClientChange: (id: string | null, name: string) => void
   onSupplierCreated: (supplier: PersonalSupplierWithRules) => void
   onClientAddClick: (name?: string) => void
+  onDefaultSupplierChange: (checked: boolean) => void
 }
 
 export function IdentificationSection({
@@ -24,10 +28,12 @@ export function IdentificationSection({
   clientId,
   clientRefreshTrigger,
   showClient,
+  isDefaultSupplier,
   onSupplierChange,
   onClientChange,
   onSupplierCreated,
   onClientAddClick,
+  onDefaultSupplierChange,
 }: IdentificationSectionProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
 
@@ -53,7 +59,7 @@ export function IdentificationSection({
             <Plus className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-5 pt-2 pb-4">
+        <div className="px-5 pt-2 pb-4 space-y-3">
           <SupplierPicker
             suppliers={suppliers}
             value={supplierId}
@@ -63,6 +69,19 @@ export function IdentificationSection({
             placeholder="Selecione a pasta"
             className="w-full"
           />
+          {supplierId && (
+            <div className="flex items-center justify-end gap-1.5">
+              <Label htmlFor="default-supplier" className="text-[11px] text-muted-foreground/70 cursor-pointer">
+                Pasta padrão
+              </Label>
+              <Switch
+                id="default-supplier"
+                checked={isDefaultSupplier}
+                onCheckedChange={onDefaultSupplierChange}
+                className="scale-75"
+              />
+            </div>
+          )}
         </div>
       </div>
 

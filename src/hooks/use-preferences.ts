@@ -8,12 +8,14 @@ export type Preferences = {
   salesPageSize: number
   adminUsersPageSize: number
   saleInformItems: boolean
+  defaultSupplierId: string | null
 }
 
 const defaults: Preferences = {
   salesPageSize: 10,
   adminUsersPageSize: 10,
   saleInformItems: false,
+  defaultSupplierId: null,
 }
 
 function getStoredPreferences(): Preferences {

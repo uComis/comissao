@@ -104,7 +104,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const initialPayment = parsePaymentCondition(sale?.payment_condition ?? null)
 
-  const [supplierId, setSupplierId] = useState(sale?.supplier_id || '')
+  const [supplierId, setSupplierId] = useState(sale?.supplier_id || preferences.defaultSupplierId || '')
   const [clientId, setClientId] = useState<string | null>(sale?.client_id || null)
   const [clientName, setClientName] = useState(sale?.client_name || '')
   const today = new Date().toISOString().split('T')[0]
@@ -426,6 +426,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         productName: undefined,
       }))
     )
+
+    // Auto-set as default if user only has one supplier
+    if (suppliersList.length === 1 && !preferences.defaultSupplierId) {
+      setPreference('defaultSupplierId', value)
+    }
   }
 
   function handleClientChange(id: string | null, name: string) {
@@ -633,9 +638,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             clientId={clientId}
             clientRefreshTrigger={clientRefreshTrigger}
             showClient={isEdit || !!supplierId}
+            isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
             onSupplierChange={handleSupplierChange}
             onClientChange={handleClientChange}
             onSupplierCreated={handleSupplierCreated}
+            onDefaultSupplierChange={(checked) => {
+              setPreference('defaultSupplierId', checked ? supplierId : null)
+            }}
             onClientAddClick={(name) => {
               setClientInitialName(name || '')
               setClientDialogOpen(true)
