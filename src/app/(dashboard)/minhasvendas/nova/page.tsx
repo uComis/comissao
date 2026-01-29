@@ -18,15 +18,17 @@ async function NovaVendaContent() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-5">
+      <div className="mb-5 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
         <PageHeader
           title="Registro de venda"
         />
       </div>
-      <PersonalSaleForm
-        suppliers={suppliers}
-        productsBySupplier={productsBySupplier}
-      />
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both delay-150">
+        <PersonalSaleForm
+          suppliers={suppliers}
+          productsBySupplier={productsBySupplier}
+        />
+      </div>
     </div>
   )
 }

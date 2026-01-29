@@ -74,7 +74,7 @@ export function IdentificationSection({
 
       {/* Card Cliente */}
       {showClient && (
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="animate-in fade-in slide-in-from-bottom-3 duration-400 delay-200 fill-mode-both">
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
             <div className="flex items-center justify-between px-5 pt-4">
               <div>
