@@ -146,11 +146,7 @@ export function CompactNumberInput({
               onKeyDown={handleKeyDown}
               className="w-full h-11 text-center text-sm font-medium bg-transparent text-foreground outline-none border-none"
             />
-            {suffix && !isFocused && (
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none font-medium text-sm">
-                {suffix}
-              </span>
-            )}
+            {/* Suffix hidden on mobile — buttons already take the space */}
           </div>
           
           {/* Right Arrow Button */}

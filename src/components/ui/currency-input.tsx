@@ -8,6 +8,7 @@ export interface CurrencyInputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   value: string
   onChange: (value: string) => void
+  hidePrefix?: boolean
 }
 
 /**
@@ -16,7 +17,7 @@ export interface CurrencyInputProps
  * Converte pontos digitados pelo usuário em vírgulas.
  */
 export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ className, value, onChange, ...props }, ref) => {
+  ({ className, value, onChange, hidePrefix, ...props }, ref) => {
     
     // Formata o valor numérico (ex: "1500.50") para o padrão PT-BR ("1.500,50")
     const formatDisplay = (val: string) => {
@@ -97,16 +98,19 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
 
     return (
       <div className="relative w-full group">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium transition-colors group-focus-within:text-primary z-10">
-          R$
-        </span>
+        {!hidePrefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium transition-colors group-focus-within:text-primary z-10">
+            R$
+          </span>
+        )}
         <Input
           {...props}
           ref={ref}
           type="text"
           inputMode="decimal"
           className={cn(
-            "pl-9 pr-4 h-11 text-sm font-semibold text-center shadow-md border-2 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary rounded-xl transition-all",
+            "pr-4 h-11 text-sm font-semibold text-center shadow-md border-2 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary rounded-xl transition-all",
+            hidePrefix ? "pl-4" : "pl-9",
             className
           )}
           value={displayValue}

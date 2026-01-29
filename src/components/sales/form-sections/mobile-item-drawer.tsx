@@ -1,25 +1,17 @@
-import { Search, Trash2 } from 'lucide-react'
+import { Minus, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter as SheetFooterUI,
-} from '@/components/ui/sheet'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
 
 type ValueEntry = {
   id: string
@@ -83,129 +75,185 @@ function ItemFormContent({
         </div>
       )}
 
-      <div className={cn('grid gap-6 w-full', informItems ? 'grid-cols-2' : 'grid-cols-1')}>
-        {informItems && (
-          <div className="space-y-3">
-            <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
-              Quantidade
-            </Label>
-            <CompactNumberInput
-              value={entry.quantity || 1}
-              onChange={(val) => onUpdateEntry(entry.id, 'quantity', val)}
-              min={1}
-              step={1}
-              decimals={0}
-              className="h-14 text-lg font-bold"
-            />
+      {informItems ? (
+        <>
+          <div className="grid grid-cols-2 gap-6 w-full">
+            <div className="space-y-3">
+              <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
+                Quantidade
+              </Label>
+              <CompactNumberInput
+                value={entry.quantity || 1}
+                onChange={(val) => onUpdateEntry(entry.id, 'quantity', val)}
+                min={1}
+                step={1}
+                decimals={0}
+                className="h-14 text-lg font-bold"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
+                Preço Unitário
+              </Label>
+              <CurrencyInput
+                placeholder="0,00"
+                value={entry.grossValue || ''}
+                onChange={(val) => onUpdateEntry(entry.id, 'grossValue', val)}
+                className="h-14 text-lg font-bold"
+              />
+            </div>
           </div>
-        )}
-        <div
-          className={cn(
-            'space-y-3 transition-all duration-300',
-            !informItems && 'max-w-[280px] mx-auto w-full text-center'
-          )}
-        >
-          <Label
-            className={cn(
-              'text-[13px] font-bold mb-1 block px-1',
-              informItems
-                ? 'text-foreground/70'
-                : 'text-primary text-base uppercase tracking-wider'
-            )}
-          >
-            {informItems ? 'Preço Unitário' : 'Valor Total'}
-          </Label>
-          <CurrencyInput
-            placeholder="0,00"
-            value={entry.grossValue || ''}
-            onChange={(val) => onUpdateEntry(entry.id, 'grossValue', val)}
-            className={cn(
-              'font-bold transition-all duration-300',
-              informItems
-                ? 'h-14 text-lg'
-                : 'h-20 text-3xl text-center rounded-3xl border-primary/20 shadow-xl shadow-primary/5 focus-visible:border-primary focus-visible:ring-primary/10'
-            )}
-          />
-        </div>
-      </div>
 
-      {informItems && (
-        <div className="bg-muted/30 rounded-2xl p-4 flex justify-between items-center border border-dashed mt-4">
-          <span className="text-[13px] font-bold text-foreground/60 transition-colors">
-            Subtotal do Item
-          </span>
-          <span className="text-xl font-bold text-primary">
-            {new Intl.NumberFormat('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }).format((entry.quantity || 0) * (parseFloat(entry.grossValue || '0') || 0))}
-          </span>
-        </div>
+          <div className="bg-muted/30 rounded-2xl p-4 flex justify-between items-center border border-dashed">
+            <span className="text-[13px] font-bold text-foreground/60">
+              Subtotal do Item
+            </span>
+            <span className="text-xl font-bold text-primary">
+              {new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              }).format((entry.quantity || 0) * (parseFloat(entry.grossValue || '0') || 0))}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 w-full">
+            <div className="space-y-3">
+              <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2 px-1">
+                Impostos
+              </Label>
+              <CompactNumberInput
+                value={parseFloat(entry.taxRate || '0')}
+                onChange={(val) => onUpdateEntry(entry.id, 'taxRate', String(val))}
+                min={0}
+                max={100}
+                step={0.5}
+                decimals={2}
+                suffix="%"
+                accentColor="#f59e0b"
+                className="h-14 text-lg font-bold"
+              />
+            </div>
+            <div className="space-y-3">
+              <Label className="text-[10px] text-muted-foreground font-semibold flex items-center gap-2 px-1">
+                Comissão
+              </Label>
+              <CompactNumberInput
+                value={parseFloat(entry.commissionRate || '0')}
+                onChange={(val) => onUpdateEntry(entry.id, 'commissionRate', String(val))}
+                min={0}
+                max={100}
+                step={0.5}
+                decimals={2}
+                suffix="%"
+                accentColor="#67C23A"
+                className="h-14 text-lg font-bold"
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Hero value — inspired by shadcn drawer */}
+          {(() => {
+            // Calcula tamanho do display formatado (ex: "1.000.000,50" = 12 chars)
+            const raw = entry.grossValue || ''
+            const num = parseFloat(raw) || 0
+            const formatted = num.toLocaleString('pt-BR', {
+              minimumFractionDigits: raw.includes('.') ? raw.split('.')[1]?.length || 0 : 0,
+              maximumFractionDigits: 2,
+            })
+            const len = Math.max(formatted.length, 1)
+
+            const heroSize =
+              len <= 5
+                ? 'text-6xl md:text-7xl'
+                : len <= 8
+                  ? 'text-5xl md:text-6xl'
+                  : len <= 11
+                    ? 'text-4xl md:text-5xl'
+                    : 'text-3xl md:text-4xl'
+
+            return (
+              <div className="flex flex-col items-center py-4">
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = parseFloat(entry.grossValue || '0') || 0
+                      const newVal = Math.max(0, current - 100)
+                      onUpdateEntry(entry.id, 'grossValue', String(newVal))
+                    }}
+                    className="size-10 rounded-full border-2 border-border bg-background flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0"
+                  >
+                    <Minus className="size-4" />
+                  </button>
+                  <CurrencyInput
+                    placeholder="0,00"
+                    hidePrefix
+                    value={entry.grossValue || ''}
+                    onChange={(val) => onUpdateEntry(entry.id, 'grossValue', val)}
+                    className={cn(
+                      'h-auto border-0 shadow-none bg-transparent font-black text-center p-0 focus-visible:ring-0 transition-[font-size] duration-200',
+                      heroSize
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = parseFloat(entry.grossValue || '0') || 0
+                      onUpdateEntry(entry.id, 'grossValue', String(current + 100))
+                    }}
+                    className="size-10 rounded-full border-2 border-border bg-background flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors shrink-0"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-1">
+                  Reais / R$
+                </span>
+              </div>
+            )
+          })()}
+
+          {/* Impostos + Comissão inline */}
+          <div className="grid grid-cols-2 gap-4 w-full max-w-xs mx-auto">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-semibold flex items-center justify-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                Impostos
+              </Label>
+              <CompactNumberInput
+                value={parseFloat(entry.taxRate || '0')}
+                onChange={(val) => onUpdateEntry(entry.id, 'taxRate', String(val))}
+                min={0}
+                max={100}
+                step={0.5}
+                decimals={2}
+                suffix="%"
+                accentColor="#f59e0b"
+                className="h-11 text-sm font-bold"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground font-semibold flex items-center justify-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Comissão
+              </Label>
+              <CompactNumberInput
+                value={parseFloat(entry.commissionRate || '0')}
+                onChange={(val) => onUpdateEntry(entry.id, 'commissionRate', String(val))}
+                min={0}
+                max={100}
+                step={0.5}
+                decimals={2}
+                suffix="%"
+                accentColor="#67C23A"
+                className="h-11 text-sm font-bold"
+              />
+            </div>
+          </div>
+        </>
       )}
-
-      <div
-        className={cn(
-          'grid gap-6 pt-2 w-full transition-all duration-300',
-          informItems
-            ? 'grid-cols-2'
-            : 'grid-cols-1 max-w-[280px] mx-auto bg-muted/20 p-6 rounded-[3rem] border border-dashed'
-        )}
-      >
-        <div className="space-y-3">
-          <Label
-            className={cn(
-              'text-muted-foreground font-semibold flex items-center gap-2 px-1',
-              informItems ? 'text-[10px]' : 'text-[11px] justify-center'
-            )}
-          >
-            {!informItems && (
-              <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-            )}
-            Impostos
-          </Label>
-          <CompactNumberInput
-            value={parseFloat(entry.taxRate || '0')}
-            onChange={(val) => onUpdateEntry(entry.id, 'taxRate', String(val))}
-            min={0}
-            max={100}
-            step={0.5}
-            decimals={2}
-            suffix="%"
-            accentColor="#f59e0b"
-            className={cn(
-              'font-bold transition-all',
-              informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-background dark:bg-input/50 border-2'
-            )}
-          />
-        </div>
-        <div className="space-y-3">
-          <Label
-            className={cn(
-              'text-muted-foreground font-semibold flex items-center gap-2 px-1',
-              informItems ? 'text-[10px]' : 'text-[11px] justify-center'
-            )}
-          >
-            {!informItems && (
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            )}
-            Comissão
-          </Label>
-          <CompactNumberInput
-            value={parseFloat(entry.commissionRate || '0')}
-            onChange={(val) => onUpdateEntry(entry.id, 'commissionRate', String(val))}
-            min={0}
-            max={100}
-            step={0.5}
-            decimals={2}
-            suffix="%"
-            accentColor="#67C23A"
-            className={cn(
-              'font-bold transition-all',
-              informItems ? 'h-14 text-lg' : 'h-16 text-xl bg-background dark:bg-input/50 border-2'
-            )}
-          />
-        </div>
-      </div>
     </div>
   )
 }
@@ -230,18 +278,18 @@ function ItemFormFooter({
           onOpenChange(false)
         }}
         className={cn(
-          'rounded-2xl text-base font-bold flex-1',
-          isDialog ? 'h-11' : 'h-14'
+          'rounded-2xl font-bold flex-1',
+          isDialog ? 'h-10 text-sm' : 'h-12 md:h-10 text-base md:text-sm'
         )}
       >
-        <Trash2 className="h-5 w-5 mr-2" />
+        <Trash2 className="h-4 w-4 mr-2" />
         Excluir
       </Button>
       <Button
         onClick={() => onOpenChange(false)}
         className={cn(
-          'rounded-2xl text-base font-bold shadow-lg flex-1',
-          isDialog ? 'h-11' : 'h-14'
+          'rounded-2xl font-bold shadow-lg flex-1',
+          isDialog ? 'h-10 text-sm' : 'h-12 md:h-10 text-base md:text-sm'
         )}
       >
         Confirmar
@@ -260,76 +308,40 @@ export function MobileItemDrawer({
   onUpdateEntry,
   onDeleteEntry,
 }: MobileItemDrawerProps) {
-  const isMobile = useIsMobile()
-
   if (!entry) return null
 
-  const title = entry.productName || entry.grossValue ? 'Editar Item' : 'Adicionar Item'
+  const isEditing = !!(entry.productName || entry.grossValue)
 
-  if (!isMobile) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
-          </DialogHeader>
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="p-0 flex flex-col overflow-hidden max-h-[85vh]">
+        <div className="mx-auto w-full max-w-lg flex flex-col flex-1 overflow-hidden">
+          <DrawerHeader className="p-6 pb-2">
+            <DrawerTitle>{isEditing ? 'Editar Valor' : 'Valor'}</DrawerTitle>
+            <DrawerDescription>
+              {informItems ? 'Informe os dados do item vendido.' : 'Informe o valor bruto da venda.'}
+            </DrawerDescription>
+          </DrawerHeader>
 
-          <ItemFormContent
-            entry={entry}
-            informItems={informItems}
-            supplierId={supplierId}
-            onProductSearchClick={onProductSearchClick}
-            onUpdateEntry={onUpdateEntry}
-          />
+          <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
+            <ItemFormContent
+              entry={entry}
+              informItems={informItems}
+              supplierId={supplierId}
+              onProductSearchClick={onProductSearchClick}
+              onUpdateEntry={onUpdateEntry}
+            />
+          </div>
 
-          <DialogFooter className="sm:justify-stretch">
+          <div className="p-6 border-t bg-background">
             <ItemFormFooter
               entry={entry}
               onDeleteEntry={onDeleteEntry}
               onOpenChange={onOpenChange}
-              isDialog
             />
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className={cn(
-          'w-full h-full p-0 flex flex-col overflow-hidden transition-all duration-300'
-        )}
-      >
-        <SheetHeader className="p-6 pb-2 border-b">
-          <SheetTitle className="text-xl font-bold">{title}</SheetTitle>
-        </SheetHeader>
-
-        <div
-          className={cn(
-            'flex-1 overflow-y-auto p-6 space-y-6 pb-24',
-            !informItems && 'flex flex-col items-center justify-start pt-[12vh]'
-          )}
-        >
-          <ItemFormContent
-            entry={entry}
-            informItems={informItems}
-            supplierId={supplierId}
-            onProductSearchClick={onProductSearchClick}
-            onUpdateEntry={onUpdateEntry}
-          />
+          </div>
         </div>
-
-        <SheetFooterUI className="p-6 border-t bg-background sticky bottom-0 mt-autos">
-          <ItemFormFooter
-            entry={entry}
-            onDeleteEntry={onDeleteEntry}
-            onOpenChange={onOpenChange}
-          />
-        </SheetFooterUI>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }
