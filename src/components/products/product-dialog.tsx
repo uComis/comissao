@@ -4,9 +4,9 @@ import { useState, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { createProduct, updateProduct } from '@/app/actions/products'
@@ -27,13 +27,13 @@ type Props = {
   onAddRule?: () => void
 }
 
-export function ProductDialog({ 
-  open, 
-  onOpenChange, 
-  supplierId, 
-  product, 
-  showSku = true, 
-  initialName, 
+export function ProductDialog({
+  open,
+  onOpenChange,
+  supplierId,
+  product,
+  showSku = true,
+  initialName,
   onProductCreated,
   availableRules,
   existingProducts,
@@ -46,7 +46,7 @@ export function ProductDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    e.stopPropagation() // Evita que o submit propague para forms externos
+    e.stopPropagation()
 
     if (!formRef.current?.validate()) {
       return
@@ -108,23 +108,26 @@ export function ProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent showCloseButton={false} className="top-[20%] translate-y-0 max-w-md">
+        <DialogHeader className="text-center sm:text-center">
           <DialogTitle>{isEditing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEditing ? 'Edite os dados do produto' : 'Cadastre um novo produto'}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <ProductForm 
-            ref={formRef} 
-            product={product} 
-            showSku={showSku} 
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <ProductForm
+            ref={formRef}
+            product={product}
+            showSku={showSku}
             initialName={initialName}
             availableRules={availableRules}
             existingProducts={existingProducts}
             onAddRule={onAddRule}
           />
 
-          <DialogFooter>
+          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="outline"
@@ -136,7 +139,7 @@ export function ProductDialog({
             <Button type="submit" disabled={loading}>
               {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

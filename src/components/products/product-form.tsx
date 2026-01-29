@@ -1,11 +1,12 @@
 'use client'
- 
+
 import { forwardRef, useImperativeHandle, useState, useEffect, useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus } from 'lucide-react'
+import { ChevronDown, Plus } from 'lucide-react'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import {
   Select,
   SelectContent,
@@ -34,13 +35,14 @@ type Props = {
   product?: Product | null
   showSku?: boolean
   initialName?: string
+  autoFocus?: boolean
   availableRules?: CommissionRule[]
   existingProducts?: Product[]
   onAddRule?: () => void
 }
 
 export const ProductForm = forwardRef<ProductFormRef, Props>(
-  function ProductForm({ product, showSku = true, initialName, availableRules, existingProducts = [], onAddRule }, ref) {
+  function ProductForm({ product, showSku = true, initialName, autoFocus = true, availableRules, existingProducts = [], onAddRule }, ref) {
     const [name, setName] = useState(product?.name || initialName || '')
     const [sku, setSku] = useState(product?.sku || '')
     const [unitPrice, setUnitPrice] = useState(
@@ -75,11 +77,10 @@ export const ProductForm = forwardRef<ProductFormRef, Props>(
     // Lógica de sugestão inteligente para novos produtos
     useEffect(() => {
       if (!product && existingProducts.length > 0) {
-        // Encontrar as taxas mais comuns
         const commissions = existingProducts
           .map(p => p.default_commission_rate)
           .filter((v): v is number => v !== null)
-        
+
         const taxes = existingProducts
           .map(p => p.default_tax_rate)
           .filter((v): v is number => v !== null)
@@ -142,134 +143,145 @@ export const ProductForm = forwardRef<ProductFormRef, Props>(
     }))
 
     function formatPrice(value: string): string {
-      // Remove tudo que não é número ou vírgula/ponto
       const cleaned = value.replace(/[^\d.,]/g, '')
-      // Substitui vírgula por ponto
       return cleaned.replace(',', '.')
     }
 
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="product-name">Nome do Produto *</Label>
+      <div className="space-y-6">
+        {/* Campo principal */}
+        <div className="space-y-1.5">
+          <Label htmlFor="product-name" className="text-base font-semibold">
+            Nome
+          </Label>
           <Input
             id="product-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Tinta Acrílica Premium 18L"
-            className={errors.name ? 'border-destructive' : ''}
+            placeholder="Nome do produto"
+            autoFocus={autoFocus}
+            className={`h-[50px] text-base ${errors.name ? 'border-destructive' : ''}`}
           />
           {errors.name && (
             <p className="text-sm text-destructive">{errors.name}</p>
           )}
         </div>
 
-        {showSku && (
-          <div className="space-y-2">
-            <Label htmlFor="product-sku">SKU / Código</Label>
-            <Input
-              id="product-sku"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              placeholder="Ex: TAP-18L-001"
-            />
-            <p className="text-xs text-muted-foreground">
-              Opcional. Código interno do produto.
-            </p>
-          </div>
-        )}
+        {/* Detalhes opcionais (colapsável) */}
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+            <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+            Detalhes opcionais
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+            <div className="space-y-4 mt-3 rounded-lg bg-muted/50 p-4">
+              {showSku && (
+                <div className="space-y-2">
+                  <Label htmlFor="product-sku" className="text-sm text-muted-foreground">SKU / Código</Label>
+                  <Input
+                    id="product-sku"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="Ex: TAP-18L-001"
+                  />
+                </div>
+              )}
 
-        <div className="space-y-2">
-          <Label htmlFor="product-price">Preço de Tabela (R$)</Label>
-          <Input
-            id="product-price"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(formatPrice(e.target.value))}
-            placeholder="0.00"
-            className={errors.unit_price ? 'border-destructive' : ''}
-          />
-          {errors.unit_price && (
-            <p className="text-sm text-destructive">{errors.unit_price}</p>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Opcional. Preço de referência para cálculos.
-          </p>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-price" className="text-sm text-muted-foreground">Preço de Tabela (R$)</Label>
+                <Input
+                  id="product-price"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(formatPrice(e.target.value))}
+                  placeholder="0.00"
+                  className={errors.unit_price ? 'border-destructive' : ''}
+                />
+                {errors.unit_price && (
+                  <p className="text-sm text-destructive">{errors.unit_price}</p>
+                )}
+              </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="default-commission">Comissão Padrão (%)</Label>
-            <Input
-              id="default-commission"
-              type="number"
-              step="0.01"
-              value={defaultCommission}
-              onChange={(e) => {
-                const val = e.target.value
-                if (val !== '' && parseFloat(val) < 0) {
-                  setDefaultCommission('')
-                } else {
-                  setDefaultCommission(val)
-                }
-              }}
-              placeholder="0.00"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="default-tax">Taxa Padrão (%)</Label>
-            <Input
-              id="default-tax"
-              type="number"
-              step="0.01"
-              value={defaultTax}
-              onChange={(e) => {
-                const val = e.target.value
-                if (val !== '' && parseFloat(val) < 0) {
-                  setDefaultTax('')
-                } else {
-                  setDefaultTax(val)
-                }
-              }}
-              placeholder="0.00"
-            />
-          </div>
-        </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="default-commission" className="text-sm text-muted-foreground">Comissão Padrão (%)</Label>
+                  <Input
+                    id="default-commission"
+                    type="number"
+                    step="0.01"
+                    value={defaultCommission}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val !== '' && parseFloat(val) < 0) {
+                        setDefaultCommission('')
+                      } else {
+                        setDefaultCommission(val)
+                      }
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="default-tax" className="text-sm text-muted-foreground">Taxa Padrão (%)</Label>
+                  <Input
+                    id="default-tax"
+                    type="number"
+                    step="0.01"
+                    value={defaultTax}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val !== '' && parseFloat(val) < 0) {
+                        setDefaultTax('')
+                      } else {
+                        setDefaultTax(val)
+                      }
+                    }}
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="commission-rule">Regra de Faixa (Opcional)</Label>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <Select value={commissionRuleId} onValueChange={setCommissionRuleId}>
-                <SelectTrigger id="commission-rule" className="w-full">
-                  <SelectValue placeholder="Selecione uma regra" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem regra de faixa (usar fixo)</SelectItem>
-                  {availableRules?.map(rule => (
-                      <SelectItem key={rule.id} value={rule.id}>
-                          {rule.name} ({rule.target === 'tax' ? 'Taxa' : 'Comissão'})
-                      </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="commission-rule" className="text-sm text-muted-foreground">Regra de Faixa</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Select value={commissionRuleId} onValueChange={setCommissionRuleId}>
+                      <SelectTrigger id="commission-rule" className="w-full">
+                        <SelectValue placeholder="Selecione uma regra" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem regra de faixa (usar fixo)</SelectItem>
+                        {availableRules?.map(rule => (
+                            <SelectItem key={rule.id} value={rule.id}>
+                                {rule.name} ({rule.target === 'tax' ? 'Taxa' : 'Comissão'})
+                            </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {onAddRule && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={onAddRule}
+                      title="Criar nova regra"
+                      className="shrink-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Se selecionada, terá prioridade sobre o valor fixo.
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Você pode ajustar comissões e preços depois.
+              </p>
             </div>
-            {onAddRule && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="icon" 
-                onClick={onAddRule}
-                title="Criar nova regra"
-                className="shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Se selecionada, esta regra terá prioridade sobre o valor fixo.
-          </p>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     )
   }
