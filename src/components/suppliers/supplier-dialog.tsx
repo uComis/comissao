@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RuleForm, type RuleFormRef } from '@/components/rules'
 import { createPersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import { Loader2, ChevronDown } from 'lucide-react'
@@ -26,11 +25,8 @@ type Props = {
 }
 
 export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = '' }: Props) {
-  const ruleFormRef = useRef<RuleFormRef>(null)
-
   const [name, setName] = useState(initialName)
   const [cnpj, setCnpj] = useState('')
-  const [hasCommission, setHasCommission] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Reset form when dialog opens
@@ -38,7 +34,6 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
     if (open) {
       setName(initialName)
       setCnpj('')
-      setHasCommission(false)
     }
   }, [open, initialName])
 
@@ -63,28 +58,15 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
       return
     }
 
-    if (hasCommission && !ruleFormRef.current?.validate()) {
-      toast.error('Configure a regra de comissão')
-      return
-    }
-
     setLoading(true)
 
     try {
-      const ruleData = hasCommission && ruleFormRef.current ? ruleFormRef.current.getData() : null
       const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
 
       const result = await createPersonalSupplierWithRule({
         name,
         cnpj: cleanCnpj,
-        rule: ruleData ? {
-          name: ruleData.name || `${name} - Regra`,
-          type: ruleData.type,
-          target: ruleData.target,
-          percentage: ruleData.percentage,
-          tiers: ruleData.tiers,
-          is_default: ruleData.is_default,
-        } : null,
+        rule: null,
       })
 
       if (result.success) {
@@ -93,7 +75,6 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
         onOpenChange(false)
         setName('')
         setCnpj('')
-        setHasCommission(false)
       } else {
         toast.error(result.error)
       }
@@ -104,7 +85,7 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} className="top-[20%] translate-y-0">
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle>Nova Pasta</DialogTitle>
             <DialogDescription className="sr-only">
@@ -135,8 +116,8 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
                 <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
                 Detalhes opcionais
               </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                <div className="space-y-4 pt-3">
+              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                <div className="space-y-4 mt-3 rounded-lg bg-muted/50 p-4">
                   <div className="space-y-2">
                     <Label htmlFor="supplier-cnpj" className="text-sm text-muted-foreground">CNPJ</Label>
                     <Input
@@ -147,38 +128,9 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
                     />
                   </div>
 
-                  <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-base font-semibold">Regra de Comissão</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Você pode configurar depois.
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="has-commission"
-                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          checked={hasCommission}
-                          onChange={(e) => setHasCommission(e.target.checked)}
-                        />
-                        <Label htmlFor="has-commission" className="font-normal cursor-pointer">
-                          Configurar agora
-                        </Label>
-                      </div>
-                    </div>
-
-                    {hasCommission && (
-                      <div className="pt-2 border-t mt-2">
-                        <RuleForm
-                          ref={ruleFormRef}
-                          showName={false}
-                          showDefault={false}
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Você pode adicionar regras de comissões e taxas depois.
+                  </p>
                 </div>
               </CollapsibleContent>
             </Collapsible>

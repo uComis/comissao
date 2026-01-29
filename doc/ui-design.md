@@ -29,4 +29,34 @@ Utilizamos a família de fontes padrão do sistema (Geist Sans / Geist Mono).
 O sistema utiliza componentes baseados em Radix UI + Tailwind CSS.
 Consulte `src/components/ui` para a biblioteca de componentes.
 
+## Overlay Padrão
 
+Todos os modais e drawers do projeto usam o mesmo overlay, definido globalmente em `globals.css` via `@layer base`:
+
+| Propriedade | Valor |
+|-------------|-------|
+| **Background** | `bg-black/25` (25% opacidade) |
+| **Blur** | `backdrop-blur-[4px]` |
+
+Aplicado automaticamente nos componentes `Dialog` e `Drawer` via seletores `[data-slot="dialog-overlay"]` e `[data-slot="drawer-overlay"]`. Não definir overlay inline nos componentes UI — o global cuida disso.
+
+## Animações
+
+### Accordion / Collapsible
+
+Keyframes disponíveis em `globals.css`:
+
+| Animação | Variável CSS | Uso |
+|----------|-------------|-----|
+| `accordion-down` / `accordion-up` | `--radix-accordion-content-height` | Componente `Accordion` |
+| `collapsible-down` / `collapsible-up` | `--radix-collapsible-content-height` | Componente `Collapsible` |
+
+**Importante:** Accordion e Collapsible usam variáveis CSS diferentes do Radix. Não misturar.
+
+```tsx
+// Collapsible - usar animate-collapsible-*
+<CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+
+// Accordion - usar animate-accordion-*
+<AccordionContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+```

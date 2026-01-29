@@ -113,6 +113,97 @@ const [pageSize, setPageSize] = useState(15)
 
 ---
 
+## SnapForm (Pattern)
+
+Conceito de formulário minimalista do projeto. Não é um componente, é um **padrão de design** para formulários de criação rápida.
+
+### Filosofia
+
+> O vendedor digita o mínimo, clica criar, e sai. Campos extras existem, mas não chamam atenção.
+
+- **Mono-input**: 1 campo principal visível. O vendedor resolve em 5 segundos.
+- **Detalhes opcionais**: campos secundários ficam escondidos num `Collapsible`. Só o usuário detalhista abre.
+- **Sem overload**: nada de subtítulos redundantes, labels explicativos, ou formulários complexos no momento da criação.
+
+### Estrutura
+
+```
+┌──────────────────────────────────────┐
+│          Título Centralizado         │  ← DialogHeader text-center
+│                                      │
+│  Label                               │
+│  ┌──────────────────────────────┐    │
+│  │  Placeholder como contexto   │    │  ← Input principal h-[50px]
+│  └──────────────────────────────┘    │
+│                                      │
+│  ˅ Detalhes opcionais                │  ← Collapsible trigger
+│                                      │
+│               [ Cancelar ] [ Criar ] │
+└──────────────────────────────────────┘
+```
+
+Expandido:
+
+```
+┌──────────────────────────────────────┐
+│          Título Centralizado         │
+│                                      │
+│  Label                               │
+│  ┌──────────────────────────────┐    │
+│  │  Placeholder como contexto   │    │
+│  └──────────────────────────────┘    │
+│                                      │
+│  ˄ Detalhes opcionais                │
+│  ┌─────────────────────────────────┐ │
+│  │  bg-muted/50 rounded-lg p-4    │ │  ← Container cinza com padding
+│  │  Campo secundário 1             │ │
+│  │  Campo secundário 2             │ │
+│  │  Hint text (texto xs muted)     │ │
+│  └─────────────────────────────────┘ │
+│                                      │
+│               [ Cancelar ] [ Criar ] │
+└──────────────────────────────────────┘
+```
+
+### Tamanhos e Tokens
+
+| Elemento | Classe | Descrição |
+|----------|--------|-----------|
+| **Dialog** | `top-[20%] translate-y-0` | Ancorada no topo (evita layout shift ao expandir) |
+| **Dialog** | `showCloseButton={false}` | Sem X — tem botão Cancelar |
+| **DialogHeader** | `text-center sm:text-center` | Título sempre centralizado |
+| **DialogDescription** | `sr-only` | Acessibilidade sem ruído visual |
+| **Input principal** | `h-[50px] text-base` | Touch-friendly, destaque visual |
+| **Label principal** | `text-base font-semibold` | Hierarquia clara |
+| **Collapsible trigger** | `text-sm text-muted-foreground` | Discreto, não compete com o campo principal |
+| **Collapsible content** | `mt-3 rounded-lg bg-muted/50 p-4` | Container cinza com respiro |
+| **Labels secundárias** | `text-sm text-muted-foreground` | Hierarquia menor que o campo principal |
+| **Hint text** | `text-xs text-muted-foreground` | Informação passiva (ex: "configure depois") |
+
+### Animações
+
+- **Collapsible**: `animate-collapsible-down` / `animate-collapsible-up` (keyframes em `globals.css`)
+- **Dialog top fixo**: conteúdo cresce pra baixo sem layout shift
+
+### Regras
+
+1. **Máximo 1 campo visível** no estado inicial (fechado)
+2. **Placeholder é contexto**, não repetir em label + sublabel + placeholder
+3. **Sem subtítulo no header** — título centralizado sozinho respira melhor
+4. **Detalhes opcionais em Collapsible** com fundo `bg-muted/50` para separação visual
+5. **Ações complexas ficam pra depois** — no SnapForm, crie o registro e redirecione para edição completa
+6. **Botões**: Cancelar (outline) + Ação principal (primary), alinhados à direita
+
+### Referência de Implementação
+
+`src/components/suppliers/supplier-dialog.tsx` — primeiro SnapForm do sistema.
+
+### Onde usar
+
+Qualquer formulário de criação rápida: novo cliente, nova venda, novo fornecedor, nova regra, etc.
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)
