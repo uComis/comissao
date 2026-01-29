@@ -264,39 +264,50 @@ function ItemFormContent({
 
 function ItemFormFooter({
   entry,
+  isNew,
   onDeleteEntry,
   onOpenChange,
   isDialog,
 }: {
   entry: ValueEntry
+  isNew: boolean
   onDeleteEntry: (id: string) => void
   onOpenChange: (open: boolean) => void
   isDialog?: boolean
 }) {
+  const btnSize = isDialog ? 'h-10 text-sm' : 'h-12 md:h-10 text-base md:text-sm'
+
   return (
     <div className={cn('flex gap-3 w-full', isDialog && 'pt-4')}>
-      <Button
-        variant="destructive"
-        onClick={() => {
-          onDeleteEntry(entry.id)
-          onOpenChange(false)
-        }}
-        className={cn(
-          'rounded-2xl font-bold flex-1',
-          isDialog ? 'h-10 text-sm' : 'h-12 md:h-10 text-base md:text-sm'
-        )}
-      >
-        <Trash2 className="h-4 w-4 mr-2" />
-        Excluir
-      </Button>
+      {isNew ? (
+        <Button
+          variant="outline"
+          onClick={() => {
+            onDeleteEntry(entry.id)
+            onOpenChange(false)
+          }}
+          className={cn('rounded-2xl font-bold flex-1', btnSize)}
+        >
+          Cancelar
+        </Button>
+      ) : (
+        <Button
+          variant="destructive"
+          onClick={() => {
+            onDeleteEntry(entry.id)
+            onOpenChange(false)
+          }}
+          className={cn('rounded-2xl font-bold flex-1', btnSize)}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Excluir
+        </Button>
+      )}
       <Button
         onClick={() => onOpenChange(false)}
-        className={cn(
-          'rounded-2xl font-bold shadow-lg flex-1',
-          isDialog ? 'h-10 text-sm' : 'h-12 md:h-10 text-base md:text-sm'
-        )}
+        className={cn('rounded-2xl font-bold shadow-lg flex-1', btnSize)}
       >
-        Confirmar
+        Concluir
       </Button>
     </div>
   )
@@ -344,6 +355,7 @@ export function MobileItemDrawer({
           <div className="p-6 border-t bg-background">
             <ItemFormFooter
               entry={entry}
+              isNew={!isEditing}
               onDeleteEntry={onDeleteEntry}
               onOpenChange={onOpenChange}
             />

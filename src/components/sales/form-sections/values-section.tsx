@@ -77,7 +77,14 @@ export function ValuesSection({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle>Valores</CardTitle>
+        <div>
+          <CardTitle>Valores</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            {informItems
+              ? 'Cada item pode ter taxas e comissões diferentes.'
+              : 'Cada valor pode ter taxas e comissões diferentes.'}
+          </p>
+        </div>
         <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
           <Label
             htmlFor="inform-items-switch"
@@ -150,8 +157,8 @@ export function ValuesSection({
               >
                 <Plus className="h-5 w-5" />
                 {valueEntries.some((e) => e.productName || parseFloat(e.grossValue) > 0)
-                  ? 'Adicionar outro'
-                  : 'Adicionar item'}
+                  ? informItems ? 'Adicionar outro item' : 'Adicionar outro valor'
+                  : informItems ? 'Adicionar item' : 'Adicionar valor'}
               </Button>
             </div>
 

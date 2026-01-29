@@ -76,7 +76,7 @@ export function ProductSearchPopover({
             'h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base',
             value
               ? 'border-border'
-              : 'border-dashed border-primary/30 text-muted-foreground'
+              : 'border-border text-muted-foreground'
           )}
         >
           <span className="flex items-center gap-3 truncate">
