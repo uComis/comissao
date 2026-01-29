@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { RuleForm, type RuleFormRef } from '@/components/rules'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
@@ -272,49 +273,58 @@ export function SupplierPicker({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="picker-supplier-cnpj">CNPJ</Label>
-          <Input
-            id="picker-supplier-cnpj"
-            value={formCnpj}
-            onChange={(e) => setFormCnpj(formatCnpj(e.target.value))}
-            placeholder="00.000.000/0000-00"
-          />
-          <p className="text-muted-foreground text-xs">Opcional.</p>
-        </div>
+        <Collapsible>
+          <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+            <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+            Detalhes opcionais
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+            <div className="space-y-4 pt-3">
+              <div className="space-y-2">
+                <Label htmlFor="picker-supplier-cnpj">CNPJ</Label>
+                <Input
+                  id="picker-supplier-cnpj"
+                  value={formCnpj}
+                  onChange={(e) => setFormCnpj(formatCnpj(e.target.value))}
+                  placeholder="00.000.000/0000-00"
+                />
+              </div>
 
-        <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-base font-semibold">Regra de Comissão</Label>
-              <p className="text-sm text-muted-foreground">
-                Opcional. Você pode configurar depois.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="picker-has-commission"
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                checked={hasCommission}
-                onChange={(e) => setHasCommission(e.target.checked)}
-              />
-              <Label htmlFor="picker-has-commission" className="font-normal cursor-pointer">
-                Configurar agora
-              </Label>
-            </div>
-          </div>
+              <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-semibold">Regra de Comissão</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Você pode configurar depois.
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="picker-has-commission"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      checked={hasCommission}
+                      onChange={(e) => setHasCommission(e.target.checked)}
+                    />
+                    <Label htmlFor="picker-has-commission" className="font-normal cursor-pointer">
+                      Configurar agora
+                    </Label>
+                  </div>
+                </div>
 
-          {hasCommission && (
-            <div className="pt-2 border-t mt-2">
-              <RuleForm
-                ref={ruleFormRef}
-                showName={false}
-                showDefault={false}
-              />
+                {hasCommission && (
+                  <div className="pt-2 border-t mt-2">
+                    <RuleForm
+                      ref={ruleFormRef}
+                      showName={false}
+                      showDefault={false}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
 
       </form>
     </div>

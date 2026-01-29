@@ -253,6 +253,12 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Overlay padrão do projeto - usado em Dialog, Drawer, etc. */
+  [data-slot="dialog-overlay"],
+  [data-slot="drawer-overlay"] {
+    @apply bg-black/25 backdrop-blur-[4px];
+  }
+
   html,
   body {
     @apply bg-background text-foreground;

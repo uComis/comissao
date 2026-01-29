@@ -4,9 +4,9 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { RuleForm, type RuleFormRef } from '@/components/rules'
 import { createPersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronDown } from 'lucide-react'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
@@ -26,7 +27,7 @@ type Props = {
 
 export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = '' }: Props) {
   const ruleFormRef = useRef<RuleFormRef>(null)
-  
+
   const [name, setName] = useState(initialName)
   const [cnpj, setCnpj] = useState('')
   const [hasCommission, setHasCommission] = useState(false)
@@ -83,17 +84,16 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
           percentage: ruleData.percentage,
           tiers: ruleData.tiers,
           is_default: ruleData.is_default,
-        } : null, // Manda null se não tiver comissão configurada
+        } : null,
       })
 
       if (result.success) {
         toast.success('Fornecedor criado')
         onSuccess(result.data)
         onOpenChange(false)
-        // Reset form
         setName('')
         setCnpj('')
-        setHasCommission(false) // Resetar estado do checkbox
+        setHasCommission(false)
       } else {
         toast.error(result.error)
       }
@@ -104,87 +104,96 @@ export function SupplierDialog({ open, onOpenChange, onSuccess, initialName = ''
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Pasta</DialogTitle>
-          <DialogDescription>
-            Cadastre uma nova empresa/fábrica que você representa
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent showCloseButton={false}>
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle>Nova Pasta</DialogTitle>
+            <DialogDescription className="sr-only">
+              Criar nova pasta de fornecedor
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="supplier-name">Nome da Empresa/Fábrica *</Label>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Campo principal */}
+            <div className="space-y-1.5">
+              <Label htmlFor="supplier-name" className="text-base font-semibold">
+                Nome
+              </Label>
               <Input
                 id="supplier-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Tintas Coral"
+                placeholder="Empresa que você representa"
                 required
                 autoFocus
+                className="h-[50px] text-base"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="supplier-cnpj">CNPJ</Label>
-              <Input
-                id="supplier-cnpj"
-                value={cnpj}
-                onChange={(e) => handleCnpjChange(e.target.value)}
-                placeholder="00.000.000/0000-00"
-              />
-              <p className="text-muted-foreground text-xs">
-                Opcional.
-              </p>
-            </div>
+            {/* Detalhes opcionais (colapsável) */}
+            <Collapsible>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                Detalhes opcionais
+              </CollapsibleTrigger>
+              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                <div className="space-y-4 pt-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="supplier-cnpj" className="text-sm text-muted-foreground">CNPJ</Label>
+                    <Input
+                      id="supplier-cnpj"
+                      value={cnpj}
+                      onChange={(e) => handleCnpjChange(e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                    />
+                  </div>
 
-            <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-semibold">Regra de Comissão</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Opcional. Você pode configurar depois.
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="has-commission"
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    checked={hasCommission}
-                    onChange={(e) => setHasCommission(e.target.checked)}
-                  />
-                  <Label htmlFor="has-commission" className="font-normal cursor-pointer">
-                    Configurar agora
-                  </Label>
-                </div>
-              </div>
-              
-              {hasCommission && (
-                <div className="pt-2 border-t mt-2">
-                  <RuleForm
-                    ref={ruleFormRef}
-                    showName={false}
-                    showDefault={false}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+                  <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-base font-semibold">Regra de Comissão</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Você pode configurar depois.
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="has-commission"
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={hasCommission}
+                          onChange={(e) => setHasCommission(e.target.checked)}
+                        />
+                        <Label htmlFor="has-commission" className="font-normal cursor-pointer">
+                          Configurar agora
+                        </Label>
+                      </div>
+                    </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Criar Pasta
-            </Button>
-          </div>
-        </form>
+                    {hasCommission && (
+                      <div className="pt-2 border-t mt-2">
+                        <RuleForm
+                          ref={ruleFormRef}
+                          showName={false}
+                          showDefault={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Criar Pasta
+              </Button>
+            </div>
+          </form>
       </DialogContent>
     </Dialog>
   )
 }
-
