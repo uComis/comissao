@@ -449,7 +449,7 @@ export function ClientPicker({
           sideOffset={6}
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} value="">
             <CommandInput
               placeholder="Buscar cliente..."
               value={search}
@@ -475,7 +475,7 @@ export function ClientPicker({
                       onSelect={() => handleSelect(client)}
                       className={cn(
                         'py-2.5 px-3 rounded-lg',
-                        value === client.id && 'bg-accent/50'
+                        value === client.id && 'bg-accent/50 data-[selected=true]:bg-accent'
                       )}
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-[11px] font-semibold text-[#f59e0b] mr-2.5">

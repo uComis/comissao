@@ -416,7 +416,7 @@ export function SupplierPicker({
           sideOffset={6}
           style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
-          <Command shouldFilter={false}>
+          <Command shouldFilter={false} value="">
             <CommandInput
               placeholder="Buscar fornecedor..."
               value={search}
@@ -442,7 +442,7 @@ export function SupplierPicker({
                       onSelect={() => handleSelect(supplier.id)}
                       className={cn(
                         'py-2.5 px-3 rounded-lg',
-                        value === supplier.id && 'bg-accent/50'
+                        value === supplier.id && 'bg-accent/50 data-[selected=true]:bg-accent'
                       )}
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#409eff]/15 text-[11px] font-semibold text-[#409eff] mr-2.5">
