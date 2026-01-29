@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import type { Product, PersonalClient, CommissionRule } from '@/types'
 import type { PersonalSaleWithItems } from '@/types/personal-sale'
+import { usePreferences } from '@/hooks/use-preferences'
 import {
   IdentificationSection,
   ValuesSection,
@@ -90,8 +91,9 @@ const calculateDaysFromDate = (targetDateStr: string, baseDateStr: string) => {
 
 export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create' }: Props) {
   const router = useRouter()
+  const { preferences, setPreference } = usePreferences()
   const [saving, setSaving] = useState(false)
-  const [informItems, setInformItems] = useState(false)
+  const [informItems, setInformItems] = useState(preferences.saleInformItems)
   const isEdit = mode === 'edit' && !!sale
 
   // Mobile Drawer State
@@ -302,14 +304,40 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   function handleAddValueEntry() {
     const newId = crypto.randomUUID()
+
+    // Determine default tax/commission rates
+    let defaultTaxRate = ''
+    let defaultCommissionRate = ''
+
+    // 1. If supplier has rules via getEffectiveRate, use those
+    if (selectedSupplier) {
+      const supplierTax = selectedSupplier.default_tax_rate || 0
+      const supplierComm = selectedSupplier.default_commission_rate || 0
+      // Check for tiered default rules too
+      const tieredTax = selectedSupplier.commission_rules.find((r) => r.target === 'tax' && r.type === 'tiered' && r.is_default)
+      const tieredComm = selectedSupplier.commission_rules.find((r) => r.target === 'commission' && r.type === 'tiered' && r.is_default)
+
+      if (tieredTax || supplierTax) defaultTaxRate = String(tieredTax ? 0 : supplierTax)
+      if (tieredComm || supplierComm) defaultCommissionRate = String(tieredComm ? 0 : supplierComm)
+    }
+
+    // 2. Fallback: copy from last entry with grossValue > 0
+    if (!defaultTaxRate && !defaultCommissionRate) {
+      const lastWithValue = [...valueEntries].reverse().find((e) => parseFloat(e.grossValue) > 0)
+      if (lastWithValue) {
+        defaultTaxRate = lastWithValue.taxRate
+        defaultCommissionRate = lastWithValue.commissionRate
+      }
+    }
+
     setValueEntries((prev) => [
       ...prev,
       {
         id: newId,
         quantity: 1,
         grossValue: '',
-        taxRate: '',
-        commissionRate: '',
+        taxRate: defaultTaxRate,
+        commissionRate: defaultCommissionRate,
       },
     ])
     return newId
@@ -373,8 +401,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
             const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
 
-            updatedEntry.commissionRate = String(newComm)
-            updatedEntry.taxRate = String(newTax)
+            // Only override if there's an actual rule; preserve manually-set / pre-filled values otherwise
+            if (newComm || field === 'productId') updatedEntry.commissionRate = String(newComm)
+            if (newTax || field === 'productId') updatedEntry.taxRate = String(newTax)
           }
 
           return updatedEntry
@@ -622,7 +651,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 removingIds={removingIds}
                 swipedItemId={swipedItemId}
                 selectedSupplier={selectedSupplier}
-                onInformItemsChange={setInformItems}
+                onInformItemsChange={(checked) => {
+                  setInformItems(checked)
+                  setPreference('saleInformItems', checked)
+                }}
                 onAddValueEntry={handleAddValueEntry}
                 onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
                 onRemoveValueEntry={handleRemoveValueEntry}

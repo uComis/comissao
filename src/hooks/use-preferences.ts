@@ -7,12 +7,13 @@ const STORAGE_KEY = 'app-preferences'
 export type Preferences = {
   salesPageSize: number
   adminUsersPageSize: number
-  // Adicionar futuras preferências aqui
+  saleInformItems: boolean
 }
 
 const defaults: Preferences = {
   salesPageSize: 10,
   adminUsersPageSize: 10,
+  saleInformItems: false,
 }
 
 function getStoredPreferences(): Preferences {
