@@ -54,52 +54,46 @@ export function PersonalSaleItemSimple({
       {/* Main item content */}
       <div
         className={cn(
-          'py-4 pl-3 pr-40 bg-card border border-border/60 rounded-xl transition-transform duration-200 relative min-h-[72px] shadow-sm',
+          'py-4 px-4 bg-card border border-border/60 rounded-xl transition-all duration-200 shadow-sm cursor-pointer hover:border-border hover:bg-accent/50',
           isSwiped ? '-translate-x-12' : 'translate-x-0'
         )}
         onClick={() => {
-          if (isSwiped) {
-            // Close swipe if clicked again
-            return
-          }
+          if (isSwiped) return
           onClick()
         }}
       >
-        {/* Left side: Large value (hero element) */}
-        <div className="flex flex-col gap-0.5">
+        {/* Desktop: row — value left, percentages right */}
+        {/* Mobile: stacked — value centered, percentages below */}
+        <div className="flex flex-col items-center lg:flex-row lg:items-center lg:justify-between gap-1.5">
           <span className="text-2xl font-bold text-foreground">
             {new Intl.NumberFormat('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             }).format(entryTotal)}
           </span>
-        </div>
 
-        {/* Right side - Absolute positioned */}
-        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col items-end gap-1">
-          {/* Commission % - green */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground/40 font-medium">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(commissionValue)}
-            </span>
-            <div className="text-base font-bold text-green-600">
-              {entry.commissionRate || '0'}%
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="hidden lg:inline text-xs text-muted-foreground/50 font-medium">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(taxValue)}
+              </span>
+              <span className="text-sm font-bold text-orange-600">
+                {entry.taxRate || '0'}%
+              </span>
             </div>
-          </div>
-
-          {/* Tax % - orange */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground/40 font-medium">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(taxValue)}
-            </span>
-            <div className="text-base font-bold text-orange-600">
-              {entry.taxRate || '0'}%
+            <div className="flex items-center gap-1.5">
+              <span className="hidden lg:inline text-xs text-muted-foreground/50 font-medium">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(commissionValue)}
+              </span>
+              <span className="text-sm font-bold text-green-600">
+                {entry.commissionRate || '0'}%
+              </span>
             </div>
           </div>
         </div>

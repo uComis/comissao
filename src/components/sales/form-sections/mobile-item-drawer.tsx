@@ -319,7 +319,7 @@ export function MobileItemDrawer({
           <DrawerHeader className="p-6 pb-2">
             <DrawerTitle>{isEditing ? 'Editar Valor' : 'Valor'}</DrawerTitle>
             <DrawerDescription>
-              {informItems ? 'Informe os dados do item vendido.' : 'Informe o valor bruto da venda.'}
+              {informItems ? 'Informe os dados do item vendido.' : 'Informe o valor e seus percentuais.'}
             </DrawerDescription>
           </DrawerHeader>
 
