@@ -651,8 +651,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             }}
           />
 
-          {(isEdit || !!clientId) && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-400">
+          <div
+            className={
+              (isEdit || !!clientId)
+                ? 'space-y-6 animate-[activate-pop_400ms_ease-out_forwards]'
+                : 'space-y-6 opacity-40 scale-[0.98] pointer-events-none transition-all duration-300'
+            }
+            style={{ transformOrigin: 'top center' }}
+          >
               <ValuesSection
                 informItems={informItems}
                 supplierId={supplierId}
@@ -727,8 +733,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
                 </Button>
               </div>
-            </div>
-          )}
+          </div>
         </div>
       </form>
 

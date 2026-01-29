@@ -93,35 +93,40 @@ export function IdentificationSection({
       />
 
       {/* Card Cliente */}
-      {showClient && (
-        <div className="animate-in fade-in slide-in-from-bottom-3 duration-400 delay-200 fill-mode-both">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <div>
-                <CardTitle>Cliente</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">Para quem foi a venda</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onClientAddClick()}
-                className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </CardHeader>
-            <div className="px-5 pt-0 pb-4">
-              <ClientPicker
-                value={clientId}
-                onChange={onClientChange}
-                onAddClick={() => onClientAddClick()}
-                placeholder="Selecionar cliente..."
-                refreshTrigger={clientRefreshTrigger}
-                className="w-full"
-              />
+      <div
+        className={
+          showClient
+            ? 'animate-[activate-pop_400ms_ease-out_forwards]'
+            : 'opacity-40 scale-[0.98] pointer-events-none transition-all duration-300'
+        }
+        style={{ transformOrigin: 'top center' }}
+      >
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <div>
+              <CardTitle>Cliente</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Para quem foi a venda</p>
             </div>
-          </Card>
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => onClientAddClick()}
+              className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </CardHeader>
+          <div className="px-5 pt-0 pb-4">
+            <ClientPicker
+              value={clientId}
+              onChange={onClientChange}
+              onAddClick={() => onClientAddClick()}
+              placeholder="Selecionar cliente..."
+              refreshTrigger={clientRefreshTrigger}
+              className="w-full"
+            />
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }
