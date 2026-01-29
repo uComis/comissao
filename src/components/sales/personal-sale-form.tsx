@@ -414,7 +414,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   function handleSupplierCreated(supplier: PersonalSupplierWithRules) {
-    setSuppliersList((prev) => [...prev, supplier])
+    setSuppliersList((prev) => {
+      const exists = prev.some((s) => s.id === supplier.id)
+      if (exists) {
+        return prev.map((s) => (s.id === supplier.id ? supplier : s))
+      }
+      return [...prev, supplier]
+    })
     setTimeout(() => {
       setSupplierId(supplier.id)
     }, 0)

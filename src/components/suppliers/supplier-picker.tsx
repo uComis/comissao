@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { RuleForm, type RuleFormRef } from '@/components/rules'
-import { createPersonalSupplierWithRule } from '@/app/actions/personal-suppliers'
+import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
@@ -65,6 +65,7 @@ export function SupplierPicker({
 
   // Form state
   const ruleFormRef = useRef<RuleFormRef>(null)
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null)
   const [formName, setFormName] = useState('')
   const [formCnpj, setFormCnpj] = useState('')
   const [hasCommission, setHasCommission] = useState(false)
@@ -88,6 +89,7 @@ export function SupplierPicker({
   }, [open])
 
   function resetForm() {
+    setEditingSupplierId(null)
     setFormName('')
     setFormCnpj('')
     setHasCommission(false)
@@ -100,9 +102,16 @@ export function SupplierPicker({
     setSearch('')
   }
 
-  function handleNavigateToForm(initialName?: string) {
-    setFormName(initialName || search.trim() || '')
-    setFormCnpj('')
+  function handleNavigateToForm(supplier?: PersonalSupplierWithRules) {
+    if (supplier) {
+      setEditingSupplierId(supplier.id)
+      setFormName(supplier.name)
+      setFormCnpj(supplier.cnpj ? formatCnpj(supplier.cnpj) : '')
+    } else {
+      setEditingSupplierId(null)
+      setFormName(search.trim() || '')
+      setFormCnpj('')
+    }
     setHasCommission(false)
     setView('form')
   }
@@ -140,27 +149,42 @@ export function SupplierPicker({
       const ruleData = hasCommission && ruleFormRef.current ? ruleFormRef.current.getData() : null
       const cleanCnpj = formCnpj.replace(/\D/g, '') || undefined
 
-      const result = await createPersonalSupplierWithRule({
-        name: formName,
-        cnpj: cleanCnpj,
-        rule: ruleData ? {
-          name: ruleData.name || `${formName} - Regra`,
-          type: ruleData.type,
-          target: ruleData.target,
-          percentage: ruleData.percentage,
-          tiers: ruleData.tiers,
-          is_default: ruleData.is_default,
-        } : null,
-      })
+      if (editingSupplierId) {
+        const result = await updatePersonalSupplierWithRules(editingSupplierId, {
+          name: formName,
+          cnpj: cleanCnpj,
+        })
 
-      if (result.success) {
-        toast.success('Fornecedor criado')
-        onSupplierCreated?.(result.data)
-        // Auto-select and go back to list
-        onChange(result.data.id)
-        setOpen(false)
+        if (result.success) {
+          toast.success('Fornecedor atualizado')
+          onSupplierCreated?.(result.data)
+          onChange(result.data.id)
+          setOpen(false)
+        } else {
+          toast.error(result.error)
+        }
       } else {
-        toast.error(result.error)
+        const result = await createPersonalSupplierWithRule({
+          name: formName,
+          cnpj: cleanCnpj,
+          rule: ruleData ? {
+            name: ruleData.name || `${formName} - Regra`,
+            type: ruleData.type,
+            target: ruleData.target,
+            percentage: ruleData.percentage,
+            tiers: ruleData.tiers,
+            is_default: ruleData.is_default,
+          } : null,
+        })
+
+        if (result.success) {
+          toast.success('Fornecedor criado')
+          onSupplierCreated?.(result.data)
+          onChange(result.data.id)
+          setOpen(false)
+        } else {
+          toast.error(result.error)
+        }
       }
     } finally {
       setLoading(false)
@@ -214,7 +238,7 @@ export function SupplierPicker({
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleNavigateToForm(supplier.name)
+                        handleNavigateToForm(supplier)
                       }}
                     >
                       Editar
@@ -243,7 +267,7 @@ export function SupplierPicker({
             id="picker-supplier-name"
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
-            placeholder="Ex: Tintas Coral"
+            placeholder="Nome do fornecedor"
             required
           />
         </div>
@@ -389,7 +413,7 @@ export function SupplierPicker({
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                 )}
-                {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
+                {view === 'list' ? 'Selecionar Fornecedor' : editingSupplierId ? 'Editar Pasta' : 'Nova Pasta'}
               </SheetTitle>
             </SheetHeader>
             {renderSlidingContent("flex-1")}
@@ -405,7 +429,7 @@ export function SupplierPicker({
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                 )}
-                {view === 'list' ? 'Selecionar Fornecedor' : 'Nova Pasta'}
+                {view === 'list' ? 'Selecionar Fornecedor' : editingSupplierId ? 'Editar Pasta' : 'Nova Pasta'}
               </DialogTitle>
             </DialogHeader>
             {renderSlidingContent("h-[60vh]")}
