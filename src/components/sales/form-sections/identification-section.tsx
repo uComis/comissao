@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { ClientPicker } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
@@ -45,11 +46,11 @@ export function IdentificationSection({
   return (
     <div className="space-y-4">
       {/* Card Pasta */}
-      <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-        <div className="flex items-center justify-between px-5 pt-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pasta</p>
-            <p className="text-[11px] text-muted-foreground/70">Fornecedor / representada</p>
+            <CardTitle>Pasta</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Fornecedor</p>
           </div>
           <button
             type="button"
@@ -58,8 +59,8 @@ export function IdentificationSection({
           >
             <Plus className="h-4 w-4" />
           </button>
-        </div>
-        <div className="px-5 pt-2 pb-4 space-y-3">
+        </CardHeader>
+        <div className="px-5 pt-0 pb-4 space-y-3">
           <SupplierPicker
             suppliers={suppliers}
             value={supplierId}
@@ -83,7 +84,7 @@ export function IdentificationSection({
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       <SupplierDialog
         open={addDialogOpen}
@@ -94,11 +95,11 @@ export function IdentificationSection({
       {/* Card Cliente */}
       {showClient && (
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-400 delay-200 fill-mode-both">
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="flex items-center justify-between px-5 pt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cliente</p>
-                <p className="text-[11px] text-muted-foreground/70">Para quem foi a venda</p>
+                <CardTitle>Cliente</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">Para quem foi a venda</p>
               </div>
               <button
                 type="button"
@@ -107,8 +108,8 @@ export function IdentificationSection({
               >
                 <Plus className="h-4 w-4" />
               </button>
-            </div>
-            <div className="px-5 pt-2 pb-4">
+            </CardHeader>
+            <div className="px-5 pt-0 pb-4">
               <ClientPicker
                 value={clientId}
                 onChange={onClientChange}
@@ -118,7 +119,7 @@ export function IdentificationSection({
                 className="w-full"
               />
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>
