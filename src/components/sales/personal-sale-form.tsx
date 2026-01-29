@@ -18,7 +18,6 @@ import {
   ValuesSection,
   PaymentConditionSection,
   NotesSection,
-  ProductSearchDialog,
   MobileItemDrawer,
   type ValueEntry,
 } from './form-sections'
@@ -151,9 +150,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [swipedItemId, setSwipedItemId] = useState<string | null>(null)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
-  const [productSearchOpen, setProductSearchOpen] = useState<{ open: boolean; entryId?: string }>({
-    open: false,
-  })
+  const [editProductDialogProduct, setEditProductDialogProduct] = useState<Product | null>(null)
 
   const paymentCondition =
     paymentType === 'vista'
@@ -630,7 +627,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
                 onRemoveValueEntry={handleRemoveValueEntry}
                 onUpdateValueEntry={handleUpdateValueEntry}
-                onProductSearchClick={(entryId) => setProductSearchOpen({ open: true, entryId })}
+                onProductSearchClick={() => {}}
                 onSwipedItemIdChange={setSwipedItemId}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
@@ -694,39 +691,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         </div>
       </form>
 
-      <ProductSearchDialog
-        open={productSearchOpen.open}
-        products={selectedProducts}
-        onOpenChange={(open) => setProductSearchOpen({ open, entryId: productSearchOpen.entryId })}
-        onProductSelect={(product) => {
-                      if (!productSearchOpen.entryId) return
-                      const eid = productSearchOpen.entryId
-                      
-                      // Calculate rates for the selected product
-                      const newCommissionRate = getEffectiveRate(eid, 'commission', product.unit_price?.toString(), product.id)
-                      const newTaxRate = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
-                      
-                      setValueEntries((prev) =>
-                        prev.map((entry) => {
-                          if (entry.id === eid) {
-                            return {
-                              ...entry,
-                              productId: product.id,
-                              productName: product.name,
-                              grossValue: product.unit_price?.toString() || entry.grossValue,
-                              commissionRate: String(newCommissionRate),
-                              taxRate: String(newTaxRate),
-                            }
-                          }
-                          return entry
-                        })
-                      )
-                      setProductSearchOpen({ open: false })
-                      toast.success(`Item ${product.name} selecionado`)
-                    }}
-        onAddNewProduct={handleAddNewProduct}
-      />
-
       <ClientDialog
         open={clientDialogOpen}
         onOpenChange={setClientDialogOpen}
@@ -738,8 +702,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       {supplierId && (
         <ProductDialog
           open={productDialogOpen}
-          onOpenChange={setProductDialogOpen}
+          onOpenChange={(open) => {
+            setProductDialogOpen(open)
+            if (!open) setEditProductDialogProduct(null)
+          }}
           supplierId={supplierId}
+          product={editProductDialogProduct}
           onProductCreated={handleProductCreated}
           showSku={false}
         />
@@ -761,16 +729,40 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         entry={valueEntries.find((e) => e.id === editingEntryId) || null}
         informItems={informItems}
         supplierId={supplierId}
-        onProductSearchClick={() => {
-          if (editingEntryId) {
-            setProductSearchOpen({ open: true, entryId: editingEntryId })
-          }
+        products={selectedProducts}
+        onProductSelect={(product) => {
+          if (!editingEntryId) return
+          const eid = editingEntryId
+
+          const newCommissionRate = getEffectiveRate(eid, 'commission', product.unit_price?.toString(), product.id)
+          const newTaxRate = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
+
+          setValueEntries((prev) =>
+            prev.map((entry) => {
+              if (entry.id === eid) {
+                return {
+                  ...entry,
+                  productId: product.id,
+                  productName: product.name,
+                  grossValue: product.unit_price?.toString() || entry.grossValue,
+                  commissionRate: String(newCommissionRate),
+                  taxRate: String(newTaxRate),
+                }
+              }
+              return entry
+            })
+          )
+          toast.success(`Item ${product.name} selecionado`)
+        }}
+        onEditProduct={(product) => {
+          setEditProductDialogProduct(product)
+          setProductDialogOpen(true)
         }}
         onUpdateEntry={handleUpdateValueEntry}
         onDeleteEntry={(id) => {
           handleRemoveValueEntry(id)
-                    setIsDrawerOpen(false)
-                  }}
+          setIsDrawerOpen(false)
+        }}
       />
     </>
   )

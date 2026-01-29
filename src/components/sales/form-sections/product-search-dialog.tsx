@@ -1,119 +1,175 @@
+'use client'
+
 import { useState } from 'react'
-import { Search, Plus } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
+import { Package, Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { ChevronDown } from 'lucide-react'
 import type { Product } from '@/types'
 
-type ProductSearchDialogProps = {
-  open: boolean
+type ProductSearchPopoverProps = {
   products: Product[]
-  onOpenChange: (open: boolean) => void
+  value?: string | null
+  productName?: string
   onProductSelect: (product: Product) => void
+  onEditProduct?: (product: Product) => void
   onAddNewProduct?: () => void
+  disabled?: boolean
 }
 
-export function ProductSearchDialog({
-  open,
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+export function ProductSearchPopover({
   products,
-  onOpenChange,
+  value,
+  productName,
   onProductSelect,
+  onEditProduct,
   onAddNewProduct,
-}: ProductSearchDialogProps) {
-  const [searchQuery, setSearchQuery] = useState('')
+  disabled,
+}: ProductSearchPopoverProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
 
   const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    p.name.toLowerCase().includes(search.toLowerCase())
   )
+
+  const displayValue = productName || ''
+
+  function handleSelect(product: Product) {
+    onProductSelect(product)
+    setOpen(false)
+    setSearch('')
+  }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-md w-full p-0 gap-0 overflow-hidden rounded-3xl"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-      <DialogHeader className="p-6 pb-0">
-        <DialogTitle>Selecionar Item</DialogTitle>
-        <div className="relative mt-4 flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar item..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-12 border-2 rounded-xl"
-            />
-          </div>
-          {onAddNewProduct && (
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={onAddNewProduct}
-              className="h-12 w-12 shrink-0 border-2 border-primary/30 hover:border-primary rounded-xl"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            'h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base',
+            value
+              ? 'border-border'
+              : 'border-dashed border-primary/30 text-muted-foreground'
           )}
-        </div>
-      </DialogHeader>
-
-        <div className="p-4 max-h-[60vh] overflow-y-auto">
-          <div className="grid gap-2">
-            {filteredProducts.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                className="flex items-start justify-between p-4 hover:bg-muted rounded-2xl transition-colors border-2 border-transparent hover:border-primary/20 text-left"
-                onClick={() => onProductSelect(product)}
-              >
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-bold text-foreground truncate">{product.name}</span>
-                  {product.unit_price && (
-                    <span className="text-xs text-muted-foreground mt-1">
-                      Preço: R$ {product.unit_price.toFixed(2).replace('.', ',')}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-4 shrink-0">
-                  {product.default_tax_rate !== null && product.default_tax_rate !== undefined && product.default_tax_rate > 0 && (
-                    <span className="text-sm font-bold text-orange-600">
-                      {product.default_tax_rate}%
-                    </span>
-                  )}
-                  {product.default_commission_rate !== null && product.default_commission_rate !== undefined && product.default_commission_rate > 0 && (
-                    <span className="text-sm font-bold text-green-600">
-                      {product.default_commission_rate}%
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
-
-            {filteredProducts.length === 0 && (
-              <div className="py-12 text-center text-muted-foreground italic">
-                Nenhum item encontrado para este fornecedor.
-              </div>
+        >
+          <span className="flex items-center gap-3 truncate">
+            {displayValue ? (
+              <>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-semibold text-emerald-600">
+                  {getInitials(displayValue)}
+                </span>
+                <span className="font-semibold text-foreground truncate">{displayValue}</span>
+              </>
+            ) : (
+              'Selecionar item...'
             )}
-          </div>
-        </div>
+          </span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-3"
+        align="center"
+        sideOffset={6}
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Buscar item..."
+            value={search}
+            onValueChange={setSearch}
+            className="h-12 text-base"
+          />
+          <CommandList className="max-h-[300px] mt-2">
+            {filteredProducts.length === 0 && (
+              <CommandEmpty>
+                <div className="flex flex-col items-center py-6 text-muted-foreground">
+                  <Package className="h-8 w-8 mb-2 opacity-30" />
+                  <p className="text-sm">Nenhum item encontrado</p>
+                </div>
+              </CommandEmpty>
+            )}
 
-        <DialogFooter className="p-6 bg-muted/20 border-t">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="w-full rounded-xl h-12 font-bold border-2"
-          >
-            Fechar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {filteredProducts.length > 0 && (
+              <CommandGroup className="p-0">
+                {filteredProducts.map((product) => (
+                  <CommandItem
+                    key={product.id}
+                    value={product.id}
+                    onSelect={() => handleSelect(product)}
+                    className={cn(
+                      'py-2.5 px-3 rounded-lg',
+                      value === product.id && 'bg-accent/50'
+                    )}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-semibold text-emerald-600 mr-2.5">
+                      {getInitials(product.name)}
+                    </span>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="truncate font-medium">{product.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {product.unit_price != null && (
+                          <span>R$ {product.unit_price.toFixed(2).replace('.', ',')}</span>
+                        )}
+                        {product.default_tax_rate != null && product.default_tax_rate > 0 && (
+                          <span className="text-orange-600">{product.default_tax_rate}%</span>
+                        )}
+                        {product.default_commission_rate != null && product.default_commission_rate > 0 && (
+                          <span className="text-green-600">{product.default_commission_rate}%</span>
+                        )}
+                      </div>
+                    </div>
+                    {onEditProduct && (
+                      <button
+                        type="button"
+                        className="ml-2 shrink-0 p-1.5 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpen(false)
+                          setSearch('')
+                          onEditProduct(product)
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
+
+// Keep backward-compatible export name
+export { ProductSearchPopover as ProductSearchDialog }

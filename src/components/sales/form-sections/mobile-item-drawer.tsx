@@ -1,4 +1,4 @@
-import { Minus, Plus, Search, Trash2 } from 'lucide-react'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Drawer,
@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { ProductSearchPopover } from './product-search-dialog'
 import { cn } from '@/lib/utils'
+import type { Product } from '@/types'
 
 type ValueEntry = {
   id: string
@@ -29,7 +31,9 @@ type MobileItemDrawerProps = {
   entry: ValueEntry | null
   informItems: boolean
   supplierId: string
-  onProductSearchClick: () => void
+  products: Product[]
+  onProductSelect: (product: Product) => void
+  onEditProduct?: (product: Product) => void
   onUpdateEntry: (id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) => void
   onDeleteEntry: (id: string) => void
 }
@@ -38,9 +42,11 @@ function ItemFormContent({
   entry,
   informItems,
   supplierId,
-  onProductSearchClick,
+  products,
+  onProductSelect,
+  onEditProduct,
   onUpdateEntry,
-}: Pick<MobileItemDrawerProps, 'entry' | 'informItems' | 'supplierId' | 'onProductSearchClick' | 'onUpdateEntry'>) {
+}: Pick<MobileItemDrawerProps, 'entry' | 'informItems' | 'supplierId' | 'products' | 'onProductSelect' | 'onEditProduct' | 'onUpdateEntry'>) {
   if (!entry) return null
 
   return (
@@ -50,28 +56,26 @@ function ItemFormContent({
           <Label className="text-[13px] text-foreground/70 font-bold mb-1 block px-1">
             Item
           </Label>
-          <Button
-            type="button"
-            variant="outline"
-            className={cn(
-              'h-14 w-full border-2 transition-all rounded-2xl justify-between px-4 shadow-sm bg-white text-base',
-              entry.productId
-                ? 'border-border'
-                : 'border-dashed border-primary/30 text-muted-foreground'
-            )}
-            onClick={() => {
-              if (!supplierId) {
-                toast.error('Selecione um fornecedor primeiro')
-                return
-              }
-              onProductSearchClick()
-            }}
-          >
-            <span className="truncate font-semibold">
-              {entry.productName || 'Selecionar item...'}
-            </span>
-            <Search className="h-5 w-5 shrink-0 opacity-50" />
-          </Button>
+          {!supplierId ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled
+              className="h-14 w-full border-2 border-dashed border-primary/30 text-muted-foreground rounded-2xl justify-between px-4 shadow-sm bg-white text-base"
+              onClick={() => toast.error('Selecione um fornecedor primeiro')}
+            >
+              <span className="truncate font-semibold">Selecionar item...</span>
+            </Button>
+          ) : (
+            <ProductSearchPopover
+              products={products}
+              value={entry.productId}
+              productName={entry.productName}
+              onProductSelect={onProductSelect}
+              onEditProduct={onEditProduct}
+              disabled={!supplierId}
+            />
+          )}
         </div>
       )}
 
@@ -304,7 +308,9 @@ export function MobileItemDrawer({
   entry,
   informItems,
   supplierId,
-  onProductSearchClick,
+  products,
+  onProductSelect,
+  onEditProduct,
   onUpdateEntry,
   onDeleteEntry,
 }: MobileItemDrawerProps) {
@@ -328,7 +334,9 @@ export function MobileItemDrawer({
               entry={entry}
               informItems={informItems}
               supplierId={supplierId}
-              onProductSearchClick={onProductSearchClick}
+              products={products}
+              onProductSelect={onProductSelect}
+              onEditProduct={onEditProduct}
               onUpdateEntry={onUpdateEntry}
             />
           </div>
