@@ -1,19 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Loader2 } from 'lucide-react'
 import { createPersonalClient, updatePersonalClient } from '@/app/actions/personal-clients'
 import { toast } from 'sonner'
+import { ClientForm, type ClientFormRef } from './client-form'
 import type { PersonalClient } from '@/types'
 
 type Props = {
@@ -25,77 +24,33 @@ type Props = {
 }
 
 export function ClientDialog({ open, onOpenChange, client, initialName = '', onSuccess }: Props) {
+  const formRef = useRef<ClientFormRef>(null)
   const [saving, setSaving] = useState(false)
-  const [documentType, setDocumentType] = useState<'none' | 'cpf' | 'cnpj'>('none')
-  
-  // Form state
-  const [name, setName] = useState('')
-  const [cpf, setCpf] = useState('')
-  const [cnpj, setCnpj] = useState('')
-  const [phone, setPhone] = useState('')
-  const [email, setEmail] = useState('')
-  const [notes, setNotes] = useState('')
 
   const isEditing = !!client
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       if (client) {
-        // Modo edição: carregar dados do cliente
-        setName(client.name)
-        setCpf(client.cpf ? formatCpf(client.cpf) : '')
-        setCnpj(client.cnpj ? formatCnpj(client.cnpj) : '')
-        setPhone(client.phone ? formatPhone(client.phone) : '')
-        setEmail(client.email || '')
-        setNotes(client.notes || '')
-        setDocumentType(client.cpf ? 'cpf' : client.cnpj ? 'cnpj' : 'none')
+        formRef.current?.reset({
+          name: client.name,
+          cpf: client.cpf || '',
+          cnpj: client.cnpj || '',
+          phone: client.phone || '',
+          email: client.email || '',
+          notes: client.notes || '',
+          documentType: client.cpf ? 'cpf' : 'cnpj',
+        })
       } else {
-        // Modo criação: limpar form
-        setName(initialName)
-        setCpf('')
-        setCnpj('')
-        setPhone('')
-        setEmail('')
-        setNotes('')
-        setDocumentType('none')
+        formRef.current?.reset({ name: initialName })
       }
     }
   }, [open, client, initialName])
 
-  function formatCpf(value: string): string {
-    const numbers = value.replace(/\D/g, '').slice(0, 11)
-    return numbers
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-  }
-
-  function formatCnpj(value: string): string {
-    const numbers = value.replace(/\D/g, '').slice(0, 14)
-    return numbers
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
-  }
-
-  function formatPhone(value: string): string {
-    const numbers = value.replace(/\D/g, '').slice(0, 11)
-    if (numbers.length <= 10) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{4})(\d)/, '$1-$2')
-    }
-    return numbers
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!name.trim()) {
+    if (!formRef.current?.validate()) {
       toast.error('Nome é obrigatório')
       return
     }
@@ -103,13 +58,15 @@ export function ClientDialog({ open, onOpenChange, client, initialName = '', onS
     setSaving(true)
 
     try {
+      const data = formRef.current.getData()
+
       const payload = {
-        name: name.trim(),
-        cpf: documentType === 'cpf' ? cpf.replace(/\D/g, '') : null,
-        cnpj: documentType === 'cnpj' ? cnpj.replace(/\D/g, '') : null,
-        phone: phone.replace(/\D/g, '') || null,
-        email: email.trim() || null,
-        notes: notes.trim() || null,
+        name: data.name,
+        cpf: data.cpf || null,
+        cnpj: data.cnpj || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        notes: data.notes || null,
       }
 
       const result = isEditing
@@ -130,87 +87,35 @@ export function ClientDialog({ open, onOpenChange, client, initialName = '', onS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent showCloseButton={false} className="top-[20%] translate-y-0">
+        <DialogHeader className="text-center sm:text-center">
           <DialogTitle>{isEditing ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEditing ? 'Editar dados do cliente' : 'Cadastrar novo cliente'}
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="client-name">Nome *</Label>
-            <Input
-              id="client-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Nome do cliente ou empresa"
-              autoFocus
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <ClientForm
+            ref={formRef}
+            initialName={isEditing ? client!.name : initialName}
+            initialData={isEditing ? {
+              cpf: client!.cpf || '',
+              cnpj: client!.cnpj || '',
+              phone: client!.phone || '',
+              email: client!.email || '',
+              notes: client!.notes || '',
+            } : undefined}
+            defaultOpen={false}
+          />
 
-          <div className="space-y-2">
-            <Label>Documento</Label>
-            <Tabs value={documentType} onValueChange={(v) => setDocumentType(v as 'none' | 'cpf' | 'cnpj')}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="none">Nenhum</TabsTrigger>
-                <TabsTrigger value="cpf">CPF</TabsTrigger>
-                <TabsTrigger value="cnpj">CNPJ</TabsTrigger>
-              </TabsList>
-              <TabsContent value="cpf" className="mt-2">
-                <Input
-                  value={cpf}
-                  onChange={(e) => setCpf(formatCpf(e.target.value))}
-                  placeholder="000.000.000-00"
-                />
-              </TabsContent>
-              <TabsContent value="cnpj" className="mt-2">
-                <Input
-                  value={cnpj}
-                  onChange={(e) => setCnpj(formatCnpj(e.target.value))}
-                  placeholder="00.000.000/0000-00"
-                />
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="client-phone">Telefone</Label>
-              <Input
-                id="client-phone"
-                value={phone}
-                onChange={(e) => setPhone(formatPhone(e.target.value))}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client-email">Email</Label>
-              <Input
-                id="client-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemplo.com"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client-notes">Observações</Label>
-            <Textarea
-              id="client-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anotações sobre o cliente..."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancelar
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Salvar'}
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditing ? 'Salvar' : 'Criar Cliente'}
             </Button>
           </div>
         </form>
