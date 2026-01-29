@@ -411,9 +411,10 @@ export function SupplierPicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[--radix-popover-trigger-width] p-3"
+          className="p-3"
           align="center"
           sideOffset={6}
+          style={{ width: 'var(--radix-popover-trigger-width)' }}
         >
           <Command shouldFilter={false}>
             <CommandInput
