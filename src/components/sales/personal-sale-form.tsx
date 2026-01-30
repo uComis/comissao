@@ -113,10 +113,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     sale?.first_installment_date || (initialPayment.type === 'vista' ? sale?.sale_date || today : '')
   )
 
-  const [paymentType, setPaymentType] = useState<'vista' | 'parcelado'>(initialPayment.type)
-  const [installments, setInstallments] = useState<string | number>(initialPayment.installments)
+  const [installments, setInstallments] = useState<string | number>(
+    initialPayment.type === 'vista' ? 1 : initialPayment.installments
+  )
   const [interval, setInterval] = useState<string | number>(initialPayment.interval)
-  const [firstInstallmentDays, setFirstInstallmentDays] = useState<string | number>(30)
+  const [firstInstallmentDays, setFirstInstallmentDays] = useState<string | number>(
+    initialPayment.type === 'vista' ? 0 : 30
+  )
 
   const [quickCondition, setQuickCondition] = useState('')
   const [isUpdatingFromQuick, setIsUpdatingFromQuick] = useState(false)
@@ -154,14 +157,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [editProductDialogProduct, setEditProductDialogProduct] = useState<Product | null>(null)
 
-  const paymentCondition =
-    paymentType === 'vista'
-      ? ''
-      : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => {
-          const firstDays = getSafeNumber(firstInstallmentDays, 30)
-          const gap = getSafeNumber(interval, 30)
-          return firstDays + i * gap
-        }).join('/')
+  const isVista = getSafeNumber(installments, 1) === 1
+  const paymentCondition = isVista
+    ? String(getSafeNumber(firstInstallmentDays, 0))
+    : Array.from({ length: getSafeNumber(installments, 1) }, (_, i) => {
+        const firstDays = getSafeNumber(firstInstallmentDays, 30)
+        const gap = getSafeNumber(interval, 30)
+        return firstDays + i * gap
+      }).join('/')
 
   const [clientDialogOpen, setClientDialogOpen] = useState(false)
   const [clientInitialName, setClientInitialName] = useState('')
@@ -500,12 +503,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const handleSaleDateChange = (date: string) => {
     setSaleDate(date)
-    if (paymentType === 'parcelado') {
-      const days = getSafeNumber(firstInstallmentDays, 30)
-      setFirstInstallmentDate(calculateDateFromDays(days, date))
-    } else {
-      setFirstInstallmentDate(date)
-    }
+    const days = getSafeNumber(firstInstallmentDays, isVista ? 0 : 30)
+    setFirstInstallmentDate(calculateDateFromDays(days, date))
   }
 
   const handleQuickConditionBlur = () => {
@@ -592,40 +591,35 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return
     }
 
-    if (paymentType === 'parcelado') {
-      const safeInstallments = getSafeNumber(installments, 1)
-      const safeInterval = getSafeNumber(interval, 30)
-      const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
+    const safeInstallments = getSafeNumber(installments, 1)
+    const safeInterval = getSafeNumber(interval, 30)
+    const safeFirstDays = getSafeNumber(firstInstallmentDays, safeInstallments === 1 ? 0 : 30)
 
-      if (safeInstallments > 5) {
-        const parts = []
-        for (let i = 0; i < 3; i++) {
-          parts.push(safeFirstDays + i * safeInterval)
-        }
-        setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
-      } else {
-        const parts = []
-        for (let i = 0; i < safeInstallments; i++) {
-          parts.push(safeFirstDays + i * safeInterval)
-        }
-        setQuickCondition(parts.join('/'))
+    if (safeInstallments > 5) {
+      const parts = []
+      for (let i = 0; i < 3; i++) {
+        parts.push(safeFirstDays + i * safeInterval)
       }
+      setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
+    } else {
+      const parts = []
+      for (let i = 0; i < safeInstallments; i++) {
+        parts.push(safeFirstDays + i * safeInterval)
+      }
+      setQuickCondition(parts.join('/'))
     }
-  }, [installments, interval, firstInstallmentDays, paymentType, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition])
+  }, [installments, interval, firstInstallmentDays, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition])
 
-  const handlePaymentTypeChange = (newType: 'vista' | 'parcelado') => {
-                  setPaymentType(newType)
-
-                  if (newType === 'parcelado') {
-                    let days = getSafeNumber(firstInstallmentDays, 30)
-                    if (days <= 0) days = 30
-
-                    setFirstInstallmentDays(days)
-                    setFirstInstallmentDate(calculateDateFromDays(days, saleDate))
-                  } else {
-                    setFirstInstallmentDate(saleDate)
-                    setFirstInstallmentDays(0)
-                  }
+  const handleInstallmentsChange = (val: number) => {
+    setInstallments(val)
+    setHasChangedSteppers(true)
+    if (val === 1) {
+      setFirstInstallmentDays(0)
+      setFirstInstallmentDate(saleDate)
+    } else if (getSafeNumber(firstInstallmentDays, 0) <= 0) {
+      setFirstInstallmentDays(30)
+      setFirstInstallmentDate(calculateDateFromDays(30, saleDate))
+    }
   }
 
   return (
@@ -689,7 +683,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <PaymentConditionSection
                 saleDate={saleDate}
                 firstInstallmentDate={firstInstallmentDate}
-                paymentType={paymentType}
                 installments={installments}
                 interval={interval}
                 firstInstallmentDays={firstInstallmentDays}
@@ -698,11 +691,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 totalValue={totalValue}
                 onSaleDateChange={handleSaleDateChange}
                 onFirstInstallmentDateChange={handleFirstDateChange}
-                onPaymentTypeChange={handlePaymentTypeChange}
-                onInstallmentsChange={(val) => {
-                  setInstallments(val)
-                  setHasChangedSteppers(true)
-                }}
+                onInstallmentsChange={handleInstallmentsChange}
                 onIntervalChange={(val) => {
                   setInterval(val)
                   setHasChangedSteppers(true)

@@ -48,8 +48,10 @@ export function DatePicker({
   className,
   disabled,
 }: DatePickerProps) {
+  const [open, setOpen] = React.useState(false)
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}
@@ -71,7 +73,10 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date}
-          onSelect={onDateChange}
+          onSelect={(selectedDate) => {
+            onDateChange?.(selectedDate)
+            setOpen(false)
+          }}
           locale={ptBR}
           initialFocus
           captionLayout="dropdown"
