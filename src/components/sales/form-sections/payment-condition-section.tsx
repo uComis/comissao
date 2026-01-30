@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
+import { NumberStepper } from '@/components/ui/number-stepper'
 import { cn } from '@/lib/utils'
 
 type PaymentConditionSectionProps = {
@@ -154,7 +155,7 @@ export function PaymentConditionSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="flex flex-col items-center space-y-2">
+        <div className="flex flex-col items-center space-y-2 py-4">
           <Label htmlFor="date" className="text-sm font-medium flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             Data da Venda
@@ -307,127 +308,128 @@ export function PaymentConditionSection({
             </>
           ) : (
             <>
-              {/* Modo Simples: Progressive reveal */}
-              <div className="space-y-6">
-                {/* Step 1: Primeira parcela / recebimento em quantos dias? */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-center block">
+              {/* Modo Simples: Progressive reveal sem stepper */}
+              <div className="space-y-2">
+                {/* Step 1: Primeira parcela em quantos dias? */}
+                <div className="space-y-3 py-3">
+                  <Label className="text-base font-medium text-center block mb-4">
                     Primeira parcela em quantos dias?
                   </Label>
                   <div className="flex flex-wrap justify-center gap-2">
-                    {[0, 15, 30, 45].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => {
-                          setCustomFirstDays(false)
-                          setShowDatePicker(false)
-                          setFirstDaysChosen(true)
-                          onFirstInstallmentDaysChange(n)
-                        }}
-                        className={cn(
-                          'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all',
-                          !customFirstDays && !showDatePicker && firstDaysChosen && Number(firstInstallmentDays) === n
-                            ? 'bg-foreground text-background'
-                            : 'bg-background text-foreground border-border'
-                        )}
-                      >
-                        {n === 0 ? 'Hoje' : `${n} dias`}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomFirstDays(true)
-                        setShowDatePicker(false)
-                        setFirstDaysChosen(true)
-                      }}
-                      className={cn(
-                        'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all',
-                        customFirstDays && !showDatePicker
-                          ? 'bg-foreground text-background'
-                          : 'bg-background text-foreground border-border'
-                      )}
-                    >
-                      Outro
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowDatePicker(true)
-                        setCustomFirstDays(false)
-                        setFirstDaysChosen(false)
-                        setDatePickerSelected(false)
-                      }}
-                      className={cn(
-                        'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all flex items-center gap-1.5',
-                        showDatePicker
-                          ? 'bg-foreground text-background'
-                          : 'bg-background text-foreground border-border'
-                      )}
-                    >
-                      <CalendarDays className="h-3.5 w-3.5" />
-                      Data
-                    </button>
-                  </div>
-                  {customFirstDays && !showDatePicker && (
-                    <div className="flex justify-center pt-1">
-                      <Input
-                        type="number"
-                        min={0}
-                        placeholder="Dias"
-                        value={firstInstallmentDays}
-                        onChange={(e) => onFirstInstallmentDaysChange(Number(e.target.value) || 0)}
-                        className="w-32 text-center"
-                        autoFocus
-                      />
-                    </div>
-                  )}
-                  {showDatePicker && (
-                    <div className="flex justify-center pt-1">
-                      <DatePicker
-                        date={
-                          datePickerSelected && firstInstallmentDate
-                            ? new Date(firstInstallmentDate + 'T12:00:00')
-                            : undefined
-                        }
-                        onDateChange={(date) => {
-                          if (date) {
-                            const dateStr = date.toISOString().split('T')[0]
-                            onFirstInstallmentDateChange(dateStr)
-                            setDatePickerSelected(true)
+                    {!customFirstDays && !showDatePicker ? (
+                      <>
+                        {[0, 15, 30, 45].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => {
+                              setCustomFirstDays(false)
+                              setShowDatePicker(false)
+                              setFirstDaysChosen(true)
+                              onFirstInstallmentDaysChange(n)
+                            }}
+                            className={cn(
+                              'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all animate-in fade-in zoom-in-95 duration-200',
+                              firstDaysChosen && Number(firstInstallmentDays) === n
+                                ? 'bg-foreground text-background'
+                                : 'bg-background text-foreground border-border'
+                            )}
+                          >
+                            {n === 0 ? 'Hoje' : `${n} dias`}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDatePicker(true)
+                            setCustomFirstDays(false)
+                            setFirstDaysChosen(false)
+                            setDatePickerSelected(false)
+                          }}
+                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 bg-background text-foreground border-border"
+                        >
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Data
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomFirstDays(true)
+                            setShowDatePicker(false)
                             setFirstDaysChosen(true)
-                          }
-                        }}
-                        placeholder="Escolher data"
-                        disabled={(date) => {
-                          if (!saleDate) return false
-                          const saleDateObj = new Date(saleDate + 'T00:00:00')
-                          const compareDate = new Date(date)
-                          compareDate.setHours(0, 0, 0, 0)
-                          saleDateObj.setHours(0, 0, 0, 0)
-                          return compareDate < saleDateObj
-                        }}
-                      />
-                    </div>
-                  )}
+                          }}
+                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border animate-in fade-in zoom-in-95 duration-200"
+                        >
+                          Outro
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {showDatePicker && (
+                          <div className="animate-in fade-in slide-in-from-left-2 duration-200">
+                            <DatePicker
+                              date={
+                                datePickerSelected && firstInstallmentDate
+                                  ? new Date(firstInstallmentDate + 'T12:00:00')
+                                  : undefined
+                              }
+                              onDateChange={(date) => {
+                                if (date) {
+                                  const dateStr = date.toISOString().split('T')[0]
+                                  onFirstInstallmentDateChange(dateStr)
+                                  setDatePickerSelected(true)
+                                  setFirstDaysChosen(true)
+                                }
+                              }}
+                              placeholder="Escolher data"
+                              disabled={(date) => {
+                                if (!saleDate) return false
+                                const saleDateObj = new Date(saleDate + 'T00:00:00')
+                                const compareDate = new Date(date)
+                                compareDate.setHours(0, 0, 0, 0)
+                                saleDateObj.setHours(0, 0, 0, 0)
+                                return compareDate < saleDateObj
+                              }}
+                            />
+                          </div>
+                        )}
+                        {customFirstDays && (
+                          <NumberStepper
+                            value={getSafeNumber(firstInstallmentDays, 0)}
+                            onChange={onFirstInstallmentDaysChange}
+                            min={0}
+                            step={1}
+                            suffix="dias"
+                            size="sm"
+                            className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomFirstDays(false)
+                            setShowDatePicker(false)
+                          }}
+                          className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
+                        >
+                          ...
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
-                {/* Step 2: Quantas parcelas? — appears after choosing days */}
-                <div
-                  className={cn(
-                    'grid transition-all duration-400 ease-in-out overflow-hidden',
-                    showInstallmentsStep
-                      ? 'grid-rows-[1fr] opacity-100'
-                      : 'grid-rows-[0fr] opacity-0'
-                  )}
-                >
-                  <div className="min-h-0">
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-3 duration-400">
-                      <Label className="text-sm font-medium text-center block">
-                        Quantas parcelas?
-                      </Label>
-                      <div className="flex flex-wrap justify-center gap-2">
+                {/* Step 2: Quantas parcelas? — always visible, opaque when pending */}
+                <div className={cn(
+                  'space-y-3 py-[30px] transition-all duration-300',
+                  showInstallmentsStep ? 'opacity-100' : 'opacity-30 pointer-events-none'
+                )}>
+                  <Label className="text-base font-medium text-center block mb-4">
+                    Quantas parcelas?
+                  </Label>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {!customInstallments ? (
+                      <>
                         {[1, 2, 3, 4, 5, 6].map((n) => (
                           <button
                             key={n}
@@ -438,13 +440,13 @@ export function PaymentConditionSection({
                               onInstallmentsChange(n)
                             }}
                             className={cn(
-                              'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] min-w-[44px] transition-all',
-                              !customInstallments && safeInstallments === n
+                              'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all',
+                              !customInstallments && installmentsChosen && safeInstallments === n
                                 ? 'bg-foreground text-background'
                                 : 'bg-background text-foreground border-border'
                             )}
                           >
-                            {n === 1 ? '1 (à vista)' : n}
+                            {n === 1 ? 'À vista' : n}
                           </button>
                         ))}
                         <button
@@ -453,96 +455,92 @@ export function PaymentConditionSection({
                             setCustomInstallments(true)
                             setInstallmentsChosen(true)
                           }}
-                          className={cn(
-                            'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all',
-                            customInstallments
-                              ? 'bg-foreground text-background'
-                              : 'bg-background text-foreground border-border'
-                          )}
+                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
                         >
                           Outro
                         </button>
-                      </div>
-                      {customInstallments && (
-                        <div className="flex justify-center pt-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={24}
-                            placeholder="Nº parcelas"
-                            value={installments}
-                            onChange={(e) => onInstallmentsChange(Number(e.target.value) || 1)}
-                            className="w-32 text-center"
-                            autoFocus
-                          />
-                        </div>
-                      )}
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <NumberStepper
+                          value={safeInstallments}
+                          onChange={onInstallmentsChange}
+                          min={1}
+                          max={24}
+                          step={1}
+                          size="sm"
+                          className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCustomInstallments(false)}
+                          className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
+                        >
+                          ...
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Step 3: Intervalo entre parcelas? — appears after choosing >1 installments */}
-                <div
-                  className={cn(
-                    'grid transition-all duration-400 ease-in-out overflow-hidden',
-                    showIntervalStep
-                      ? 'grid-rows-[1fr] opacity-100'
-                      : 'grid-rows-[0fr] opacity-0'
-                  )}
-                >
-                  <div className="min-h-0">
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-3 duration-400">
-                      <Label className="text-sm font-medium text-center block">
-                        Intervalo entre parcelas?
-                      </Label>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {[15, 30].map((n) => (
+                {/* Step 3: Intervalo entre parcelas? — only when >1 installments */}
+                {installmentsChosen && isMultipleInstallments && (
+                  <div className="space-y-3 py-3 animate-in fade-in duration-300">
+                    <Label className="text-base font-medium text-center block mb-4">
+                      Intervalo entre parcelas?
+                    </Label>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {!customInterval ? (
+                        <>
+                          {[15, 30, 45].map((n) => (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => {
+                                setCustomInterval(false)
+                                onIntervalChange(n)
+                              }}
+                              className={cn(
+                                'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all',
+                                Number(interval) === n
+                                  ? 'bg-foreground text-background'
+                                  : 'bg-background text-foreground border-border'
+                              )}
+                            >
+                              {n} dias
+                            </button>
+                          ))}
                           <button
-                            key={n}
                             type="button"
-                            onClick={() => {
-                              setCustomInterval(false)
-                              onIntervalChange(n)
-                            }}
-                            className={cn(
-                              'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all',
-                              !customInterval && Number(interval) === n
-                                ? 'bg-foreground text-background'
-                                : 'bg-background text-foreground border-border'
-                            )}
+                            onClick={() => setCustomInterval(true)}
+                            className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
                           >
-                            {n} dias
+                            Outro
                           </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => setCustomInterval(true)}
-                          className={cn(
-                            'rounded-full border px-4 py-2 text-sm font-medium min-h-[44px] transition-all',
-                            customInterval
-                              ? 'bg-foreground text-background'
-                              : 'bg-background text-foreground border-border'
-                          )}
-                        >
-                          Outro
-                        </button>
-                      </div>
-                      {customInterval && (
-                        <div className="flex justify-center pt-1">
-                          <Input
-                            type="number"
+                        </>
+                      ) : (
+                        <>
+                          <NumberStepper
+                            value={getSafeNumber(interval, 1)}
+                            onChange={onIntervalChange}
                             min={1}
-                            placeholder="Dias"
-                            value={interval}
-                            onChange={(e) => onIntervalChange(Number(e.target.value) || 1)}
-                            className="w-32 text-center"
-                            autoFocus
+                            step={1}
+                            suffix="dias"
+                            size="sm"
+                            className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
                           />
-                        </div>
+                          <button
+                            type="button"
+                            onClick={() => setCustomInterval(false)}
+                            className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
+                          >
+                            ...
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </>
           )}
