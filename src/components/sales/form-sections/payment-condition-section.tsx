@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Calendar, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Calendar, CalendarDays, ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,10 @@ type PaymentConditionSectionProps = {
   firstInstallmentDays: string | number
   quickCondition: string
   irregularPatternWarning: string | null
+  customDaysList: number[] | null
+  detectedPattern: { interval: number; count: number } | null
+  onPatternAdd: () => void
+  onPatternRemove: () => void
   totalValue: number
   grossTotal: number
   totalCommission: number
@@ -30,7 +34,6 @@ type PaymentConditionSectionProps = {
   onQuickConditionChange: (value: string) => void
   onQuickConditionBlur: () => void
   onSelectSuggestion: (value: string) => void
-  onDismissWarning: () => void
 }
 
 const paymentConditionSuggestions = [
@@ -65,6 +68,10 @@ export function PaymentConditionSection({
   firstInstallmentDays,
   quickCondition,
   irregularPatternWarning,
+  customDaysList,
+  detectedPattern,
+  onPatternAdd,
+  onPatternRemove,
   totalValue,
   grossTotal,
   totalCommission,
@@ -76,10 +83,15 @@ export function PaymentConditionSection({
   onQuickConditionChange,
   onQuickConditionBlur,
   onSelectSuggestion,
-  onDismissWarning,
 }: PaymentConditionSectionProps) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [expandedPreview, setExpandedPreview] = useState(false)
+
+  // Reset expand when installment count changes (e.g. +/- buttons)
+  useEffect(() => {
+    setExpandedPreview(false)
+  }, [installments])
+
   const [parceladoMode, setParceladoMode] = useState<'simples' | 'rapido'>('simples')
   const [customInstallments, setCustomInstallments] = useState(false)
   const [customInterval, setCustomInterval] = useState(false)
@@ -108,21 +120,30 @@ export function PaymentConditionSection({
     const safeInterval = getSafeNumber(interval, 30)
 
     let firstDate: Date
-    if (firstInstallmentDate) {
-      firstDate = new Date(firstInstallmentDate + 'T12:00:00')
-    } else {
-      const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
-      firstDate = new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
-    }
+    let lastDate: Date
 
-    const lastDate = new Date(firstDate)
-    lastDate.setDate(lastDate.getDate() + (safeInst - 1) * safeInterval)
+    if (customDaysList && customDaysList.length === safeInst) {
+      const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
+      firstDate = new Date(saleDateObj)
+      firstDate.setDate(firstDate.getDate() + customDaysList[0])
+      lastDate = new Date(saleDateObj)
+      lastDate.setDate(lastDate.getDate() + customDaysList[customDaysList.length - 1])
+    } else {
+      if (firstInstallmentDate) {
+        firstDate = new Date(firstInstallmentDate + 'T12:00:00')
+      } else {
+        const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
+        firstDate = new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
+      }
+      lastDate = new Date(firstDate)
+      lastDate.setDate(lastDate.getDate() + (safeInst - 1) * safeInterval)
+    }
 
     return {
       first: new Intl.DateTimeFormat('pt-BR').format(firstDate),
       last: new Intl.DateTimeFormat('pt-BR').format(lastDate),
     }
-  }, [installments, interval, firstInstallmentDate, firstInstallmentDays, saleDate])
+  }, [installments, interval, firstInstallmentDate, firstInstallmentDays, saleDate, customDaysList])
 
   return (
     <Card>
@@ -207,7 +228,7 @@ export function PaymentConditionSection({
                     }}
                     className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
                       irregularPatternWarning
-                        ? 'border-amber-400 focus-visible:border-amber-500'
+                        ? 'border-red-400 focus-visible:border-red-500'
                         : 'border-primary/20 focus-visible:border-primary'
                     }`}
                   />
@@ -237,31 +258,26 @@ export function PaymentConditionSection({
                   )}
                 </div>
 
-                {irregularPatternWarning && (
-                  <div className="max-w-md mx-auto mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <svg
-                      className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                {detectedPattern && !irregularPatternWarning && (
+                  <div className="max-w-md mx-auto mt-3 flex items-center justify-center gap-3 animate-in fade-in duration-300">
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      onClick={onPatternRemove}
+                      disabled={detectedPattern.count <= 1}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm text-amber-800">{irregularPatternWarning}</p>
-                      <button
-                        type="button"
-                        className="mt-1 text-xs text-amber-600 hover:text-amber-700 underline"
-                        onClick={onDismissWarning}
-                      >
-                        Entendi, continuar assim
-                      </button>
-                    </div>
+                      <Minus className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <span className="text-sm text-muted-foreground font-medium min-w-[140px] text-center">
+                      {detectedPattern.count}x de {detectedPattern.interval} em {detectedPattern.interval} dias
+                    </span>
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors"
+                      onClick={onPatternAdd}
+                    >
+                      <Plus className="h-4 w-4 text-muted-foreground" />
+                    </button>
                   </div>
                 )}
 
@@ -573,8 +589,30 @@ export function PaymentConditionSection({
             </div>
           </div>
 
-          {/* Previsão de recebimento — Stepper Vertical */}
-          {installmentDates && (() => {
+          {/* Previsão de recebimento — Stepper Vertical ou Alerta */}
+          {irregularPatternWarning ? (
+            <div className="pt-4 pb-2">
+              <Label className="text-sm font-semibold block mb-4 text-center">
+                Previsão de recebimento
+              </Label>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <svg
+                  className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <p className="text-sm text-red-800">{irregularPatternWarning}</p>
+              </div>
+            </div>
+          ) : installmentDates && (() => {
             const safeInst = getSafeNumber(installments, 1)
             const safeInterval = getSafeNumber(interval, 30)
             const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
@@ -585,20 +623,31 @@ export function PaymentConditionSection({
             const installmentTax = taxTotal > 0 ? taxTotal / safeInst : 0
 
             const allDates: Date[] = []
-            const baseDate = firstInstallmentDate
-              ? new Date(firstInstallmentDate + 'T12:00:00')
-              : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
 
-            for (let i = 0; i < safeInst; i++) {
-              const d = new Date(baseDate)
-              d.setDate(d.getDate() + i * safeInterval)
-              allDates.push(d)
+            if (customDaysList && customDaysList.length === safeInst) {
+              // Irregular pattern: use explicit days from sale date
+              const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
+              for (const days of customDaysList) {
+                const d = new Date(saleDateObj)
+                d.setDate(d.getDate() + days)
+                allDates.push(d)
+              }
+            } else {
+              const baseDate = firstInstallmentDate
+                ? new Date(firstInstallmentDate + 'T12:00:00')
+                : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
+
+              for (let i = 0; i < safeInst; i++) {
+                const d = new Date(baseDate)
+                d.setDate(d.getDate() + i * safeInterval)
+                allDates.push(d)
+              }
             }
 
             const INITIAL_VISIBLE = 3
             const MAX_SCROLL_VISIBLE = 12
-            const visibleCount = expandedPreview ? allDates.length : Math.min(safeInst, INITIAL_VISIBLE)
-            const visibleDates = allDates.slice(0, visibleCount)
+            const initialDates = allDates.slice(0, Math.min(safeInst, INITIAL_VISIBLE))
+            const extraDates = allDates.slice(INITIAL_VISIBLE)
             const hasMore = safeInst > INITIAL_VISIBLE
             const needsScroll = expandedPreview && safeInst > MAX_SCROLL_VISIBLE
 
@@ -613,55 +662,77 @@ export function PaymentConditionSection({
                 <Label className="text-sm font-semibold block mb-4 text-center">
                   Previsão de recebimento
                 </Label>
-                <div
-                  className={cn(
-                    needsScroll && 'max-h-[480px] overflow-y-auto pr-1'
-                  )}
-                >
-                  <div className="relative ml-1">
-                    {visibleDates.map((date, idx) => {
-                      const isLast = idx === visibleDates.length - 1
-
-                      return (
-                        <div key={idx} className="relative pl-8 pb-7 last:pb-0">
-                          {/* Vertical line */}
-                          {!isLast && (
-                            <div className="absolute left-[9px] top-[18px] bottom-0 w-px bg-border" />
-                          )}
-                          {/* Numbered dot */}
-                          <div className="absolute left-0 top-0 w-[18px] h-[18px] rounded-full bg-muted flex items-center justify-center">
-                            <span className="text-[10px] font-semibold text-muted-foreground">{idx + 1}</span>
-                          </div>
-
-                          {/* Content */}
-                          <div className="flex items-start justify-between gap-2">
-                            {/* Left: Date — slightly below dot */}
-                            <span className="text-sm font-medium text-muted-foreground pt-[3px]">
-                              {formatDate(date)}
-                            </span>
-                            {/* Right: Values stacked */}
-                            <div className="relative top-[-5px] flex flex-col items-end flex-shrink-0">
-                              {installmentCommission > 0 ? (
-                                <>
-                                  <span className="text-xs text-muted-foreground/60">
-                                    {formatCurrency(installmentValue)}
-                                  </span>
-                                  <span className="text-lg font-bold text-foreground leading-tight">
-                                    {formatCurrency(installmentCommission)}
-                                  </span>
-                                </>
-                              ) : (
-                                <span className="text-base font-semibold text-foreground">
-                                  {installmentValue > 0 ? formatCurrency(installmentValue) : '-'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                {(() => {
+                  const renderStep = (date: Date, idx: number, isLast: boolean) => (
+                    <div key={idx} className={cn("relative pl-8", isLast ? "pb-0" : "pb-7")}>
+                      {!isLast && (
+                        <div className="absolute left-[9px] top-[18px] bottom-0 w-px bg-border" />
+                      )}
+                      <div className="absolute left-0 top-0 w-[18px] h-[18px] rounded-full bg-muted flex items-center justify-center">
+                        <span className="text-[10px] font-semibold text-muted-foreground">{idx + 1}</span>
+                      </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-col pt-[3px]">
+                          <span className="text-sm font-medium text-foreground">
+                            {formatDate(date)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/50 italic">
+                            {(() => {
+                              const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
+                              const diffMs = date.getTime() - saleDateObj.getTime()
+                              const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
+                              if (diffDays === 0) return 'Hoje'
+                              if (diffDays === 1) return 'Amanhã'
+                              return `Daqui a ${diffDays} dias`
+                            })()}
+                          </span>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                        <div className="flex flex-col items-end flex-shrink-0">
+                          {installmentCommission > 0 ? (
+                            <>
+                              <span className="text-xs text-muted-foreground/60">
+                                {formatCurrency(installmentValue)}
+                              </span>
+                              <span className="text-lg font-bold text-foreground leading-tight">
+                                {formatCurrency(installmentCommission)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-base font-semibold text-foreground">
+                              {installmentValue > 0 ? formatCurrency(installmentValue) : '-'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+
+                  const totalCount = initialDates.length + (expandedPreview ? extraDates.length : 0)
+
+                  return (
+                    <div className={cn(needsScroll && 'max-h-[480px] overflow-y-auto pr-1')}>
+                      <div className="relative ml-1">
+                        {initialDates.map((date, idx) =>
+                          renderStep(date, idx, !hasMore && idx === initialDates.length - 1)
+                        )}
+                        {extraDates.length > 0 && (
+                          <div
+                            className="overflow-hidden transition-all duration-300 ease-in-out"
+                            style={{
+                              maxHeight: expandedPreview ? `${extraDates.length * 100}px` : '0px',
+                              opacity: expandedPreview ? 1 : 0,
+                            }}
+                          >
+                            {extraDates.map((date, idx) => {
+                              const globalIdx = INITIAL_VISIBLE + idx
+                              return renderStep(date, globalIdx, globalIdx === allDates.length - 1)
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {hasMore && (
                   <div className="flex justify-center pt-3">

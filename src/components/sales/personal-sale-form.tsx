@@ -55,18 +55,11 @@ function parsePaymentCondition(condition: string | null): {
   }
 }
 
-function detectIrregularPattern(parts: number[]): { isIrregular: boolean; intervals: number[] } {
-    if (parts.length < 3) return { isIrregular: false, intervals: [] }
-
-    const intervals: number[] = []
+function detectDescendingOrder(parts: number[]): number | null {
     for (let i = 1; i < parts.length; i++) {
-      intervals.push(parts[i] - parts[i - 1])
+      if (parts[i] <= parts[i - 1]) return i
     }
-
-    const firstInterval = intervals[0]
-    const isIrregular = intervals.some((int) => int !== firstInterval)
-
-    return { isIrregular, intervals }
+    return null
   }
 
   const getSafeNumber = (val: string | number, min: number = 0) => {
@@ -125,6 +118,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [isUpdatingFromQuick, setIsUpdatingFromQuick] = useState(false)
   const [hasChangedSteppers, setHasChangedSteppers] = useState(false)
   const [irregularPatternWarning, setIrregularPatternWarning] = useState<string | null>(null)
+  const [customDaysList, setCustomDaysList] = useState<number[] | null>(null)
+  const [detectedPattern, setDetectedPattern] = useState<{ interval: number; count: number } | null>(null)
 
   const [notes, setNotes] = useState(sale?.notes || '')
   const [valueEntries, setValueEntries] = useState<ValueEntry[]>(() => {
@@ -526,16 +521,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       const first = parts[0]
       const count = parts.length
 
-      const { isIrregular, intervals } = detectIrregularPattern(parts)
-
-      if (isIrregular && parts.length >= 3) {
-        const uniqueIntervals = [...new Set(intervals)]
+      const badIndex = detectDescendingOrder(parts)
+      if (badIndex !== null) {
         setIrregularPatternWarning(
-          `Padrão irregular. Condições comuns seguem intervalos fixos como 30/60/90. Intervalos detectados: ${uniqueIntervals.join(', ')} dias.`
+          `A ${badIndex + 1}ª parcela (${parts[badIndex]} dias) deve ser maior que a ${badIndex}ª (${parts[badIndex - 1]} dias).`
         )
-                            } else {
-        setIrregularPatternWarning(null)
+        return
       }
+
+      setIrregularPatternWarning(null)
 
       let detectedInterval = getSafeNumber(interval, 30)
 
@@ -547,6 +541,27 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
       if (detectedInterval <= 0) detectedInterval = 30
 
+      // Detect pattern from 2nd installment onwards (intervals between consecutive parts from index 1+)
+      if (parts.length >= 2) {
+        const intervalsFrom2nd: number[] = []
+        for (let i = 1; i < parts.length; i++) {
+          intervalsFrom2nd.push(parts[i] - parts[i - 1])
+        }
+        // Pattern detected if all intervals from 2nd onward are equal
+        // For 2 parts, we have 1 interval — that's a pattern
+        const patternInterval = intervalsFrom2nd.length >= 1 ? intervalsFrom2nd[intervalsFrom2nd.length - 1] : null
+        const hasPattern = patternInterval !== null && patternInterval > 0 &&
+          (intervalsFrom2nd.length <= 1 || intervalsFrom2nd.slice(1).every(i => i === intervalsFrom2nd[1]))
+
+        setDetectedPattern(hasPattern ? { interval: patternInterval, count } : null)
+      } else {
+        setDetectedPattern(null)
+      }
+
+      // Check if intervals are irregular — store explicit days list
+      const isRegular = parts.length <= 2 || parts.every((_, i) => i === 0 || parts[i] - parts[i - 1] === detectedInterval)
+      setCustomDaysList(isRegular ? null : parts)
+
       setInstallments(count)
       setFirstInstallmentDays(first)
       setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
@@ -555,6 +570,39 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       setQuickCondition(parts.join('/'))
     }
 
+    setTimeout(() => setIsUpdatingFromQuick(false), 100)
+  }
+
+  const handlePatternAdd = () => {
+    if (!detectedPattern) return
+    const parts = quickCondition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+    if (parts.length === 0) return
+    const lastValue = parts[parts.length - 1]
+    const newValue = lastValue + detectedPattern.interval
+    const newParts = [...parts, newValue]
+    setQuickCondition(newParts.join('/'))
+    // Trigger blur logic inline
+    setIsUpdatingFromQuick(true)
+    setCustomDaysList(newParts.length <= 2 || newParts.every((_, i) => i === 0 || newParts[i] - newParts[i - 1] === (newParts[1] - newParts[0])) ? null : newParts)
+    setInstallments(newParts.length)
+    setFirstInstallmentDays(newParts[0])
+    setFirstInstallmentDate(calculateDateFromDays(newParts[0], saleDate))
+    setDetectedPattern({ interval: detectedPattern.interval, count: newParts.length })
+    setTimeout(() => setIsUpdatingFromQuick(false), 100)
+  }
+
+  const handlePatternRemove = () => {
+    if (!detectedPattern) return
+    const parts = quickCondition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+    if (parts.length <= 1) return
+    const newParts = parts.slice(0, -1)
+    setQuickCondition(newParts.join('/'))
+    setIsUpdatingFromQuick(true)
+    setCustomDaysList(newParts.length <= 2 || newParts.every((_, i) => i === 0 || newParts[i] - newParts[i - 1] === (newParts[1] - newParts[0])) ? null : newParts)
+    setInstallments(newParts.length)
+    setFirstInstallmentDays(newParts[0])
+    setFirstInstallmentDate(calculateDateFromDays(newParts[0], saleDate))
+    setDetectedPattern({ interval: detectedPattern.interval, count: newParts.length })
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
   }
 
@@ -587,6 +635,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       return
     }
 
+    // Don't overwrite quickCondition when using custom (irregular) days
+    if (customDaysList) {
+      return
+    }
+
     if (!sale && !hasChangedSteppers && !quickCondition) {
       return
     }
@@ -608,7 +661,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       }
       setQuickCondition(parts.join('/'))
     }
-  }, [installments, interval, firstInstallmentDays, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition])
+  }, [installments, interval, firstInstallmentDays, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition, customDaysList])
 
   const handleInstallmentsChange = (val: number) => {
     setInstallments(val)
@@ -688,6 +741,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 firstInstallmentDays={firstInstallmentDays}
                 quickCondition={quickCondition}
                 irregularPatternWarning={irregularPatternWarning}
+                customDaysList={customDaysList}
+                detectedPattern={detectedPattern}
+                onPatternAdd={handlePatternAdd}
+                onPatternRemove={handlePatternRemove}
                 totalValue={totalValue}
                 grossTotal={valueEntries.reduce((sum, entry) => {
                   const qty = informItems ? entry.quantity || 1 : 1
@@ -720,7 +777,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 }}
                 onQuickConditionBlur={handleQuickConditionBlur}
                 onSelectSuggestion={handleSelectSuggestion}
-                onDismissWarning={() => setIrregularPatternWarning(null)}
+
               />
 
               <NotesSection notes={notes} onNotesChange={setNotes} />
