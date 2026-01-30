@@ -586,44 +586,55 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const handlePatternAdd = () => {
     if (!detectedPattern) return
-    const parts = quickCondition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
-    if (parts.length === 0) return
-    const lastValue = parts[parts.length - 1]
-    const newValue = lastValue + detectedPattern.interval
-    const newParts = [...parts, newValue]
-    setQuickCondition(newParts.join('/'))
-    // Trigger blur logic inline
+    const safeFirst = getSafeNumber(firstInstallmentDays, 0)
+    const newCount = detectedPattern.count + 1
+    const newParts: number[] = []
+    for (let i = 0; i < newCount; i++) {
+      newParts.push(safeFirst + i * detectedPattern.interval)
+    }
     setIsUpdatingFromQuick(true)
-    setCustomDaysList(newParts.length <= 2 || newParts.every((_, i) => i === 0 || newParts[i] - newParts[i - 1] === (newParts[1] - newParts[0])) ? null : newParts)
-    setInstallments(newParts.length)
-    setFirstInstallmentDays(newParts[0])
-    setFirstInstallmentDate(calculateDateFromDays(newParts[0], saleDate))
-    setDetectedPattern({ interval: detectedPattern.interval, count: newParts.length })
+    setQuickCondition(newParts.join('/'))
+    setCustomDaysList(null)
+    setInstallments(newCount)
+    setDetectedPattern({ interval: detectedPattern.interval, count: newCount })
+    setHasChangedSteppers(true)
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
   }
 
   const handlePatternRemove = () => {
-    if (!detectedPattern) return
-    const parts = quickCondition.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
-    if (parts.length <= 1) return
-    const newParts = parts.slice(0, -1)
-    setQuickCondition(newParts.join('/'))
+    if (!detectedPattern || detectedPattern.count <= 1) return
+    const safeFirst = getSafeNumber(firstInstallmentDays, 0)
+    const newCount = detectedPattern.count - 1
+    const newParts: number[] = []
+    for (let i = 0; i < newCount; i++) {
+      newParts.push(safeFirst + i * detectedPattern.interval)
+    }
     setIsUpdatingFromQuick(true)
-    setCustomDaysList(newParts.length <= 2 || newParts.every((_, i) => i === 0 || newParts[i] - newParts[i - 1] === (newParts[1] - newParts[0])) ? null : newParts)
-    setInstallments(newParts.length)
-    setFirstInstallmentDays(newParts[0])
-    setFirstInstallmentDate(calculateDateFromDays(newParts[0], saleDate))
-    setDetectedPattern({ interval: detectedPattern.interval, count: newParts.length })
+    setQuickCondition(newParts.join('/'))
+    setCustomDaysList(null)
+    setInstallments(newCount)
+    setDetectedPattern({ interval: detectedPattern.interval, count: newCount })
+    setHasChangedSteppers(true)
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
   }
 
   const handleSelectSuggestion = (value: string) => {
+    setIrregularPatternWarning(null)
+    setCustomDaysList(null)
+    setDetectedPattern(null)
+
     if (value === '0') {
-      setPaymentType('vista')
+      setQuickCondition('0')
+      setIsUpdatingFromQuick(true)
+      setInstallments(1)
+      setFirstInstallmentDays(0)
+      setFirstInstallmentDate(saleDate)
+      setInterval(30)
+      setHasChangedSteppers(true)
+      setTimeout(() => setIsUpdatingFromQuick(false), 100)
       return
     }
     setQuickCondition(value)
-    setIrregularPatternWarning(null)
 
     setTimeout(() => {
       const parts = value
@@ -637,6 +648,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         setFirstInstallmentDays(first)
         setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
         setInterval(detectedInterval > 0 ? detectedInterval : 30)
+        setHasChangedSteppers(true)
       }
     }, 0)
   }
@@ -659,19 +671,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     const safeInterval = getSafeNumber(interval, 30)
     const safeFirstDays = getSafeNumber(firstInstallmentDays, safeInstallments === 1 ? 0 : 30)
 
-    if (safeInstallments > 5) {
-      const parts = []
-      for (let i = 0; i < 3; i++) {
-        parts.push(safeFirstDays + i * safeInterval)
-      }
-      setQuickCondition(`${parts.join('/')}/... (${safeInstallments}x)`)
-    } else {
-      const parts = []
-      for (let i = 0; i < safeInstallments; i++) {
-        parts.push(safeFirstDays + i * safeInterval)
-      }
-      setQuickCondition(parts.join('/'))
+    const parts = []
+    for (let i = 0; i < safeInstallments; i++) {
+      parts.push(safeFirstDays + i * safeInterval)
     }
+    setQuickCondition(parts.join('/'))
   }, [installments, interval, firstInstallmentDays, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition, customDaysList])
 
   const handleInstallmentsChange = (val: number) => {
@@ -790,8 +794,19 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   setIrregularPatternWarning(null)
                 }}
                 onQuickConditionBlur={handleQuickConditionBlur}
+                onClearCondition={() => {
+                  setQuickCondition('')
+                  setInstallments(1)
+                  setInterval(30)
+                  setFirstInstallmentDays(0)
+                  setFirstInstallmentDate(saleDate)
+                  setIrregularPatternWarning(null)
+                  setCustomDaysList(null)
+                  setDetectedPattern(null)
+                  setHasChangedSteppers(false)
+                  setIsUpdatingFromQuick(false)
+                }}
                 onSelectSuggestion={handleSelectSuggestion}
-
               />
 
               <NotesSection notes={notes} onNotesChange={setNotes} />

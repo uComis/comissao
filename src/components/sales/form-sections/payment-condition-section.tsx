@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Calendar, CalendarDays, ChevronDown, ChevronUp, Minus, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowLeft, Calendar, CalendarDays, ChevronDown, ChevronUp, Minus, Plus, X } from 'lucide-react'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -33,6 +33,7 @@ type PaymentConditionSectionProps = {
   onFirstInstallmentDaysChange: (value: number) => void
   onQuickConditionChange: (value: string) => void
   onQuickConditionBlur: () => void
+  onClearCondition: () => void
   onSelectSuggestion: (value: string) => void
 }
 
@@ -82,10 +83,12 @@ export function PaymentConditionSection({
   onFirstInstallmentDaysChange,
   onQuickConditionChange,
   onQuickConditionBlur,
+  onClearCondition,
   onSelectSuggestion,
 }: PaymentConditionSectionProps) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [expandedPreview, setExpandedPreview] = useState(false)
+  const [isInputFocused, setIsInputFocused] = useState(false)
 
   // Reset expand when installment count changes (e.g. +/- buttons)
   useEffect(() => {
@@ -115,9 +118,65 @@ export function PaymentConditionSection({
   const autoCollapse = () => {
     if (!manualCompleted) {
       setManualCompleted(true)
-      setTimeout(() => setShowManualMode(false), 600)
+      setTimeout(() => {
+        setShowManualMode(false)
+        onQuickConditionBlur()
+      }, 600)
     }
   }
+
+  // Fix 4: Sync input → manual mode pills when quickCondition changes from input blur
+  const prevQuickConditionRef = useRef(quickCondition)
+  useEffect(() => {
+    const prev = prevQuickConditionRef.current
+    prevQuickConditionRef.current = quickCondition
+
+    // Only sync when quickCondition actually changed
+    if (quickCondition === prev) return
+    if (!quickCondition) return
+
+    const parts = quickCondition.replace(/[\s,-]+/g, '/').split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+    if (parts.length === 0) return
+
+    const first = parts[0]
+    const count = parts.length
+    const detectedInt = parts.length > 1 ? parts[1] - parts[0] : 30
+
+    // Sync firstDays pills
+    const predefinedFirstDays = [0, 15, 30, 45]
+    if (predefinedFirstDays.includes(first)) {
+      setCustomFirstDays(false)
+      setShowDatePicker(false)
+    } else {
+      setCustomFirstDays(true)
+      setShowDatePicker(false)
+    }
+    setFirstDaysChosen(true)
+
+    // Sync installments pills
+    const predefinedInstallments = [1, 2, 3, 4, 5, 6]
+    if (predefinedInstallments.includes(count)) {
+      setCustomInstallments(false)
+    } else {
+      setCustomInstallments(true)
+    }
+    setInstallmentsChosen(true)
+    setChosenInstallmentCount(count)
+
+    // Sync interval pills (only if multi-installment)
+    if (count > 1) {
+      const predefinedIntervals = [15, 30, 45]
+      if (predefinedIntervals.includes(detectedInt)) {
+        setCustomInterval(false)
+      } else {
+        setCustomInterval(true)
+      }
+      setIntervalChosen(true)
+    }
+
+    // Mark as completed so reopening doesn't auto-collapse
+    setManualCompleted(true)
+  }, [quickCondition])
 
   const filteredSuggestions = paymentConditionSuggestions.filter(
     (suggestion) =>
@@ -194,7 +253,20 @@ export function PaymentConditionSection({
               <Input
                 id="quick_condition"
                 placeholder="ex: 0 (à vista) ou 30/60/90"
-                value={quickCondition}
+                value={(() => {
+                  if (isInputFocused) return quickCondition
+                  const parts = quickCondition.split('/').filter(Boolean)
+                  if (parts.length === 1) {
+                    const days = parseInt(parts[0])
+                    if (!isNaN(days)) {
+                      return days === 0 ? 'À vista' : `À vista · ${days} dias`
+                    }
+                  }
+                  if (parts.length > 5) {
+                    return `${parts.slice(0, 3).join('/')} ··· (${parts.length}x)`
+                  }
+                  return quickCondition
+                })()}
                 onChange={(e) => onQuickConditionChange(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -202,19 +274,41 @@ export function PaymentConditionSection({
                     ;(e.target as HTMLInputElement).blur()
                   }
                 }}
-                onFocus={() => setShowSuggestions(true)}
+                onFocus={() => {
+                  setShowSuggestions(true)
+                  setIsInputFocused(true)
+                }}
                 onBlur={() => {
+                  setIsInputFocused(false)
                   setTimeout(() => {
                     setShowSuggestions(false)
                     onQuickConditionBlur()
                   }, 150)
                 }}
-                className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm pr-10 ${
                   irregularPatternWarning
                     ? 'border-red-400 focus-visible:border-red-500'
                     : 'border-primary/20 focus-visible:border-primary'
                 }`}
               />
+
+              {quickCondition && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClearCondition()
+                    setShowManualMode(false)
+                    setManualCompleted(false)
+                    setFirstDaysChosen(false)
+                    setInstallmentsChosen(false)
+                    setIntervalChosen(false)
+                    setChosenInstallmentCount(1)
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
 
               {showSuggestions && filteredSuggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
@@ -308,10 +402,14 @@ export function PaymentConditionSection({
               <span className="text-xs text-muted-foreground">·</span>
               <button
                 type="button"
-                onClick={() => setShowManualMode(!showManualMode)}
+                onClick={() => {
+                  const next = !showManualMode
+                  setShowManualMode(next)
+                  if (next) setManualCompleted(false)
+                }}
                 className="text-xs text-muted-foreground hover:text-foreground underline"
               >
-                Montar parcelas manualmente
+                {showManualMode ? 'Ocultar modo manual' : 'Montar parcelas manualmente'}
               </button>
             </div>
           </div>
@@ -348,7 +446,7 @@ export function PaymentConditionSection({
                                 isSelected
                                   ? 'bg-foreground text-background'
                                   : 'bg-background text-foreground border-border',
-                                firstDaysChosen && !isSelected && 'opacity-40'
+                                firstDaysChosen && !isSelected && 'opacity-40 hover:opacity-100'
                               )}
                             >
                               {n === 0 ? 'Hoje' : `${n} dias`}
@@ -365,7 +463,7 @@ export function PaymentConditionSection({
                           }}
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 flex items-center gap-1.5 bg-background text-foreground border-border",
-                            firstDaysChosen && 'opacity-40'
+                            firstDaysChosen && 'opacity-40 hover:opacity-100'
                           )}
                         >
                           <CalendarDays className="h-3.5 w-3.5" />
@@ -380,7 +478,7 @@ export function PaymentConditionSection({
                           }}
                           className={cn(
                             "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                            firstDaysChosen && 'opacity-40'
+                            firstDaysChosen && 'opacity-40 hover:opacity-100'
                           )}
                         >
                           Outro
@@ -435,7 +533,7 @@ export function PaymentConditionSection({
                           }}
                           className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
                         >
-                          ...
+                          <ArrowLeft className="h-3.5 w-3.5" />
                         </button>
                       </>
                     )}
@@ -473,7 +571,7 @@ export function PaymentConditionSection({
                                     isSelected
                                       ? 'bg-foreground text-background'
                                       : 'bg-background text-foreground border-border',
-                                    installmentsChosen && !isSelected && 'opacity-40'
+                                    installmentsChosen && !isSelected && 'opacity-40 hover:opacity-100'
                                   )}
                                 >
                                   {n === 1 ? 'À vista' : n}
@@ -489,7 +587,7 @@ export function PaymentConditionSection({
                               }}
                               className={cn(
                                 "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                                installmentsChosen && 'opacity-40'
+                                installmentsChosen && 'opacity-40 hover:opacity-100'
                               )}
                             >
                               Outro
@@ -511,7 +609,7 @@ export function PaymentConditionSection({
                               onClick={() => setCustomInstallments(false)}
                               className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
                             >
-                              ...
+                              <ArrowLeft className="h-3.5 w-3.5" />
                             </button>
                           </>
                         )}
@@ -550,7 +648,7 @@ export function PaymentConditionSection({
                                     isSelected
                                       ? 'bg-foreground text-background'
                                       : 'bg-background text-foreground border-border',
-                                    intervalChosen && !isSelected && 'opacity-40'
+                                    intervalChosen && !isSelected && 'opacity-40 hover:opacity-100'
                                   )}
                                 >
                                   {n} dias
@@ -565,7 +663,7 @@ export function PaymentConditionSection({
                               }}
                               className={cn(
                                 "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                                intervalChosen && 'opacity-40'
+                                intervalChosen && 'opacity-40 hover:opacity-100'
                               )}
                             >
                               Outro
@@ -587,7 +685,7 @@ export function PaymentConditionSection({
                               onClick={() => setCustomInterval(false)}
                               className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
                             >
-                              ...
+                              <ArrowLeft className="h-3.5 w-3.5" />
                             </button>
                           </>
                         )}
