@@ -689,6 +689,18 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 quickCondition={quickCondition}
                 irregularPatternWarning={irregularPatternWarning}
                 totalValue={totalValue}
+                grossTotal={valueEntries.reduce((sum, entry) => {
+                  const qty = informItems ? entry.quantity || 1 : 1
+                  return sum + qty * (parseFloat(entry.grossValue) || 0)
+                }, 0)}
+                totalCommission={valueEntries.reduce((sum, entry) => {
+                  const qty = informItems ? entry.quantity || 1 : 1
+                  const gross = parseFloat(entry.grossValue) || 0
+                  const taxRate = parseFloat(entry.taxRate) || 0
+                  const commRate = parseFloat(entry.commissionRate) || 0
+                  const base = qty * gross * (1 - taxRate / 100)
+                  return sum + base * (commRate / 100)
+                }, 0)}
                 onSaleDateChange={handleSaleDateChange}
                 onFirstInstallmentDateChange={handleFirstDateChange}
                 onInstallmentsChange={handleInstallmentsChange}
@@ -709,7 +721,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 onQuickConditionBlur={handleQuickConditionBlur}
                 onSelectSuggestion={handleSelectSuggestion}
                 onDismissWarning={() => setIrregularPatternWarning(null)}
-                onViewAllInstallments={() => setInstallmentsSheetOpen(true)}
               />
 
               <NotesSection notes={notes} onNotesChange={setNotes} />

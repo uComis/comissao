@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Calendar, CalendarDays, Eye } from 'lucide-react'
+import { Calendar, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react'
+import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { NumberStepper } from '@/components/ui/number-stepper'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +20,8 @@ type PaymentConditionSectionProps = {
   quickCondition: string
   irregularPatternWarning: string | null
   totalValue: number
+  grossTotal: number
+  totalCommission: number
   onSaleDateChange: (date: string) => void
   onFirstInstallmentDateChange: (date: string) => void
   onInstallmentsChange: (value: number) => void
@@ -26,7 +31,6 @@ type PaymentConditionSectionProps = {
   onQuickConditionBlur: () => void
   onSelectSuggestion: (value: string) => void
   onDismissWarning: () => void
-  onViewAllInstallments: () => void
 }
 
 const paymentConditionSuggestions = [
@@ -62,6 +66,8 @@ export function PaymentConditionSection({
   quickCondition,
   irregularPatternWarning,
   totalValue,
+  grossTotal,
+  totalCommission,
   onSaleDateChange,
   onFirstInstallmentDateChange,
   onInstallmentsChange,
@@ -71,9 +77,9 @@ export function PaymentConditionSection({
   onQuickConditionBlur,
   onSelectSuggestion,
   onDismissWarning,
-  onViewAllInstallments,
 }: PaymentConditionSectionProps) {
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [expandedPreview, setExpandedPreview] = useState(false)
   const [parceladoMode, setParceladoMode] = useState<'simples' | 'rapido'>('simples')
   const [customInstallments, setCustomInstallments] = useState(false)
   const [customInterval, setCustomInterval] = useState(false)
@@ -121,7 +127,7 @@ export function PaymentConditionSection({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Condições de Pagamento</CardTitle>
+        <CardTitle>Pagamento</CardTitle>
         <div className="flex gap-1 bg-muted p-0.5 rounded-full">
           <button
             type="button"
@@ -186,39 +192,6 @@ export function PaymentConditionSection({
                 >
                   Digite os prazos
                 </Label>
-                {showDatePicker && (
-                  <div className="flex flex-col items-center gap-2 pb-2">
-                    <DatePicker
-                      date={
-                        firstInstallmentDate
-                          ? new Date(firstInstallmentDate + 'T12:00:00')
-                          : undefined
-                      }
-                      onDateChange={(date) => {
-                        if (date) {
-                          const dateStr = date.toISOString().split('T')[0]
-                          onFirstInstallmentDateChange(dateStr)
-                        }
-                      }}
-                      placeholder="Data da 1ª parcela"
-                      disabled={(date) => {
-                        if (!saleDate) return false
-                        const saleDateObj = new Date(saleDate + 'T00:00:00')
-                        const compareDate = new Date(date)
-                        compareDate.setHours(0, 0, 0, 0)
-                        saleDateObj.setHours(0, 0, 0, 0)
-                        return compareDate < saleDateObj
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:text-foreground underline"
-                      onClick={() => setShowDatePicker(false)}
-                    >
-                      usar dias
-                    </button>
-                  </div>
-                )}
                 <div className="relative max-w-md mx-auto">
                   <Input
                     id="quick_condition"
@@ -292,18 +265,48 @@ export function PaymentConditionSection({
                   </div>
                 )}
 
-                {!showDatePicker && (
-                  <div className="flex justify-center pt-1">
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 underline"
-                      onClick={() => setShowDatePicker(true)}
-                    >
-                      <CalendarDays className="h-3 w-3" />
-                      ou escolher data da 1ª parcela
-                    </button>
+                <div className="flex justify-center pt-1">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 underline"
+                        >
+                          <CalendarDays className="h-3 w-3" />
+                          Escolher no calendário
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="center">
+                        <CalendarComponent
+                          mode="single"
+                          selected={
+                            firstInstallmentDate
+                              ? new Date(firstInstallmentDate + 'T12:00:00')
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (date) {
+                              const dateStr = date.toISOString().split('T')[0]
+                              onFirstInstallmentDateChange(dateStr)
+                            }
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          captionLayout="dropdown"
+                          fromYear={1900}
+                          toYear={2100}
+                          disabled={(date) => {
+                            if (!saleDate) return false
+                            const saleDateObj = new Date(saleDate + 'T00:00:00')
+                            const compareDate = new Date(date)
+                            compareDate.setHours(0, 0, 0, 0)
+                            saleDateObj.setHours(0, 0, 0, 0)
+                            return compareDate < saleDateObj
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                )}
               </div>
             </>
           ) : (
@@ -546,80 +549,144 @@ export function PaymentConditionSection({
           )}
           </div>
 
-          {/* Previsão de Recebimento */}
-          {installmentDates && (
-            <div className="pt-4 pb-6">
-              <Label className="text-sm font-semibold block mb-4 text-center">
-                Previsão de Recebimento
-              </Label>
-              <div className="bg-card rounded-lg border shadow-sm divide-y">
-                {(() => {
-                  const safeInst = getSafeNumber(installments, 1)
-                  const safeInterval = getSafeNumber(interval, 30)
-                  const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
-                  const installmentValue = totalValue > 0 ? totalValue / safeInst : 0
-
-                  const dates = []
-                  const baseDate = firstInstallmentDate
-                    ? new Date(firstInstallmentDate + 'T12:00:00')
-                    : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
-
-                  for (let i = 0; i < Math.min(safeInst, 4); i++) {
-                    const d = new Date(baseDate)
-                    d.setDate(d.getDate() + i * safeInterval)
-                    dates.push(d)
-                  }
-
-                  return (
-                    <>
-                      {dates.map((date, idx) => (
-                        <div
-                          key={idx}
-                          className="flex justify-between items-center p-3 hover:bg-muted/20 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center justify-center w-6 h-6 rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                              {idx + 1}
-                            </span>
-                            <span className="text-sm font-medium">
-                              {new Intl.DateTimeFormat('pt-BR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                              }).format(date)}
-                            </span>
-                          </div>
-                          <span className="font-bold text-sm">
-                            {installmentValue > 0
-                              ? new Intl.NumberFormat('pt-BR', {
-                                  style: 'currency',
-                                  currency: 'BRL',
-                                }).format(installmentValue)
-                              : '-'}
-                          </span>
-                        </div>
-                      ))}
-
-                      {safeInst > 4 && (
-                        <div className="p-2 bg-muted/20 text-center">
-                          <Button
-                            type="button"
-                            variant="link"
-                            size="sm"
-                            className="text-xs h-auto py-1"
-                            onClick={onViewAllInstallments}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Ver mais {safeInst - 4} parcelas...
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )
-                })()}
+          {/* Linha Separadora com Ícone de Conexão */}
+          <div className="relative w-full pt-6 pb-2">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <div className="bg-card px-3">
+                <svg
+                  className="h-5 w-5 text-muted-foreground"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                  />
+                </svg>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Previsão de recebimento — Stepper Vertical */}
+          {installmentDates && (() => {
+            const safeInst = getSafeNumber(installments, 1)
+            const safeInterval = getSafeNumber(interval, 30)
+            const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
+            const installmentValue = grossTotal > 0 ? grossTotal / safeInst : 0
+            const installmentNetValue = totalValue > 0 ? totalValue / safeInst : 0
+            const installmentCommission = totalCommission > 0 ? totalCommission / safeInst : 0
+            const taxTotal = grossTotal - totalValue
+            const installmentTax = taxTotal > 0 ? taxTotal / safeInst : 0
+
+            const allDates: Date[] = []
+            const baseDate = firstInstallmentDate
+              ? new Date(firstInstallmentDate + 'T12:00:00')
+              : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
+
+            for (let i = 0; i < safeInst; i++) {
+              const d = new Date(baseDate)
+              d.setDate(d.getDate() + i * safeInterval)
+              allDates.push(d)
+            }
+
+            const INITIAL_VISIBLE = 3
+            const MAX_SCROLL_VISIBLE = 12
+            const visibleCount = expandedPreview ? allDates.length : Math.min(safeInst, INITIAL_VISIBLE)
+            const visibleDates = allDates.slice(0, visibleCount)
+            const hasMore = safeInst > INITIAL_VISIBLE
+            const needsScroll = expandedPreview && safeInst > MAX_SCROLL_VISIBLE
+
+            const formatCurrency = (value: number) =>
+              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+
+            const formatDate = (date: Date) =>
+              new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+
+            return (
+              <div className="pt-4 pb-2">
+                <Label className="text-sm font-semibold block mb-4 text-center">
+                  Previsão de recebimento
+                </Label>
+                <div
+                  className={cn(
+                    needsScroll && 'max-h-[480px] overflow-y-auto pr-1'
+                  )}
+                >
+                  <div className="relative ml-1">
+                    {visibleDates.map((date, idx) => {
+                      const isLast = idx === visibleDates.length - 1
+
+                      return (
+                        <div key={idx} className="relative pl-8 pb-7 last:pb-0">
+                          {/* Vertical line */}
+                          {!isLast && (
+                            <div className="absolute left-[9px] top-[18px] bottom-0 w-px bg-border" />
+                          )}
+                          {/* Numbered dot */}
+                          <div className="absolute left-0 top-0 w-[18px] h-[18px] rounded-full bg-muted flex items-center justify-center">
+                            <span className="text-[10px] font-semibold text-muted-foreground">{idx + 1}</span>
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex items-start justify-between gap-2">
+                            {/* Left: Date — slightly below dot */}
+                            <span className="text-sm font-medium text-muted-foreground pt-[3px]">
+                              {formatDate(date)}
+                            </span>
+                            {/* Right: Values stacked */}
+                            <div className="relative top-[-5px] flex flex-col items-end flex-shrink-0">
+                              {installmentCommission > 0 ? (
+                                <>
+                                  <span className="text-xs text-muted-foreground/60">
+                                    {formatCurrency(installmentValue)}
+                                  </span>
+                                  <span className="text-lg font-bold text-foreground leading-tight">
+                                    {formatCurrency(installmentCommission)}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-base font-semibold text-foreground">
+                                  {installmentValue > 0 ? formatCurrency(installmentValue) : '-'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {hasMore && (
+                  <div className="flex justify-center pt-3">
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                      onClick={() => setExpandedPreview(!expandedPreview)}
+                    >
+                      {expandedPreview ? (
+                        <>
+                          <ChevronUp className="h-3 w-3" />
+                          Ver menos
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="h-3 w-3" />
+                          Ver mais {safeInst - INITIAL_VISIBLE} parcelas
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </CardContent>
     </Card>
