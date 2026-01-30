@@ -12,6 +12,8 @@ import { NumberStepper } from '@/components/ui/number-stepper'
 import { cn } from '@/lib/utils'
 
 type PaymentConditionSectionProps = {
+  initialPaymentMode?: 'simples' | 'rapido'
+  onPaymentModeChange?: (mode: 'simples' | 'rapido') => void
   saleDate: string
   firstInstallmentDate: string
   installments: string | number
@@ -61,6 +63,8 @@ const calculateDateFromDays = (days: number, baseDateStr: string) => {
 }
 
 export function PaymentConditionSection({
+  initialPaymentMode,
+  onPaymentModeChange,
   saleDate,
   firstInstallmentDate,
   installments,
@@ -92,7 +96,7 @@ export function PaymentConditionSection({
     setExpandedPreview(false)
   }, [installments])
 
-  const [parceladoMode, setParceladoMode] = useState<'simples' | 'rapido'>('simples')
+  const [parceladoMode, setParceladoMode] = useState<'simples' | 'rapido'>(initialPaymentMode || 'simples')
   const [customInstallments, setCustomInstallments] = useState(false)
   const [customInterval, setCustomInterval] = useState(false)
   const [customFirstDays, setCustomFirstDays] = useState(false)
@@ -154,6 +158,7 @@ export function PaymentConditionSection({
             type="button"
             onClick={() => {
               setParceladoMode('simples')
+              onPaymentModeChange?.('simples')
 
               // Sync UI state from current data
               const currentFirstDays = getSafeNumber(firstInstallmentDays, 0)
@@ -188,7 +193,10 @@ export function PaymentConditionSection({
           </button>
           <button
             type="button"
-            onClick={() => setParceladoMode('rapido')}
+            onClick={() => {
+              setParceladoMode('rapido')
+              onPaymentModeChange?.('rapido')
+            }}
             className={cn(
               'px-3 py-1 text-xs font-medium rounded-full transition-all',
               parceladoMode === 'rapido'

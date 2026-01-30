@@ -9,6 +9,7 @@ export type Preferences = {
   adminUsersPageSize: number
   saleInformItems: boolean
   defaultSupplierId: string | null
+  salePaymentMode: 'simples' | 'rapido'
 }
 
 const defaults: Preferences = {
@@ -16,6 +17,7 @@ const defaults: Preferences = {
   adminUsersPageSize: 10,
   saleInformItems: false,
   defaultSupplierId: null,
+  salePaymentMode: 'simples',
 }
 
 function getStoredPreferences(): Preferences {

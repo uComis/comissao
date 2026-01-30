@@ -734,6 +734,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               />
 
               <PaymentConditionSection
+                initialPaymentMode={preferences.salePaymentMode}
+                onPaymentModeChange={(mode) => setPreference('salePaymentMode', mode)}
                 saleDate={saleDate}
                 firstInstallmentDate={firstInstallmentDate}
                 installments={installments}
