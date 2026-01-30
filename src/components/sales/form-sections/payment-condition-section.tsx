@@ -154,9 +154,28 @@ export function PaymentConditionSection({
             type="button"
             onClick={() => {
               setParceladoMode('simples')
-              setFirstDaysChosen(false)
-              setInstallmentsChosen(false)
+
+              // Sync UI state from current data
+              const currentFirstDays = getSafeNumber(firstInstallmentDays, 0)
+              const currentInstallments = getSafeNumber(installments, 1)
+              const currentInterval = getSafeNumber(interval, 30)
+
+              const hasData = currentInstallments > 1 || currentFirstDays > 0
+
+              setFirstDaysChosen(hasData)
+              setInstallmentsChosen(hasData)
               setDatePickerSelected(false)
+              setShowDatePicker(false)
+
+              // Determine if preset buttons match or need "Outro"
+              const firstDaysPresets = [0, 15, 30, 45]
+              setCustomFirstDays(hasData && !firstDaysPresets.includes(currentFirstDays))
+
+              const installmentsPresets = [1, 2, 3, 4, 5, 6]
+              setCustomInstallments(hasData && !installmentsPresets.includes(currentInstallments))
+
+              const intervalPresets = [15, 30, 45]
+              setCustomInterval(hasData && currentInstallments > 1 && !intervalPresets.includes(currentInterval))
             }}
             className={cn(
               'px-3 py-1 text-xs font-medium rounded-full transition-all',
