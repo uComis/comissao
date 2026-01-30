@@ -336,7 +336,7 @@ export function SupplierPicker({
           role="combobox"
           onClick={() => setOpen(true)}
           className={cn(
-            'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
+            'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
             !displayValue && 'text-muted-foreground',
             className
           )}
@@ -386,7 +386,7 @@ export function SupplierPicker({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              'h-[60px] justify-between font-normal w-full rounded-xl bg-muted/30',
+              'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
               !displayValue && 'text-muted-foreground',
               className
             )}

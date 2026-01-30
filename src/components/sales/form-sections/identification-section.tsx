@@ -44,10 +44,10 @@ export function IdentificationSection({
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
         {/* Pasta */}
         <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground/70 ml-1">Pasta</Label>
+          <Label className="text-[11px] text-foreground ml-1">Pasta</Label>
           <SupplierPicker
             suppliers={suppliers}
             value={supplierId}
@@ -82,7 +82,7 @@ export function IdentificationSection({
           "space-y-1 transition-all duration-300",
           showClient ? "opacity-100" : "opacity-30 pointer-events-none"
         )}>
-          <Label className="text-[11px] text-muted-foreground/70 ml-1">Cliente</Label>
+          <Label className="text-[11px] text-foreground ml-1">Cliente</Label>
           <ClientPicker
             value={clientId}
             onChange={onClientChange}
