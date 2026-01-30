@@ -100,6 +100,8 @@ export function PaymentConditionSection({
   const [datePickerSelected, setDatePickerSelected] = useState(false)
   const [firstDaysChosen, setFirstDaysChosen] = useState(false)
   const [installmentsChosen, setInstallmentsChosen] = useState(false)
+  const [chosenInstallmentCount, setChosenInstallmentCount] = useState(1)
+  const [intervalChosen, setIntervalChosen] = useState(false)
 
   const safeInstallments = getSafeNumber(installments, 1)
   const isMultipleInstallments = safeInstallments > 1
@@ -107,6 +109,15 @@ export function PaymentConditionSection({
   // Show all steps if editing existing sale (values already set)
   const showInstallmentsStep = firstDaysChosen
   const showIntervalStep = installmentsChosen && isMultipleInstallments
+
+  // Auto-collapse: called directly from onClick when the flow is done
+  const [manualCompleted, setManualCompleted] = useState(false)
+  const autoCollapse = () => {
+    if (!manualCompleted) {
+      setManualCompleted(true)
+      setTimeout(() => setShowManualMode(false), 600)
+    }
+  }
 
   const filteredSuggestions = paymentConditionSuggestions.filter(
     (suggestion) =>
@@ -311,35 +322,39 @@ export function PaymentConditionSection({
             showManualMode ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           )}>
             <div className="overflow-hidden">
-              <div className="space-y-2 pt-2">
+              <div className="bg-muted/40 border border-border/50 rounded-xl p-4 mt-2 space-y-2">
                 {/* Step 1: Primeira parcela em quantos dias? */}
                 <div className="space-y-3 py-3">
-                  <Label className="text-base font-medium text-center block mb-4">
+                  <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
                     Primeira parcela em quantos dias?
                   </Label>
                   <div className="flex flex-wrap justify-center gap-2">
                     {!customFirstDays && !showDatePicker ? (
                       <>
-                        {[0, 15, 30, 45].map((n) => (
-                          <button
-                            key={n}
-                            type="button"
-                            onClick={() => {
-                              setCustomFirstDays(false)
-                              setShowDatePicker(false)
-                              setFirstDaysChosen(true)
-                              onFirstInstallmentDaysChange(n)
-                            }}
-                            className={cn(
-                              'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all animate-in fade-in zoom-in-95 duration-200',
-                              firstDaysChosen && Number(firstInstallmentDays) === n
-                                ? 'bg-foreground text-background'
-                                : 'bg-background text-foreground border-border'
-                            )}
-                          >
-                            {n === 0 ? 'Hoje' : `${n} dias`}
-                          </button>
-                        ))}
+                        {[0, 15, 30, 45].map((n) => {
+                          const isSelected = firstDaysChosen && Number(firstInstallmentDays) === n
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              onClick={() => {
+                                setCustomFirstDays(false)
+                                setShowDatePicker(false)
+                                setFirstDaysChosen(true)
+                                onFirstInstallmentDaysChange(n)
+                              }}
+                              className={cn(
+                                'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200',
+                                isSelected
+                                  ? 'bg-foreground text-background'
+                                  : 'bg-background text-foreground border-border',
+                                firstDaysChosen && !isSelected && 'opacity-40'
+                              )}
+                            >
+                              {n === 0 ? 'Hoje' : `${n} dias`}
+                            </button>
+                          )
+                        })}
                         <button
                           type="button"
                           onClick={() => {
@@ -348,7 +363,10 @@ export function PaymentConditionSection({
                             setFirstDaysChosen(false)
                             setDatePickerSelected(false)
                           }}
-                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-200 bg-background text-foreground border-border"
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 flex items-center gap-1.5 bg-background text-foreground border-border",
+                            firstDaysChosen && 'opacity-40'
+                          )}
                         >
                           <CalendarDays className="h-3.5 w-3.5" />
                           Data
@@ -360,7 +378,10 @@ export function PaymentConditionSection({
                             setShowDatePicker(false)
                             setFirstDaysChosen(true)
                           }}
-                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border animate-in fade-in zoom-in-95 duration-200"
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
+                            firstDaysChosen && 'opacity-40'
+                          )}
                         >
                           Outro
                         </button>
@@ -428,38 +449,48 @@ export function PaymentConditionSection({
                 )}>
                   <div className="overflow-hidden">
                     <div className="space-y-3 py-[30px]">
-                      <Label className="text-base font-medium text-center block mb-4">
+                      <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
                         Quantas parcelas?
                       </Label>
                       <div className="flex flex-wrap justify-center gap-2">
                         {!customInstallments ? (
                           <>
-                            {[1, 2, 3, 4, 5, 6].map((n) => (
-                              <button
-                                key={n}
-                                type="button"
-                                onClick={() => {
-                                  setCustomInstallments(false)
-                                  setInstallmentsChosen(true)
-                                  onInstallmentsChange(n)
-                                }}
-                                className={cn(
-                                  'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all',
-                                  !customInstallments && installmentsChosen && safeInstallments === n
-                                    ? 'bg-foreground text-background'
-                                    : 'bg-background text-foreground border-border'
-                                )}
-                              >
-                                {n === 1 ? 'À vista' : n}
-                              </button>
-                            ))}
+                            {[1, 2, 3, 4, 5, 6].map((n) => {
+                              const isSelected = !customInstallments && installmentsChosen && safeInstallments === n
+                              return (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomInstallments(false)
+                                    setInstallmentsChosen(true)
+                                    setChosenInstallmentCount(n)
+                                    onInstallmentsChange(n)
+                                    if (n === 1) autoCollapse()
+                                  }}
+                                  className={cn(
+                                    'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all duration-200',
+                                    isSelected
+                                      ? 'bg-foreground text-background'
+                                      : 'bg-background text-foreground border-border',
+                                    installmentsChosen && !isSelected && 'opacity-40'
+                                  )}
+                                >
+                                  {n === 1 ? 'À vista' : n}
+                                </button>
+                              )
+                            })}
                             <button
                               type="button"
                               onClick={() => {
                                 setCustomInstallments(true)
                                 setInstallmentsChosen(true)
+                                setChosenInstallmentCount(safeInstallments > 1 ? safeInstallments : 2)
                               }}
-                              className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
+                              className={cn(
+                                "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
+                                installmentsChosen && 'opacity-40'
+                              )}
                             >
                               Outro
                             </button>
@@ -490,63 +521,80 @@ export function PaymentConditionSection({
                 </div>
 
                 {/* Step 3: Intervalo entre parcelas? — only when >1 installments */}
-                {installmentsChosen && isMultipleInstallments && (
-                  <div className="space-y-3 py-3 animate-in fade-in duration-300">
-                    <Label className="text-base font-medium text-center block mb-4">
-                      Intervalo entre parcelas?
-                    </Label>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {!customInterval ? (
-                        <>
-                          {[15, 30, 45].map((n) => (
+                <div className={cn(
+                  "grid transition-all duration-300 ease-in-out",
+                  showIntervalStep ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                )}>
+                  <div className="overflow-hidden">
+                    <div className="space-y-3 py-3">
+                      <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
+                        Intervalo entre parcelas?
+                      </Label>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {!customInterval ? (
+                          <>
+                            {[15, 30, 45].map((n) => {
+                              const isSelected = intervalChosen && Number(interval) === n
+                              return (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => {
+                                    setCustomInterval(false)
+                                    setIntervalChosen(true)
+                                    onIntervalChange(n)
+                                    autoCollapse()
+                                  }}
+                                  className={cn(
+                                    'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200',
+                                    isSelected
+                                      ? 'bg-foreground text-background'
+                                      : 'bg-background text-foreground border-border',
+                                    intervalChosen && !isSelected && 'opacity-40'
+                                  )}
+                                >
+                                  {n} dias
+                                </button>
+                              )
+                            })}
                             <button
-                              key={n}
                               type="button"
                               onClick={() => {
-                                setCustomInterval(false)
-                                onIntervalChange(n)
+                                setCustomInterval(true)
+                                setIntervalChosen(true)
                               }}
                               className={cn(
-                                'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all',
-                                Number(interval) === n
-                                  ? 'bg-foreground text-background'
-                                  : 'bg-background text-foreground border-border'
+                                "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
+                                intervalChosen && 'opacity-40'
                               )}
                             >
-                              {n} dias
+                              Outro
                             </button>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={() => setCustomInterval(true)}
-                            className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
-                          >
-                            Outro
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <NumberStepper
-                            value={getSafeNumber(interval, 1)}
-                            onChange={onIntervalChange}
-                            min={1}
-                            step={1}
-                            suffix="dias"
-                            size="sm"
-                            className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setCustomInterval(false)}
-                            className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
-                          >
-                            ...
-                          </button>
-                        </>
-                      )}
+                          </>
+                        ) : (
+                          <>
+                            <NumberStepper
+                              value={getSafeNumber(interval, 1)}
+                              onChange={onIntervalChange}
+                              min={1}
+                              step={1}
+                              suffix="dias"
+                              size="sm"
+                              className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setCustomInterval(false)}
+                              className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
+                            >
+                              ...
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
