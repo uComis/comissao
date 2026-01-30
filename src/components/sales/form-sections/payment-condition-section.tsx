@@ -238,6 +238,12 @@ export function PaymentConditionSection({
                     placeholder="ex: 0 (à vista) ou 30/60/90"
                     value={quickCondition}
                     onChange={(e) => onQuickConditionChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        ;(e.target as HTMLInputElement).blur()
+                      }
+                    }}
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => {
                       setTimeout(() => {
@@ -695,7 +701,7 @@ export function PaymentConditionSection({
                           <span className="text-sm font-medium text-foreground">
                             {formatDate(date)}
                           </span>
-                          <span className="text-[10px] text-muted-foreground/50 italic">
+                          <span className="text-[10px] text-muted-foreground/50">
                             {(() => {
                               const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
                               const diffMs = date.getTime() - saleDateObj.getTime()
