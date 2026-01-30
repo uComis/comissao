@@ -12,8 +12,6 @@ import { NumberStepper } from '@/components/ui/number-stepper'
 import { cn } from '@/lib/utils'
 
 type PaymentConditionSectionProps = {
-  initialPaymentMode?: 'simples' | 'rapido'
-  onPaymentModeChange?: (mode: 'simples' | 'rapido') => void
   saleDate: string
   firstInstallmentDate: string
   installments: string | number
@@ -63,8 +61,6 @@ const calculateDateFromDays = (days: number, baseDateStr: string) => {
 }
 
 export function PaymentConditionSection({
-  initialPaymentMode,
-  onPaymentModeChange,
   saleDate,
   firstInstallmentDate,
   installments,
@@ -96,7 +92,7 @@ export function PaymentConditionSection({
     setExpandedPreview(false)
   }, [installments])
 
-  const [parceladoMode, setParceladoMode] = useState<'simples' | 'rapido'>(initialPaymentMode || 'simples')
+  const [showManualMode, setShowManualMode] = useState(false)
   const [customInstallments, setCustomInstallments] = useState(false)
   const [customInterval, setCustomInterval] = useState(false)
   const [customFirstDays, setCustomFirstDays] = useState(false)
@@ -151,62 +147,8 @@ export function PaymentConditionSection({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Pagamento</CardTitle>
-        <div className="flex gap-1 bg-muted p-0.5 rounded-full">
-          <button
-            type="button"
-            onClick={() => {
-              setParceladoMode('simples')
-              onPaymentModeChange?.('simples')
-
-              // Sync UI state from current data
-              const currentFirstDays = getSafeNumber(firstInstallmentDays, 0)
-              const currentInstallments = getSafeNumber(installments, 1)
-              const currentInterval = getSafeNumber(interval, 30)
-
-              const hasData = currentInstallments > 1 || currentFirstDays > 0
-
-              setFirstDaysChosen(hasData)
-              setInstallmentsChosen(hasData)
-              setDatePickerSelected(false)
-              setShowDatePicker(false)
-
-              // Determine if preset buttons match or need "Outro"
-              const firstDaysPresets = [0, 15, 30, 45]
-              setCustomFirstDays(hasData && !firstDaysPresets.includes(currentFirstDays))
-
-              const installmentsPresets = [1, 2, 3, 4, 5, 6]
-              setCustomInstallments(hasData && !installmentsPresets.includes(currentInstallments))
-
-              const intervalPresets = [15, 30, 45]
-              setCustomInterval(hasData && currentInstallments > 1 && !intervalPresets.includes(currentInterval))
-            }}
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-all',
-              parceladoMode === 'simples'
-                ? 'bg-background shadow-sm text-foreground ring-1 ring-border'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Simples
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setParceladoMode('rapido')
-              onPaymentModeChange?.('rapido')
-            }}
-            className={cn(
-              'px-3 py-1 text-xs font-medium rounded-full transition-all',
-              parceladoMode === 'rapido'
-                ? 'bg-background shadow-sm text-foreground ring-1 ring-border'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            Rápido
-          </button>
-        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex flex-col items-center space-y-2 py-4">
@@ -229,139 +171,147 @@ export function PaymentConditionSection({
         </div>
 
         <div className="max-w-2xl mx-auto space-y-6">
-          <div key={parceladoMode} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {parceladoMode === 'rapido' ? (
-            <>
-              {/* Modo Rápido: Input com Autocomplete */}
-              <div className="space-y-3">
-                <Label
-                  htmlFor="quick_condition"
-                  className="text-sm font-medium text-center block text-primary"
-                >
-                  Digite os prazos
-                </Label>
-                <div className="relative max-w-md mx-auto">
-                  <Input
-                    id="quick_condition"
-                    placeholder="ex: 0 (à vista) ou 30/60/90"
-                    value={quickCondition}
-                    onChange={(e) => onQuickConditionChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+          {/* Modo Rápido: Input com Autocomplete */}
+          <div className="space-y-3">
+            <Label
+              htmlFor="quick_condition"
+              className="text-sm font-medium text-center block text-primary"
+            >
+              Prazos de pagamento
+            </Label>
+            <div className="relative max-w-md mx-auto">
+              <Input
+                id="quick_condition"
+                placeholder="ex: 0 (à vista) ou 30/60/90"
+                value={quickCondition}
+                onChange={(e) => onQuickConditionChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowSuggestions(false)
+                    onQuickConditionBlur()
+                  }, 150)
+                }}
+                className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
+                  irregularPatternWarning
+                    ? 'border-red-400 focus-visible:border-red-500'
+                    : 'border-primary/20 focus-visible:border-primary'
+                }`}
+              />
+
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                  {filteredSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                      onMouseDown={(e) => {
                         e.preventDefault()
-                        ;(e.target as HTMLInputElement).blur()
+                        onSelectSuggestion(suggestion.value)
+                        setShowSuggestions(false)
+                      }}
+                    >
+                      <span className="font-medium">{suggestion.label}</span>
+                      {suggestion.description && (
+                        <span className="text-xs text-muted-foreground">
+                          {suggestion.description}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {detectedPattern && !irregularPatternWarning && (
+              <div className="max-w-md mx-auto mt-3 flex items-center justify-center gap-3 animate-in fade-in duration-300">
+                <button
+                  type="button"
+                  className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  onClick={onPatternRemove}
+                  disabled={detectedPattern.count <= 1}
+                >
+                  <Minus className="h-4 w-4 text-muted-foreground" />
+                </button>
+                <span className="text-sm text-muted-foreground font-medium min-w-[140px] text-center">
+                  {detectedPattern.count}x de {detectedPattern.interval} em {detectedPattern.interval} dias
+                </span>
+                <button
+                  type="button"
+                  className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors"
+                  onClick={onPatternAdd}
+                >
+                  <Plus className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-4 pt-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 underline"
+                  >
+                    <CalendarDays className="h-3 w-3" />
+                    Escolher no calendário
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <CalendarComponent
+                    mode="single"
+                    selected={
+                      firstInstallmentDate
+                        ? new Date(firstInstallmentDate + 'T12:00:00')
+                        : undefined
+                    }
+                    onSelect={(date) => {
+                      if (date) {
+                        const dateStr = date.toISOString().split('T')[0]
+                        onFirstInstallmentDateChange(dateStr)
                       }
                     }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        setShowSuggestions(false)
-                        onQuickConditionBlur()
-                      }, 150)
+                    locale={ptBR}
+                    initialFocus
+                    captionLayout="dropdown"
+                    fromYear={1900}
+                    toYear={2100}
+                    disabled={(date) => {
+                      if (!saleDate) return false
+                      const saleDateObj = new Date(saleDate + 'T00:00:00')
+                      const compareDate = new Date(date)
+                      compareDate.setHours(0, 0, 0, 0)
+                      saleDateObj.setHours(0, 0, 0, 0)
+                      return compareDate < saleDateObj
                     }}
-                    className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm ${
-                      irregularPatternWarning
-                        ? 'border-red-400 focus-visible:border-red-500'
-                        : 'border-primary/20 focus-visible:border-primary'
-                    }`}
                   />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">·</span>
+              <button
+                type="button"
+                onClick={() => setShowManualMode(!showManualMode)}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Montar parcelas manualmente
+              </button>
+            </div>
+          </div>
 
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
-                      {filteredSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
-                          onMouseDown={(e) => {
-                            e.preventDefault()
-                            onSelectSuggestion(suggestion.value)
-                            setShowSuggestions(false)
-                          }}
-                        >
-                          <span className="font-medium">{suggestion.label}</span>
-                          {suggestion.description && (
-                            <span className="text-xs text-muted-foreground">
-                              {suggestion.description}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {detectedPattern && !irregularPatternWarning && (
-                  <div className="max-w-md mx-auto mt-3 flex items-center justify-center gap-3 animate-in fade-in duration-300">
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      onClick={onPatternRemove}
-                      disabled={detectedPattern.count <= 1}
-                    >
-                      <Minus className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <span className="text-sm text-muted-foreground font-medium min-w-[140px] text-center">
-                      {detectedPattern.count}x de {detectedPattern.interval} em {detectedPattern.interval} dias
-                    </span>
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors"
-                      onClick={onPatternAdd}
-                    >
-                      <Plus className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex justify-center pt-1">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 underline"
-                        >
-                          <CalendarDays className="h-3 w-3" />
-                          Escolher no calendário
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="center">
-                        <CalendarComponent
-                          mode="single"
-                          selected={
-                            firstInstallmentDate
-                              ? new Date(firstInstallmentDate + 'T12:00:00')
-                              : undefined
-                          }
-                          onSelect={(date) => {
-                            if (date) {
-                              const dateStr = date.toISOString().split('T')[0]
-                              onFirstInstallmentDateChange(dateStr)
-                            }
-                          }}
-                          locale={ptBR}
-                          initialFocus
-                          captionLayout="dropdown"
-                          fromYear={1900}
-                          toYear={2100}
-                          disabled={(date) => {
-                            if (!saleDate) return false
-                            const saleDateObj = new Date(saleDate + 'T00:00:00')
-                            const compareDate = new Date(date)
-                            compareDate.setHours(0, 0, 0, 0)
-                            saleDateObj.setHours(0, 0, 0, 0)
-                            return compareDate < saleDateObj
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Modo Simples: Progressive reveal sem stepper */}
-              <div className="space-y-2">
+          {/* Modo Manual (simples) — expandível */}
+          <div className={cn(
+            "grid transition-all duration-300 ease-in-out",
+            showManualMode ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}>
+            <div className="overflow-hidden">
+              <div className="space-y-2 pt-2">
                 {/* Step 1: Primeira parcela em quantos dias? */}
                 <div className="space-y-3 py-3">
                   <Label className="text-base font-medium text-center block mb-4">
@@ -598,8 +548,7 @@ export function PaymentConditionSection({
                   </div>
                 )}
               </div>
-            </>
-          )}
+            </div>
           </div>
 
           {/* Linha Separadora com Ícone de Conexão */}
