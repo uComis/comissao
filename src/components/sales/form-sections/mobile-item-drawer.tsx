@@ -7,12 +7,20 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { ProductSearchPopover } from './product-search-dialog'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { Product } from '@/types'
 
 type ValueEntry = {
@@ -325,43 +333,73 @@ export function MobileItemDrawer({
   onUpdateEntry,
   onDeleteEntry,
 }: MobileItemDrawerProps) {
+  const isMobile = useIsMobile()
+
   if (!entry) return null
 
   const isEditing = !!(entry.productName || entry.grossValue)
+  const title = isEditing ? 'Editar Valor' : 'Valor'
+  const description = informItems ? 'Informe os dados do item vendido.' : 'Informe o valor e seus percentuais.'
+
+  const content = (
+    <ItemFormContent
+      entry={entry}
+      informItems={informItems}
+      supplierId={supplierId}
+      products={products}
+      onProductSelect={onProductSelect}
+      onEditProduct={onEditProduct}
+      onUpdateEntry={onUpdateEntry}
+    />
+  )
+
+  const footer = (
+    <ItemFormFooter
+      entry={entry}
+      isNew={!isEditing}
+      onDeleteEntry={onDeleteEntry}
+      onOpenChange={onOpenChange}
+      isDialog={!isMobile}
+    />
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="p-0 flex flex-col overflow-hidden max-h-[85vh]">
+          <div className="mx-auto w-full max-w-lg flex flex-col flex-1 overflow-hidden">
+            <DrawerHeader className="p-6 pb-2">
+              <DrawerTitle>{title}</DrawerTitle>
+              <DrawerDescription>{description}</DrawerDescription>
+            </DrawerHeader>
+
+            <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
+              {content}
+            </div>
+
+            <div className="p-6 border-t bg-background">
+              {footer}
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="p-0 flex flex-col overflow-hidden max-h-[85vh]">
-        <div className="mx-auto w-full max-w-lg flex flex-col flex-1 overflow-hidden">
-          <DrawerHeader className="p-6 pb-2">
-            <DrawerTitle>{isEditing ? 'Editar Valor' : 'Valor'}</DrawerTitle>
-            <DrawerDescription>
-              {informItems ? 'Informe os dados do item vendido.' : 'Informe o valor e seus percentuais.'}
-            </DrawerDescription>
-          </DrawerHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
-            <ItemFormContent
-              entry={entry}
-              informItems={informItems}
-              supplierId={supplierId}
-              products={products}
-              onProductSelect={onProductSelect}
-              onEditProduct={onEditProduct}
-              onUpdateEntry={onUpdateEntry}
-            />
-          </div>
-
-          <div className="p-6 border-t bg-background">
-            <ItemFormFooter
-              entry={entry}
-              isNew={!isEditing}
-              onDeleteEntry={onDeleteEntry}
-              onOpenChange={onOpenChange}
-            />
-          </div>
+        <div className="space-y-6 py-2">
+          {content}
         </div>
-      </DrawerContent>
-    </Drawer>
+
+        {footer}
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -471,67 +471,71 @@ export function PaymentConditionSection({
                   </div>
                 </div>
 
-                {/* Step 2: Quantas parcelas? — always visible, opaque when pending */}
+                {/* Step 2: Quantas parcelas? — animated reveal */}
                 <div className={cn(
-                  'space-y-3 py-[30px] transition-all duration-300',
-                  showInstallmentsStep ? 'opacity-100' : 'opacity-30 pointer-events-none'
+                  "grid transition-all duration-300 ease-in-out",
+                  showInstallmentsStep ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                 )}>
-                  <Label className="text-base font-medium text-center block mb-4">
-                    Quantas parcelas?
-                  </Label>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {!customInstallments ? (
-                      <>
-                        {[1, 2, 3, 4, 5, 6].map((n) => (
-                          <button
-                            key={n}
-                            type="button"
-                            onClick={() => {
-                              setCustomInstallments(false)
-                              setInstallmentsChosen(true)
-                              onInstallmentsChange(n)
-                            }}
-                            className={cn(
-                              'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all',
-                              !customInstallments && installmentsChosen && safeInstallments === n
-                                ? 'bg-foreground text-background'
-                                : 'bg-background text-foreground border-border'
-                            )}
-                          >
-                            {n === 1 ? 'À vista' : n}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomInstallments(true)
-                            setInstallmentsChosen(true)
-                          }}
-                          className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
-                        >
-                          Outro
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <NumberStepper
-                          value={safeInstallments}
-                          onChange={onInstallmentsChange}
-                          min={1}
-                          max={24}
-                          step={1}
-                          size="sm"
-                          className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setCustomInstallments(false)}
-                          className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
-                        >
-                          ...
-                        </button>
-                      </>
-                    )}
+                  <div className="overflow-hidden">
+                    <div className="space-y-3 py-[30px]">
+                      <Label className="text-base font-medium text-center block mb-4">
+                        Quantas parcelas?
+                      </Label>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {!customInstallments ? (
+                          <>
+                            {[1, 2, 3, 4, 5, 6].map((n) => (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => {
+                                  setCustomInstallments(false)
+                                  setInstallmentsChosen(true)
+                                  onInstallmentsChange(n)
+                                }}
+                                className={cn(
+                                  'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all',
+                                  !customInstallments && installmentsChosen && safeInstallments === n
+                                    ? 'bg-foreground text-background'
+                                    : 'bg-background text-foreground border-border'
+                                )}
+                              >
+                                {n === 1 ? 'À vista' : n}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomInstallments(true)
+                                setInstallmentsChosen(true)
+                              }}
+                              className="rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all bg-background text-foreground border-border"
+                            >
+                              Outro
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <NumberStepper
+                              value={safeInstallments}
+                              onChange={onInstallmentsChange}
+                              min={1}
+                              max={24}
+                              step={1}
+                              size="sm"
+                              className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setCustomInstallments(false)}
+                              className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
+                            >
+                              ...
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

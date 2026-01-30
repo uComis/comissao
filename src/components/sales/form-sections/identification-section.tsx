@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
 import { ClientPicker } from '@/components/clients'
 import { SupplierPicker, SupplierDialog } from '@/components/suppliers'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type IdentificationSectionProps = {
@@ -44,23 +43,11 @@ export function IdentificationSection({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Card Pasta */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div>
-            <CardTitle>Pasta</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Fornecedor</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAddDialogOpen(true)}
-            className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
-        </CardHeader>
-        <div className="px-5 pt-0 pb-4 space-y-3">
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Pasta */}
+        <div className="space-y-1">
+          <Label className="text-[11px] text-muted-foreground/70 ml-1">Pasta</Label>
           <SupplierPicker
             suppliers={suppliers}
             value={supplierId}
@@ -70,63 +57,48 @@ export function IdentificationSection({
             placeholder="Selecione a pasta"
             className="w-full"
           />
-          {supplierId && (
-            <div className="flex items-center justify-end gap-1.5">
-              <Label htmlFor="default-supplier" className="text-[11px] text-muted-foreground/70 cursor-pointer">
-                Pasta padrão
-              </Label>
-              <Switch
-                id="default-supplier"
-                checked={isDefaultSupplier}
-                onCheckedChange={onDefaultSupplierChange}
-                className="scale-75"
-              />
+          <div className={cn(
+            "grid transition-all duration-300 ease-in-out",
+            supplierId ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}>
+            <div className="overflow-hidden">
+              <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                <Label htmlFor="default-supplier" className="text-[11px] text-muted-foreground/70 cursor-pointer">
+                  Usar sempre esta pasta
+                </Label>
+                <Switch
+                  id="default-supplier"
+                  checked={isDefaultSupplier}
+                  onCheckedChange={onDefaultSupplierChange}
+                  className="scale-75"
+                />
+              </div>
             </div>
-          )}
+          </div>
         </div>
-      </Card>
+
+        {/* Cliente */}
+        <div className={cn(
+          "space-y-1 transition-all duration-300",
+          showClient ? "opacity-100" : "opacity-30 pointer-events-none"
+        )}>
+          <Label className="text-[11px] text-muted-foreground/70 ml-1">Cliente</Label>
+          <ClientPicker
+            value={clientId}
+            onChange={onClientChange}
+            onAddClick={() => onClientAddClick()}
+            placeholder="Selecionar cliente..."
+            refreshTrigger={clientRefreshTrigger}
+            className="w-full"
+          />
+        </div>
+      </div>
 
       <SupplierDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onSuccess={handleAddSuccess}
       />
-
-      {/* Card Cliente */}
-      <div
-        className={
-          showClient
-            ? 'animate-[activate-pop_400ms_ease-out_forwards]'
-            : 'opacity-40 scale-[0.98] pointer-events-none transition-all duration-300'
-        }
-        style={{ transformOrigin: 'top center' }}
-      >
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div>
-              <CardTitle>Cliente</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Para quem foi a venda</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onClientAddClick()}
-              className="p-1 rounded-md text-muted-foreground/50 hover:text-foreground hover:bg-foreground/10 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          </CardHeader>
-          <div className="px-5 pt-0 pb-4">
-            <ClientPicker
-              value={clientId}
-              onChange={onClientChange}
-              onAddClick={() => onClientAddClick()}
-              placeholder="Selecionar cliente..."
-              refreshTrigger={clientRefreshTrigger}
-              className="w-full"
-            />
-          </div>
-        </Card>
-      </div>
-    </div>
+    </>
   )
 }

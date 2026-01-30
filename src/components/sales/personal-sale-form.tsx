@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { InstallmentsSheet } from './installments-sheet'
@@ -14,6 +14,7 @@ import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers
 import type { Product, PersonalClient, CommissionRule } from '@/types'
 import type { PersonalSaleWithItems } from '@/types/personal-sale'
 import { usePreferences } from '@/hooks/use-preferences'
+import { cn } from '@/lib/utils'
 import {
   IdentificationSection,
   ValuesSection,
@@ -88,6 +89,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [saving, setSaving] = useState(false)
   const [informItems, setInformItems] = useState(preferences.saleInformItems)
   const isEdit = mode === 'edit' && !!sale
+  const formBodyRef = useRef<HTMLDivElement>(null)
 
   // Mobile Drawer State
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
@@ -434,6 +436,15 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   function handleClientChange(id: string | null, name: string) {
     setClientId(id)
     setClientName(name)
+    if (id && !isEdit) {
+      setTimeout(() => {
+        const el = formBodyRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        const offset = rect.top + window.scrollY - 20
+        window.scrollTo({ top: offset, behavior: 'smooth' })
+      }, 350)
+    }
   }
 
   function handleClientCreated(client: PersonalClient) {
@@ -699,13 +710,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           />
 
           <div
-            className={
+            ref={formBodyRef}
+            className={cn(
+              "grid transition-all duration-500 ease-in-out",
               (isEdit || !!clientId)
-                ? 'space-y-6 animate-[activate-pop_400ms_ease-out_forwards]'
-                : 'space-y-6 opacity-40 scale-[0.98] pointer-events-none transition-all duration-300'
-            }
-            style={{ transformOrigin: 'top center' }}
+                ? "grid-rows-[1fr] opacity-100"
+                : "grid-rows-[0fr] opacity-0"
+            )}
           >
+          <div className="overflow-hidden">
+          <div className="space-y-6">
               <ValuesSection
                 informItems={informItems}
                 supplierId={supplierId}
@@ -792,6 +806,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
                 </Button>
               </div>
+          </div>
+          </div>
           </div>
         </div>
       </form>
