@@ -629,7 +629,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       setInstallments(1)
       setFirstInstallmentDays(0)
       setFirstInstallmentDate(saleDate)
-      setInterval(30)
+      setInterval('')
       setHasChangedSteppers(true)
       setTimeout(() => setIsUpdatingFromQuick(false), 100)
       return
@@ -668,8 +668,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
 
     const safeInstallments = getSafeNumber(installments, 1)
-    const safeInterval = getSafeNumber(interval, 30)
+    const safeInterval = getSafeNumber(interval, 0)
     const safeFirstDays = getSafeNumber(firstInstallmentDays, safeInstallments === 1 ? 0 : 30)
+
+    // Don't generate condition if interval not yet chosen for multi-installment
+    if (safeInstallments > 1 && safeInterval <= 0) {
+      return
+    }
 
     const parts = []
     for (let i = 0; i < safeInstallments; i++) {
@@ -797,7 +802,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 onClearCondition={() => {
                   setQuickCondition('')
                   setInstallments(1)
-                  setInterval(30)
+                  setInterval('')
                   setFirstInstallmentDays(0)
                   setFirstInstallmentDate(saleDate)
                   setIrregularPatternWarning(null)
