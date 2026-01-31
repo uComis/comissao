@@ -237,9 +237,6 @@ export function SupplierPicker({
                     </ItemMedia>
                     <ItemContent>
                       <ItemTitle>{supplier.name}</ItemTitle>
-                      {supplier.cnpj && (
-                        <ItemDescription>CNPJ: {supplier.cnpj}</ItemDescription>
-                      )}
                     </ItemContent>
                     <ItemActions>
                       <Button
@@ -444,11 +441,6 @@ export function SupplierPicker({
                       </span>
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className="truncate font-medium">{supplier.name}</span>
-                        {supplier.cnpj && (
-                          <span className="text-xs text-muted-foreground">
-                            CNPJ: {supplier.cnpj}
-                          </span>
-                        )}
                       </div>
                       <button
                         type="button"

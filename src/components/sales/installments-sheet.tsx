@@ -2,11 +2,12 @@
 
 import { useMemo } from 'react'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
 import {
   Table,
   TableBody,
@@ -88,13 +89,14 @@ export function InstallmentsSheet({
   const hasCommission = commissionPercentage !== null && commissionPercentage > 0
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg p-6">
-        <SheetHeader className="mb-6">
-          <SheetTitle>Detalhamento das Parcelas</SheetTitle>
-        </SheetHeader>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Detalhamento das Parcelas</DrawerTitle>
+          <DrawerDescription className="sr-only">Visualize o detalhamento das parcelas</DrawerDescription>
+        </DrawerHeader>
 
-        <div className="overflow-auto max-h-[calc(100vh-160px)]">
+        <div className="px-4 pb-6 overflow-auto max-h-[60vh]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -141,8 +143,7 @@ export function InstallmentsSheet({
             </TableFooter>
           </Table>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   )
 }
-

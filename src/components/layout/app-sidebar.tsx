@@ -94,6 +94,7 @@ export function AppSidebar() {
   const { profile } = useUser()
   const { userMode } = useUserMode() // ✅ Usa contexto global (sem query)
   const { resolvedTheme } = useTheme()
+  const { toggleSidebar } = useSidebar()
   const [mounted, setMounted] = useState(false)
   const [debugMode, setDebugMode] = useState(false)
   const isSuperAdmin = profile?.is_super_admin === true
@@ -110,8 +111,6 @@ export function AppSidebar() {
   const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
 
   if (!mounted) return null
-
-  const { toggleSidebar } = useSidebar()
 
   return (
     <Sidebar collapsible="offcanvas">

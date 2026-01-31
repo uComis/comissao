@@ -35,6 +35,7 @@ type PaymentConditionSectionProps = {
   onPatternAdd: () => void
   onPatternRemove: () => void
   onSelectSuggestion: (value: string) => void
+  onViewInstallments?: () => void
 }
 
 const suggestions = [
@@ -61,6 +62,15 @@ function formatDateShort(dateStr: string): string {
   const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
   const year = date.getFullYear()
   return `${day} de ${month.charAt(0).toUpperCase() + month.slice(1)}. ${year}`
+}
+
+function summarizeSchedule(raw: string): string {
+  const parts = raw.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+  if (parts.length <= 3) return raw
+  const interval = parts[1] - parts[0]
+  const isRegular = interval > 0 && parts.every((v, i) => i === 0 || v - parts[i - 1] === interval)
+  if (!isRegular) return raw
+  return `${parts[0]}/${parts[1]}/${parts[2]}…${parts[parts.length - 1]} (${parts.length}x)`
 }
 
 function FormulaSeparator() {
@@ -175,7 +185,7 @@ function PaymentFormContent({
           <div className="relative">
             <Input
               placeholder="Ex: 30/60/90"
-              value={quickCondition}
+              value={isInputFocused ? quickCondition : summarizeSchedule(quickCondition)}
               onChange={(e) => onQuickConditionChange(e.target.value)}
               onBlur={() => {
                 setTimeout(() => {
@@ -268,7 +278,8 @@ export function PaymentConditionSection(props: PaymentConditionSectionProps) {
 
   const firstDate = props.firstInstallmentDate || calculateDateFromDays(safeFirstDays, props.saleDate)
 
-  const schedule = props.quickCondition || `${safeFirstDays}/${Array.from({ length: safeInst - 1 }, (_, i) => safeFirstDays + (i + 1) * safeInterval).join('/')}`
+  const scheduleRaw = props.quickCondition || `${safeFirstDays}/${Array.from({ length: safeInst - 1 }, (_, i) => safeFirstDays + (i + 1) * safeInterval).join('/')}`
+  const schedule = summarizeSchedule(scheduleRaw)
 
   const summaryLabel = isVista ? 'À vista' : `Parcelado ${safeInst}x`
 
@@ -293,7 +304,7 @@ export function PaymentConditionSection(props: PaymentConditionSectionProps) {
       <div className="space-y-4">
         <h2 className="text-lg font-bold tracking-tight">Pagamento</h2>
         {hasConfig && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-2">
             <div className="flex items-center gap-4">
               <Banknote className="h-5 w-5 text-muted-foreground shrink-0" />
               <div className="flex flex-col">
@@ -328,12 +339,34 @@ export function PaymentConditionSection(props: PaymentConditionSectionProps) {
             )}
           </div>
         )}
-        <DashedActionButton
-          icon={<PencilIcon className="h-4 w-4" />}
-          onClick={() => setOpen(true)}
-        >
-          {hasConfig ? 'Editar pagamento' : 'Configurar pagamento'}
-        </DashedActionButton>
+        {hasConfig && !isVista ? (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 h-12"
+              onClick={() => setOpen(true)}
+            >
+              <PencilIcon className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 h-12"
+              onClick={() => props.onViewInstallments?.()}
+            >
+              Ver parcelas
+            </Button>
+          </div>
+        ) : (
+          <DashedActionButton
+            icon={<PencilIcon className="h-4 w-4" />}
+            onClick={() => setOpen(true)}
+          >
+            {hasConfig ? 'Editar pagamento' : 'Configurar pagamento'}
+          </DashedActionButton>
+        )}
       </div>
 
       {/* Modal (desktop) / Drawer (mobile) */}

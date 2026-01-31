@@ -262,11 +262,6 @@ export function ClientPicker({
                   </ItemMedia>
                   <ItemContent>
                     <ItemTitle>{client.name}</ItemTitle>
-                    {(client.cpf || client.cnpj) && (
-                      <ItemDescription>
-                        {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
-                      </ItemDescription>
-                    )}
                   </ItemContent>
                   <ItemActions>
                     <Button
@@ -477,11 +472,6 @@ export function ClientPicker({
                       </span>
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className="truncate font-medium">{client.name}</span>
-                        {(client.cpf || client.cnpj) && (
-                          <span className="text-xs text-muted-foreground">
-                            {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
-                          </span>
-                        )}
                       </div>
                       <button
                         type="button"

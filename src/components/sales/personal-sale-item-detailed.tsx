@@ -80,7 +80,7 @@ export function PersonalSaleItemDetailed({
 
         {/* Right: Total value + Percentages horizontal below */}
         <div className="flex flex-col items-end gap-1">
-          <span className="text-xl font-bold text-foreground whitespace-nowrap">
+          <span className="text-base font-bold text-foreground whitespace-nowrap">
             {new Intl.NumberFormat('pt-BR', {
               style: 'currency',
               currency: 'BRL',

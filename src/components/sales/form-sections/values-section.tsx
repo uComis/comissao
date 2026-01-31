@@ -81,7 +81,7 @@ export function ValuesSection({
   }, [valueEntries, informItems])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="flex flex-col w-full gap-2">
@@ -115,7 +115,7 @@ export function ValuesSection({
 
             <DashedActionButton
               icon={<Plus className="h-4 w-4" />}
-              className="mt-4"
+              className="mt-1"
               onClick={() => {
                 if (onAddValueEntryAndEdit) {
                   onAddValueEntryAndEdit()
@@ -139,31 +139,7 @@ export function ValuesSection({
           : "grid-rows-[0fr] opacity-0"
       )}>
         <div className="overflow-hidden">
-          <div className="flex flex-col gap-1 pt-4">
-            {/* Linha Separadora com Ícone de Conexão */}
-            <div className="relative w-full py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center">
-                <div className="bg-background px-3">
-                  <svg
-                    className="h-5 w-5 text-muted-foreground"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
+          <div className="flex flex-col gap-1 pt-0">
             {/* Grid de Totais Refinado */}
             <div className="flex flex-col w-full pt-1">
               <div className="grid grid-cols-2 relative py-4 border-b border-dashed border-border/60">

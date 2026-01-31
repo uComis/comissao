@@ -110,11 +110,6 @@ export function ClientCombobox({
                   />
                   <div className="flex flex-col">
                     <span>{client.name}</span>
-                    {(client.cpf || client.cnpj) && (
-                      <span className="text-xs text-muted-foreground">
-                        {client.cpf ? `CPF: ${client.cpf}` : `CNPJ: ${client.cnpj}`}
-                      </span>
-                    )}
                   </div>
                 </CommandItem>
               ))}

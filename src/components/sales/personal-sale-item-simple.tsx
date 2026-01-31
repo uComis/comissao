@@ -62,39 +62,21 @@ export function PersonalSaleItemSimple({
           onClick()
         }}
       >
-        {/* Desktop: row — value left, percentages right */}
-        {/* Mobile: stacked — value centered, percentages below */}
-        <div className="flex flex-col items-center lg:flex-row lg:items-center lg:justify-between gap-1.5">
-          <span className="text-2xl font-bold text-foreground">
+        <div className="flex items-center justify-between">
+          <span className="text-base font-bold text-foreground">
             {new Intl.NumberFormat('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             }).format(entryTotal)}
           </span>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="hidden lg:inline text-xs text-muted-foreground/50 font-medium">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(taxValue)}
-              </span>
-              <span className="text-sm font-bold text-orange-600">
-                {entry.taxRate || '0'}%
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="hidden lg:inline text-xs text-muted-foreground/50 font-medium">
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(commissionValue)}
-              </span>
-              <span className="text-sm font-bold text-green-600">
-                {entry.commissionRate || '0'}%
-              </span>
-            </div>
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs font-bold text-orange-600">
+              {entry.taxRate || '0'}%
+            </span>
+            <span className="text-xs font-bold text-green-600">
+              {entry.commissionRate || '0'}%
+            </span>
           </div>
         </div>
       </div>

@@ -102,7 +102,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const initialPayment = parsePaymentCondition(sale?.payment_condition ?? null)
 
-  const [supplierId, setSupplierId] = useState(sale?.supplier_id || preferences.defaultSupplierId || '')
+  const [supplierId, setSupplierId] = useState(sale?.supplier_id || '')
   const [clientId, setClientId] = useState<string | null>(sale?.client_id || null)
   const [clientName, setClientName] = useState(sale?.client_name || '')
   const today = new Date().toISOString().split('T')[0]
@@ -170,6 +170,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
+
+  // Apply default supplier preference after mount to avoid hydration mismatch
+  useEffect(() => {
+    if (!sale?.supplier_id && preferences.defaultSupplierId && !supplierId) {
+      setSupplierId(preferences.defaultSupplierId)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedProducts = supplierId ? productsBySupplier[supplierId] || [] : []
 
@@ -573,11 +580,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               </div>
               <div ref={formBodyRef}>
                 <div>
-                  <div className="divide-y divide-border/40">
+                  <div>
                     <div className="p-6 space-y-4">
                       <div className="flex items-center justify-between">
                         <h2 className="text-lg font-bold tracking-tight">Valores</h2>
-                        <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+                        <div className="flex items-center space-x-2">
                           <label htmlFor="inform-items-switch" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
                           <Switch id="inform-items-switch" checked={informItems} onCheckedChange={(checked) => {
                             if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
@@ -634,6 +641,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         onQuickConditionBlur={handleQuickConditionBlur}
                         onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                         onSelectSuggestion={handleSelectSuggestion}
+                        onViewInstallments={() => setInstallmentsSheetOpen(true)}
                       />
                     </div>
                     <div className="p-6">
