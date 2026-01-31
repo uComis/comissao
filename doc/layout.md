@@ -2,30 +2,83 @@
 
 Documentação dos componentes padronizados de estrutura de página.
 
+## Estrutura Geral do Layout
+
+O layout do dashboard (`src/app/(dashboard)/layout.tsx`) tem duas variações responsivas:
+
+```
+Desktop (md+):
+┌──────────┬─────────────────────────────────────────┐
+│          │  [≡] Título          [✨] [Ações]       │ ← LayoutPageHeader (sticky)
+│ Sidebar  ├─────────────────────────────────────────┤
+│          │                                         │
+│          │            Conteúdo                     │
+│          │                                         │
+└──────────┴─────────────────────────────────────────┘
+
+Mobile:
+┌─────────────────────────────────────────┐
+│  Logo / ← Título     [✨] [Ações] [👤] │ ← Header (sticky, unificado)
+├─────────────────────────────────────────┤
+│                                         │
+│            Conteúdo                     │
+│                                         │
+├─────────────────────────────────────────┤
+│  🏠  📊  💰  📋  ☰                     │ ← BottomNav (fixed)
+└─────────────────────────────────────────┘
+```
+
+### Hierarquia de providers
+
+```
+CurrentUserProvider → AiChatProvider → SidebarProvider → PageHeaderProvider
+```
+
+---
+
 ## PageHeader (Context-based)
 
-O cabeçalho de página é renderizado **uma única vez no layout** (`LayoutPageHeader`). Cada página define seu título/ações via hooks de contexto.
+O cabeçalho de página é gerenciado via contexto. **Desktop** renderiza `LayoutPageHeader`, **mobile** renderiza `Header`. Ambos leem do mesmo contexto.
 
 ### Arquitetura
 
 | Arquivo | Responsabilidade |
 |---------|-----------------|
-| `src/components/layout/page-header-context.tsx` | `PageHeaderProvider`, `useSetPageHeader`, `useHeaderActions` |
-| `src/components/layout/page-header.tsx` | `LayoutPageHeader` — lê do context e renderiza |
-| `src/lib/route-config.ts` | Mapa estático rota → título/descrição (fallback) |
+| `src/components/layout/page-header-context.tsx` | `PageHeaderProvider`, `useSetPageHeader`, `useHeaderActions`, `usePageHeader`, `usePageHeaderActions` |
+| `src/components/layout/page-header.tsx` | `LayoutPageHeader` — header desktop (título, ações, botão IA) |
+| `src/components/layout/header.tsx` | `Header` — header mobile unificado (logo/título, ações, IA, avatar) |
+| `src/components/layout/bottom-nav.tsx` | `BottomNav` — navegação mobile (ou barra de ações em taskMode) |
+| `src/lib/route-config.ts` | Mapa estático rota → título/backHref (fallback) |
 | `src/app/(dashboard)/route-page-header.tsx` | Aplica fallback do route-config automaticamente |
+
+### Estado do contexto
+
+```ts
+type PageHeaderState = {
+  title: string
+  backHref?: string
+  taskMode?: boolean  // modo formulário — header mínimo + bottom bar de ações
+}
+```
+
+> **Nota:** O campo `description` foi removido. Headers exibem apenas título.
 
 ### Como funciona
 
-1. O **layout** envolve children com `<PageHeaderProvider>` e renderiza `<LayoutPageHeader />`
-2. O `<RoutePageHeader />` aplica título/descrição do `route-config.ts` como fallback
+1. O **layout** envolve children com `<PageHeaderProvider>`
+2. O `<RoutePageHeader />` aplica título do `route-config.ts` como fallback
 3. Cada **página** pode sobrescrever via hooks:
-   - `useSetPageHeader({ title, description?, backHref? })` — define título
+   - `useSetPageHeader({ title, backHref?, taskMode? })` — define título e comportamento
    - `useHeaderActions(<JSX>)` — define botões de ação
 
-### Comportamento sticky
+### Comportamento por breakpoint
 
-O PageHeader é **sempre sticky** (`sticky top-20 md:top-0 z-20 bg-background`). No mobile, compensa a altura do header global (`top-20`). No desktop, usa `top-0`.
+| Componente | Mobile | Desktop |
+|-----------|--------|---------|
+| `Header` | Visível (`md:hidden`) | Oculto |
+| `LayoutPageHeader` | Oculto | Visível (`hidden md:block`) |
+| `BottomNav` | Visível (`md:hidden`) | Oculto |
+| `AppSidebar` | Oculto | Visível |
 
 ### Uso — Página simples (apenas route-config)
 
@@ -60,7 +113,6 @@ import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 export function SaleDetail({ sale }: Props) {
   useSetPageHeader({
     title: 'Detalhes da Venda',
-    description: `${sale.client_name} - ${sale.date}`,
     backHref: '/minhasvendas',
   })
 
@@ -106,6 +158,142 @@ export default function Page() {
 - **Ícones em botões**: visíveis sempre, texto visível apenas em telas maiores (`hidden md:inline`)
 - **Back button**: usar `backHref` no `useSetPageHeader`
 - **Novas rotas simples**: adicionar em `route-config.ts` e não precisa de hook
+- **Sem description/sublabel** — headers exibem apenas título
+
+---
+
+## Header Mobile Unificado
+
+**Localização:** `src/components/layout/header.tsx`
+
+Barra superior única no mobile com 3 modos:
+
+### 1. Home (`/home`, `/dashboard`, `/`)
+
+```
+┌─────────────────────────────────────────┐
+│  [uComis logo]              [✨] [👤]   │
+└─────────────────────────────────────────┘
+```
+
+Logo à esquerda, spacer flex-1, botão IA + avatar à direita.
+
+### 2. Página interna (ex: `/minhasvendas`)
+
+```
+┌─────────────────────────────────────────┐
+│  ← Minhas Vendas    [✨] [Ações] [👤]  │
+└─────────────────────────────────────────┘
+```
+
+Back + título com `flex-1` (trunca se necessário), botão IA + ações + avatar à direita.
+
+### 3. Task mode (formulários)
+
+```
+┌─────────────────────────────────────────┐
+│  ← Registro de venda                    │
+└─────────────────────────────────────────┘
+```
+
+Header mínimo — apenas back + título. Sem IA, sem avatar. Ações vão para o BottomNav.
+
+### Botão de IA
+
+O ícone `Sparkles` (lucide-react) fica **sempre à esquerda** dos botões de ação, com `ml-1` de separação quando há ações. Abre o chat via `useAiChat().toggle`.
+
+---
+
+## Task Mode
+
+Modo especial para páginas de formulário (nova venda, editar venda). Ativado via `taskMode: true` no `useSetPageHeader`.
+
+### Comportamento
+
+| Elemento | Normal | Task Mode |
+|----------|--------|-----------|
+| Header mobile | Completo (logo/título + IA + ações + avatar) | Mínimo (back + título) |
+| BottomNav | Navegação (5 itens) | Barra de ações (Cancelar + Salvar) |
+| LayoutPageHeader (desktop) | Normal | Normal (sem alteração) |
+
+### Uso
+
+```tsx
+useSetPageHeader({ title: 'Registro de venda', backHref: '/minhasvendas', taskMode: true })
+useHeaderActions(
+  <>
+    <Button variant="outline" asChild><Link href="/minhasvendas">Cancelar</Link></Button>
+    <Button type="submit" form="sale-form">Salvar Venda</Button>
+  </>
+)
+```
+
+No mobile, os botões Cancelar/Salvar aparecem no bottom bar fixo. No desktop, aparecem no header normalmente.
+
+### Onde usar
+
+Qualquer página de formulário full-page: nova venda, editar venda, etc.
+
+---
+
+## BottomNav
+
+**Localização:** `src/components/layout/bottom-nav.tsx`
+
+Navegação fixa no rodapé do mobile (`md:hidden`).
+
+### Modo normal
+
+5 itens de navegação + popover Menu com toggle de tema (Sol/Lua).
+
+```
+┌─────────────────────────────────────────┐
+│  🏠 Home  📊 Vendas  💰 Fat.  📋 Clientes  ☰ Menu │
+└─────────────────────────────────────────┘
+```
+
+### Modo taskMode
+
+Substitui a navegação por uma barra de ações alinhada à direita.
+
+```
+┌─────────────────────────────────────────┐
+│                    [ Cancelar ] [ Salvar ] │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## Botão de IA (Sparkles)
+
+**Contexto:** `src/components/ai-assistant/ai-chat-context.tsx`
+
+O botão de IA aparece em **todos os headers** (mobile e desktop), posicionado à esquerda dos botões de ação.
+
+### Arquitetura
+
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `src/components/ai-assistant/ai-chat-context.tsx` | `AiChatProvider`, `useAiChat` — estado open/toggle |
+| `src/components/ai-assistant/ai-chat-window.tsx` | Janela de chat renderizada pelo provider |
+
+### Posicionamento
+
+- **Desktop** (`LayoutPageHeader`): `[✨] [ml-2] [Ações]`
+- **Mobile** (`Header`): `[✨] [ml-1] [Ações] [👤]`
+- **Task mode mobile**: não aparece (header mínimo)
+
+### Uso
+
+```tsx
+import { useAiChat } from '@/components/ai-assistant'
+
+const { toggle: toggleAiChat } = useAiChat()
+
+<Button variant="ghost" size="icon" onClick={toggleAiChat}>
+  <Sparkles className="h-4 w-4" />
+</Button>
+```
 
 ---
 
