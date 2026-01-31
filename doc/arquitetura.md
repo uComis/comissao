@@ -112,7 +112,7 @@ src/
 │
 ├── components/
 │   ├── ui/                          # shadcn/ui
-│   ├── layout/                      # Sidebar, Header
+│   ├── layout/                      # Sidebar, Header, PageHeader (context-based)
 │   ├── sellers/                     # Componentes de vendedores
 │   ├── rules/                       # Componentes de regras
 │   └── reports/                     # Componentes de relatórios
@@ -151,6 +151,7 @@ src/
 │   │   ├── sync-service.ts          # Orquestra: client + repository
 │   │   └── report-service.ts        # Geração de relatórios
 │   │
+│   ├── route-config.ts              # Mapa rota → título/descrição (fallback do PageHeader)
 │   ├── commission-engine.ts         # Cálculos puros (decimal.js)
 │   └── pdf-generator.ts             # Geração de PDF
 │
@@ -870,6 +871,8 @@ Exemplo: adicionar listagem de regras de comissão.
 **Passo 5:** Criar página em `app/(dashboard)/regras/page.tsx`
 
 - Composição dos componentes
+- Adicionar rota em `lib/route-config.ts` para título/descrição automático
+- Se precisar de botões de ação no header, usar `useHeaderActions()` (ver `doc/layout.md`)
 
 **Passo 6:** Se precisar de lógica complexa, criar service em `lib/services/`
 

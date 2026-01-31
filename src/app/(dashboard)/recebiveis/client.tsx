@@ -40,7 +40,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from '@/lib/utils'
 import { markReceivableAsReceived, undoReceivableReceived, type ReceivableRow, type ReceivablesStats } from '@/app/actions/receivables'
 import { toast } from 'sonner'
-import { PageHeader } from '@/components/layout'
+import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 
 type Props = {
   receivables: ReceivableRow[]
@@ -218,33 +218,34 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
   const isEmpty = receivables.length === 0
 
+  useSetPageHeader({
+    title: isHome ? 'Faturamento' : 'Recebíveis',
+    description: isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.',
+  })
+  useHeaderActions(
+    !isEditMode ? (
+      <Button
+        onClick={() => setIsEditMode(true)}
+        className="bg-primary hover:bg-primary/90 shadow-lg group"
+      >
+        <CalendarCheck className="h-4 w-4 transition-transform group-hover:scale-110 md:mr-2" />
+        <span className="hidden md:inline">Registrar Recebimentos</span>
+      </Button>
+    ) : (
+      <Button
+        variant="outline"
+        onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
+        className="border-destructive text-destructive hover:bg-destructive/10"
+      >
+        <X className="h-4 w-4 md:mr-2" />
+        <span className="hidden md:inline">Cancelar Edição</span>
+      </Button>
+    )
+  )
+
   return (
     <div className="relative pb-24">
       <div className="space-y-6 max-w-5xl mx-auto">
-        {/* Header com Botão de Ação Principal */}
-        <PageHeader 
-          title={isHome ? 'Faturamento' : 'Recebíveis'}
-          description={isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.'}
-        >
-          {!isEditMode ? (
-            <Button 
-              onClick={() => setIsEditMode(true)}
-              className="bg-primary hover:bg-primary/90 shadow-lg group"
-            >
-              <CalendarCheck className="h-4 w-4 transition-transform group-hover:scale-110 md:mr-2" />
-              <span className="hidden md:inline">Registrar Recebimentos</span>
-            </Button>
-          ) : (
-            <Button 
-              variant="outline"
-              onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              <X className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Cancelar Edição</span>
-            </Button>
-          )}
-        </PageHeader>
 
         {/* Cards de Totais */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">

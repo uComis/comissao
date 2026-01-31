@@ -1,7 +1,5 @@
 'use client'
 
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { ThemeToggle } from './theme-toggle'
 import { UserControl } from './user-control'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -28,19 +26,16 @@ export function Header() {
 
   if (!mounted) {
     return (
-      <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 bg-background px-8 md:px-4 border-b">
-        <SidebarTrigger className="hidden md:flex" />
+      <header className="flex md:hidden h-20 shrink-0 items-center gap-4 bg-background px-8 border-b">
         <div className="flex-1" />
       </header>
     )
   }
 
   return (
-    <header className="flex h-20 md:h-14 shrink-0 items-center gap-4 bg-background px-8 md:px-4 border-b">
-      <SidebarTrigger className="hidden md:flex" />
-
+    <header className="flex md:hidden h-20 shrink-0 items-center gap-4 bg-background px-8 border-b">
       {/* Logo mobile */}
-      <Link href="/home" className="md:hidden">
+      <Link href="/home">
         <Image
           src={logoSrc}
           alt="uComis"
@@ -53,16 +48,11 @@ export function Header() {
 
       <div className="flex-1" />
 
-      {/* Desktop: Full theme toggle with switch */}
-      <div className="hidden md:block">
-        <ThemeToggle />
-      </div>
-
       {/* Mobile: Simple icon button */}
       <button
         onClick={toggleTheme}
         className={cn(
-          "md:hidden p-2 rounded-lg transition-colors",
+          "p-2 rounded-lg transition-colors",
           "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         )}
         aria-label="Alternar tema"
@@ -75,7 +65,7 @@ export function Header() {
       </button>
 
       {/* User Control - Mobile only */}
-      <div className="md:hidden -mr-4">
+      <div className="-mr-4">
         <UserControl />
       </div>
     </header>

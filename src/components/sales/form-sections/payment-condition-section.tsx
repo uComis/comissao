@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Calendar, CalendarDays, ChevronDown, ChevronUp, Minus, Plus, X } from 'lucide-react'
-import { ptBR } from 'date-fns/locale'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { Banknote, Calendar, CalendarCheck, ChevronRight, Hash, PencilIcon, X } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
-import { Calendar as CalendarComponent } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { NumberStepper } from '@/components/ui/number-stepper'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
+import { DashedActionButton } from '@/components/ui/dashed-action-button'
 
 type PaymentConditionSectionProps = {
   saleDate: string
@@ -21,8 +21,6 @@ type PaymentConditionSectionProps = {
   irregularPatternWarning: string | null
   customDaysList: number[] | null
   detectedPattern: { interval: number; count: number } | null
-  onPatternAdd: () => void
-  onPatternRemove: () => void
   totalValue: number
   grossTotal: number
   totalCommission: number
@@ -34,34 +32,48 @@ type PaymentConditionSectionProps = {
   onQuickConditionChange: (value: string) => void
   onQuickConditionBlur: () => void
   onClearCondition: () => void
+  onPatternAdd: () => void
+  onPatternRemove: () => void
   onSelectSuggestion: (value: string) => void
 }
 
-const paymentConditionSuggestions = [
-  { label: 'À vista', value: '0' },
-  { label: '30/60/90', value: '30/60/90', description: 'Entrada 30, intervalo 30' },
-  { label: '28/56/84', value: '28/56/84', description: 'Ciclo 28 dias' },
-  { label: '30/45/60/75/90', value: '30/45/60/75/90', description: 'Entrada 30, intervalo 15' },
-  { label: '15/45/75/105', value: '15/45/75/105', description: 'Entrada 15, intervalo 30' },
-  { label: '15/30/45/60', value: '15/30/45/60', description: 'Entrada 15, intervalo 15' },
-  { label: '20/50/80/110', value: '20/50/80/110', description: 'Entrada 20, intervalo 30' },
-  { label: '45/75/105', value: '45/75/105', description: 'Entrada 45, intervalo 30' },
-  { label: '60/90/120', value: '60/90/120', description: 'Entrada 60, intervalo 30' },
+const suggestions = [
+  { label: 'À vista', value: '0', description: 'Pagamento total na data da venda' },
+  { label: '30 dias', value: '30', description: 'Uma parcela após 30 dias' },
+  { label: '30/60 dias', value: '30/60', description: 'Duas parcelas (30 e 60 dias)' },
+  { label: '30/60/90 dias', value: '30/60/90', description: 'Três parcelas mensais' },
 ]
 
-const getSafeNumber = (val: string | number, min: number = 0) => {
-  if (val === '' || val === undefined || val === null) return min
+function getSafeNumber(val: string | number, fallback: number): number {
   const num = typeof val === 'string' ? parseInt(val) : val
-  return isNaN(num) ? min : num
+  return isNaN(num) ? fallback : num
 }
 
-const calculateDateFromDays = (days: number, baseDateStr: string) => {
-  const date = new Date(baseDateStr + 'T12:00:00')
+function calculateDateFromDays(days: number, saleDate: string): string {
+  const date = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
   date.setDate(date.getDate() + days)
   return date.toISOString().split('T')[0]
 }
 
-export function PaymentConditionSection({
+function formatDateShort(dateStr: string): string {
+  const date = new Date(dateStr + 'T12:00:00')
+  const day = date.getDate()
+  const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  const year = date.getFullYear()
+  return `${day} de ${month.charAt(0).toUpperCase() + month.slice(1)}. ${year}`
+}
+
+function FormulaSeparator() {
+  return (
+    <div className="relative flex items-center my-4">
+      <div className="flex-1 border-t border-border/50" />
+      <span className="mx-3 text-xs font-mono text-muted-foreground bg-background px-2">ƒx</span>
+      <div className="flex-1 border-t border-border/50" />
+    </div>
+  )
+}
+
+function PaymentFormContent({
   saleDate,
   firstInstallmentDate,
   installments,
@@ -69,13 +81,6 @@ export function PaymentConditionSection({
   firstInstallmentDays,
   quickCondition,
   irregularPatternWarning,
-  customDaysList,
-  detectedPattern,
-  onPatternAdd,
-  onPatternRemove,
-  totalValue,
-  grossTotal,
-  totalCommission,
   onSaleDateChange,
   onFirstInstallmentDateChange,
   onInstallmentsChange,
@@ -85,813 +90,276 @@ export function PaymentConditionSection({
   onQuickConditionBlur,
   onClearCondition,
   onSelectSuggestion,
-}: PaymentConditionSectionProps) {
+}: PaymentConditionSectionProps & { onClose: () => void }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
-  const [expandedPreview, setExpandedPreview] = useState(false)
   const [isInputFocused, setIsInputFocused] = useState(false)
 
-  // Reset expand when installment count changes (e.g. +/- buttons)
-  useEffect(() => {
-    setExpandedPreview(false)
-  }, [installments])
-
-  const [showManualMode, setShowManualMode] = useState(false)
-  const [customInstallments, setCustomInstallments] = useState(false)
-  const [customInterval, setCustomInterval] = useState(false)
-  const [customFirstDays, setCustomFirstDays] = useState(false)
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [datePickerSelected, setDatePickerSelected] = useState(false)
-  const [firstDaysChosen, setFirstDaysChosen] = useState(false)
-  const [installmentsChosen, setInstallmentsChosen] = useState(false)
-  const [chosenInstallmentCount, setChosenInstallmentCount] = useState(1)
-  const [intervalChosen, setIntervalChosen] = useState(false)
-
-  const safeInstallments = getSafeNumber(installments, 1)
-  const isMultipleInstallments = safeInstallments > 1
-
-  // Show all steps if editing existing sale (values already set)
-  const showInstallmentsStep = firstDaysChosen
-  const showIntervalStep = installmentsChosen && isMultipleInstallments
-
-  // Auto-collapse: called directly from onClick when the flow is done
-  const [manualCompleted, setManualCompleted] = useState(false)
-  const autoCollapse = () => {
-    if (!manualCompleted) {
-      setManualCompleted(true)
-      setTimeout(() => {
-        setShowManualMode(false)
-        onQuickConditionBlur()
-      }, 600)
-    }
-  }
-
-  // Fix 4: Sync input → manual mode pills when quickCondition changes from input blur
-  const prevQuickConditionRef = useRef(quickCondition)
-  useEffect(() => {
-    const prev = prevQuickConditionRef.current
-    prevQuickConditionRef.current = quickCondition
-
-    // Only sync when quickCondition actually changed
-    if (quickCondition === prev) return
-    if (!quickCondition) return
-
-    const parts = quickCondition.replace(/[\s,-]+/g, '/').split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
-    if (parts.length === 0) return
-
-    const first = parts[0]
-    const count = parts.length
-    const detectedInt = parts.length > 1 ? parts[1] - parts[0] : 30
-
-    // Sync firstDays pills
-    const predefinedFirstDays = [0, 15, 30, 45]
-    if (predefinedFirstDays.includes(first)) {
-      setCustomFirstDays(false)
-      setShowDatePicker(false)
-    } else {
-      setCustomFirstDays(true)
-      setShowDatePicker(false)
-    }
-    setFirstDaysChosen(true)
-
-    // Sync installments pills
-    const predefinedInstallments = [1, 2, 3, 4, 5, 6]
-    if (predefinedInstallments.includes(count)) {
-      setCustomInstallments(false)
-    } else {
-      setCustomInstallments(true)
-    }
-    setInstallmentsChosen(true)
-    setChosenInstallmentCount(count)
-
-    // Sync interval pills (only if multi-installment)
-    if (count > 1) {
-      const predefinedIntervals = [15, 30, 45]
-      if (predefinedIntervals.includes(detectedInt)) {
-        setCustomInterval(false)
-      } else {
-        setCustomInterval(true)
-      }
-      setIntervalChosen(true)
-    }
-
-    // Mark as completed so reopening doesn't auto-collapse
-    setManualCompleted(true)
-  }, [quickCondition])
-
-  const filteredSuggestions = paymentConditionSuggestions.filter(
-    (suggestion) =>
-      suggestion.value.startsWith(quickCondition) ||
-      suggestion.label.toLowerCase().includes(quickCondition.toLowerCase()) ||
-      quickCondition === ''
-  )
-
-  const installmentDates = useMemo(() => {
-    const safeInst = getSafeNumber(installments, 1)
-    const safeInterval = getSafeNumber(interval, 30)
-
-    let firstDate: Date
-    let lastDate: Date
-
-    if (customDaysList && customDaysList.length === safeInst) {
-      const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
-      firstDate = new Date(saleDateObj)
-      firstDate.setDate(firstDate.getDate() + customDaysList[0])
-      lastDate = new Date(saleDateObj)
-      lastDate.setDate(lastDate.getDate() + customDaysList[customDaysList.length - 1])
-    } else {
-      if (firstInstallmentDate) {
-        firstDate = new Date(firstInstallmentDate + 'T12:00:00')
-      } else {
-        const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
-        firstDate = new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
-      }
-      lastDate = new Date(firstDate)
-      lastDate.setDate(lastDate.getDate() + (safeInst - 1) * safeInterval)
-    }
-
-    return {
-      first: new Intl.DateTimeFormat('pt-BR').format(firstDate),
-      last: new Intl.DateTimeFormat('pt-BR').format(lastDate),
-    }
-  }, [installments, interval, firstInstallmentDate, firstInstallmentDays, saleDate, customDaysList])
+  const safeInst = getSafeNumber(installments, 1)
+  const safeInterval = getSafeNumber(interval, 30)
+  const safeFirstDays = getSafeNumber(firstInstallmentDays, 0)
+  const isVista = safeInst === 1
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pagamento</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="flex flex-col items-center space-y-2 py-4">
-          <Label htmlFor="date" className="text-sm font-medium flex items-center gap-1.5">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            Data da Venda
-          </Label>
-          <div className="w-full max-w-[220px]">
-            <DatePicker
-              date={saleDate ? new Date(saleDate + 'T12:00:00') : undefined}
-              onDateChange={(date) => {
-                if (date) {
-                  const dateStr = date.toISOString().split('T')[0]
-                  onSaleDateChange(dateStr)
-                }
-              }}
-              placeholder="Selecione a data da venda"
-            />
-          </div>
+    <div className="space-y-5">
+      {/* Segmented control */}
+      <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
+        <button
+          type="button"
+          onClick={() => {
+            if (!isVista) {
+              onInstallmentsChange(1)
+              onIntervalChange(0)
+            }
+          }}
+          className={cn(
+            'py-2.5 text-sm font-medium rounded-md transition-all',
+            isVista
+              ? 'bg-background shadow-sm text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          À Vista
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (isVista) {
+              onInstallmentsChange(2)
+              onIntervalChange(30)
+              if (safeFirstDays <= 0) onFirstInstallmentDaysChange(30)
+            }
+          }}
+          className={cn(
+            'py-2.5 text-sm font-medium rounded-md transition-all',
+            !isVista
+              ? 'bg-background shadow-sm text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          Parcelado
+        </button>
+      </div>
+
+      {/* Datas */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-muted-foreground ml-1">Data da Compra</Label>
+          <DatePicker
+            date={saleDate ? new Date(saleDate + 'T12:00:00') : new Date()}
+            onDateChange={(date) => onSaleDateChange(date ? date.toISOString().split('T')[0] : '')}
+          />
         </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-muted-foreground ml-1">{isVista ? 'Vencimento' : '1ª Parcela'}</Label>
+          <DatePicker
+            date={new Date((firstInstallmentDate || calculateDateFromDays(safeFirstDays, saleDate)) + 'T12:00:00')}
+            onDateChange={(date) => {
+              if (date) onFirstInstallmentDateChange(date.toISOString().split('T')[0])
+            }}
+          />
+        </div>
+      </div>
 
-        <div className="max-w-2xl mx-auto space-y-6">
-          {/* Modo Rápido: Input com Autocomplete */}
-          <div className="space-y-3">
-            <Label
-              htmlFor="quick_condition"
-              className="text-sm font-medium text-center block text-primary"
-            >
-              Prazos de pagamento
-            </Label>
-            <div className="relative max-w-md mx-auto">
-              <Input
-                id="quick_condition"
-                placeholder="ex: 0 (à vista) ou 30/60/90"
-                value={(() => {
-                  if (isInputFocused) return quickCondition
-                  const parts = quickCondition.split('/').filter(Boolean)
-                  if (parts.length === 1) {
-                    const days = parseInt(parts[0])
-                    if (!isNaN(days)) {
-                      return days === 0 ? 'À vista' : `À vista · ${days} dias`
-                    }
-                  }
-                  if (parts.length > 5) {
-                    return `${parts.slice(0, 3).join('/')} ··· (${parts.length}x)`
-                  }
-                  return quickCondition
-                })()}
-                onChange={(e) => onQuickConditionChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    ;(e.target as HTMLInputElement).blur()
-                  }
-                }}
-                onFocus={() => {
-                  setShowSuggestions(true)
-                  setIsInputFocused(true)
-                }}
-                onBlur={() => {
-                  setIsInputFocused(false)
-                  setTimeout(() => {
-                    setShowSuggestions(false)
-                    onQuickConditionBlur()
-                  }, 150)
-                }}
-                className={`h-14 text-xl font-medium text-center border-2 focus-visible:ring-0 shadow-sm pr-10 ${
-                  irregularPatternWarning
-                    ? 'border-red-400 focus-visible:border-red-500'
-                    : 'border-primary/20 focus-visible:border-primary'
-                }`}
-              />
+      {/* À vista: prazo em dias */}
+      {isVista && (
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-muted-foreground ml-1">Prazo (dias após venda)</Label>
+          <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} />
+        </div>
+      )}
 
-              {quickCondition && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClearCondition()
-                    setShowManualMode(false)
-                    setManualCompleted(false)
-                    setFirstDaysChosen(false)
-                    setInstallmentsChosen(false)
-                    setIntervalChosen(false)
-                    setChosenInstallmentCount(1)
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-
-              {showSuggestions && filteredSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
-                  {filteredSuggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        onSelectSuggestion(suggestion.value)
-                        setShowSuggestions(false)
-                      }}
-                    >
-                      <span className="font-medium">{suggestion.label}</span>
-                      {suggestion.description && (
-                        <span className="text-xs text-muted-foreground">
-                          {suggestion.description}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {detectedPattern && !irregularPatternWarning && (
-              <div className="max-w-md mx-auto mt-3 flex items-center justify-center gap-3 animate-in fade-in duration-300">
-                <button
-                  type="button"
-                  className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  onClick={onPatternRemove}
-                  disabled={detectedPattern.count <= 1}
-                >
-                  <Minus className="h-4 w-4 text-muted-foreground" />
-                </button>
-                <span className="text-sm text-muted-foreground font-medium min-w-[140px] text-center">
-                  {detectedPattern.count}x de {detectedPattern.interval} em {detectedPattern.interval} dias
-                </span>
-                <button
-                  type="button"
-                  className="w-9 h-9 rounded-full border-2 border-border hover:border-primary/50 hover:bg-primary/5 flex items-center justify-center transition-colors"
-                  onClick={onPatternAdd}
-                >
-                  <Plus className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-            )}
-
-            <div className="flex justify-center gap-4 pt-1">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 underline"
-                  >
-                    <CalendarDays className="h-3 w-3" />
-                    Escolher no calendário
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <CalendarComponent
-                    mode="single"
-                    selected={
-                      firstInstallmentDate
-                        ? new Date(firstInstallmentDate + 'T12:00:00')
-                        : undefined
-                    }
-                    onSelect={(date) => {
-                      if (date) {
-                        const dateStr = date.toISOString().split('T')[0]
-                        onFirstInstallmentDateChange(dateStr)
-                      }
-                    }}
-                    locale={ptBR}
-                    initialFocus
-                    captionLayout="dropdown"
-                    fromYear={1900}
-                    toYear={2100}
-                    disabled={(date) => {
-                      if (!saleDate) return false
-                      const saleDateObj = new Date(saleDate + 'T00:00:00')
-                      const compareDate = new Date(date)
-                      compareDate.setHours(0, 0, 0, 0)
-                      saleDateObj.setHours(0, 0, 0, 0)
-                      return compareDate < saleDateObj
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              <span className="text-xs text-muted-foreground">·</span>
+      {/* Cronograma input - only for parcelado */}
+      {!isVista && (
+        <div className="space-y-2">
+          <Label className="text-xs font-bold text-muted-foreground ml-1">Cronograma</Label>
+          <div className="relative">
+            <Input
+              placeholder="Ex: 30/60/90"
+              value={quickCondition}
+              onChange={(e) => onQuickConditionChange(e.target.value)}
+              onBlur={() => {
+                setTimeout(() => {
+                  setShowSuggestions(false)
+                  onQuickConditionBlur()
+                }, 200)
+              }}
+              onFocus={() => {
+                setShowSuggestions(true)
+                setIsInputFocused(true)
+              }}
+              className="h-12 text-base font-medium rounded-xl border-2 focus-visible:ring-0 focus-visible:border-primary/50 transition-all pr-10"
+            />
+            {quickCondition && (
               <button
                 type="button"
-                onClick={() => {
-                  const next = !showManualMode
-                  setShowManualMode(next)
-                  if (next) setManualCompleted(false)
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground underline"
+                onClick={onClearCondition}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {showManualMode ? 'Ocultar modo manual' : 'Montar parcelas manualmente'}
+                <X className="h-4 w-4" />
               </button>
-            </div>
-          </div>
-
-          {/* Modo Manual (simples) — expandível */}
-          <div className={cn(
-            "grid transition-all duration-300 ease-in-out",
-            showManualMode ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-          )}>
-            <div className="overflow-hidden">
-              <div className="bg-muted/40 border border-border/50 rounded-xl p-4 mt-2 space-y-2">
-                {/* Step 1: Primeira parcela em quantos dias? */}
-                <div className="space-y-3 py-3">
-                  <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
-                    Primeira parcela em quantos dias?
-                  </Label>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {!customFirstDays && !showDatePicker ? (
-                      <>
-                        {[0, 15, 30, 45].map((n) => {
-                          const isSelected = firstDaysChosen && Number(firstInstallmentDays) === n
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => {
-                                setCustomFirstDays(false)
-                                setShowDatePicker(false)
-                                setFirstDaysChosen(true)
-                                onFirstInstallmentDaysChange(n)
-                              }}
-                              className={cn(
-                                'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200',
-                                isSelected
-                                  ? 'bg-foreground text-background'
-                                  : 'bg-background text-foreground border-border',
-                                firstDaysChosen && !isSelected && 'opacity-40 hover:opacity-100'
-                              )}
-                            >
-                              {n === 0 ? 'Hoje' : `${n} dias`}
-                            </button>
-                          )
-                        })}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowDatePicker(true)
-                            setCustomFirstDays(false)
-                            setFirstDaysChosen(false)
-                            setDatePickerSelected(false)
-                          }}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 flex items-center gap-1.5 bg-background text-foreground border-border",
-                            firstDaysChosen && 'opacity-40 hover:opacity-100'
-                          )}
-                        >
-                          <CalendarDays className="h-3.5 w-3.5" />
-                          Data
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomFirstDays(true)
-                            setShowDatePicker(false)
-                            setFirstDaysChosen(true)
-                          }}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                            firstDaysChosen && 'opacity-40 hover:opacity-100'
-                          )}
-                        >
-                          Outro
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {showDatePicker && (
-                          <div className="animate-in fade-in slide-in-from-left-2 duration-200">
-                            <DatePicker
-                              date={
-                                datePickerSelected && firstInstallmentDate
-                                  ? new Date(firstInstallmentDate + 'T12:00:00')
-                                  : undefined
-                              }
-                              onDateChange={(date) => {
-                                if (date) {
-                                  const dateStr = date.toISOString().split('T')[0]
-                                  onFirstInstallmentDateChange(dateStr)
-                                  setDatePickerSelected(true)
-                                  setFirstDaysChosen(true)
-                                }
-                              }}
-                              placeholder="Escolher data"
-                              disabled={(date) => {
-                                if (!saleDate) return false
-                                const saleDateObj = new Date(saleDate + 'T00:00:00')
-                                const compareDate = new Date(date)
-                                compareDate.setHours(0, 0, 0, 0)
-                                saleDateObj.setHours(0, 0, 0, 0)
-                                return compareDate < saleDateObj
-                              }}
-                            />
-                          </div>
-                        )}
-                        {customFirstDays && (
-                          <NumberStepper
-                            value={getSafeNumber(firstInstallmentDays, 0)}
-                            onChange={onFirstInstallmentDaysChange}
-                            min={0}
-                            step={1}
-                            suffix="dias"
-                            size="sm"
-                            className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
-                          />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCustomFirstDays(false)
-                            setShowDatePicker(false)
-                          }}
-                          className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
-                        >
-                          <ArrowLeft className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Step 2: Quantas parcelas? — animated reveal */}
-                <div className={cn(
-                  "grid transition-all duration-300 ease-in-out",
-                  showInstallmentsStep ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                )}>
-                  <div className="overflow-hidden">
-                    <div className="space-y-3 py-[30px]">
-                      <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
-                        Quantas parcelas?
-                      </Label>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {!customInstallments ? (
-                          <>
-                            {[1, 2, 3, 4, 5, 6].map((n) => {
-                              const isSelected = !customInstallments && installmentsChosen && safeInstallments === n
-                              return (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  onClick={() => {
-                                    setCustomInstallments(false)
-                                    setInstallmentsChosen(true)
-                                    setChosenInstallmentCount(n)
-                                    onInstallmentsChange(n)
-                                    if (n === 1) autoCollapse()
-                                  }}
-                                  className={cn(
-                                    'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] min-w-[44px] transition-all duration-200',
-                                    isSelected
-                                      ? 'bg-foreground text-background'
-                                      : 'bg-background text-foreground border-border',
-                                    installmentsChosen && !isSelected && 'opacity-40 hover:opacity-100'
-                                  )}
-                                >
-                                  {n === 1 ? 'À vista' : n}
-                                </button>
-                              )
-                            })}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCustomInstallments(true)
-                                setInstallmentsChosen(true)
-                                setChosenInstallmentCount(safeInstallments > 1 ? safeInstallments : 2)
-                              }}
-                              className={cn(
-                                "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                                installmentsChosen && 'opacity-40 hover:opacity-100'
-                              )}
-                            >
-                              Outro
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <NumberStepper
-                              value={safeInstallments}
-                              onChange={onInstallmentsChange}
-                              min={1}
-                              max={24}
-                              step={1}
-                              size="sm"
-                              className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setCustomInstallments(false)}
-                              className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
-                            >
-                              <ArrowLeft className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 3: Intervalo entre parcelas? — only when >1 installments */}
-                <div className={cn(
-                  "grid transition-all duration-300 ease-in-out",
-                  showIntervalStep ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                )}>
-                  <div className="overflow-hidden">
-                    <div className="space-y-3 py-3">
-                      <Label className="text-sm font-medium text-center block mb-4 text-muted-foreground">
-                        Intervalo entre parcelas?
-                      </Label>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {!customInterval ? (
-                          <>
-                            {[15, 30, 45].map((n) => {
-                              const isSelected = intervalChosen && Number(interval) === n
-                              return (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  onClick={() => {
-                                    setCustomInterval(false)
-                                    setIntervalChosen(true)
-                                    onIntervalChange(n)
-                                    autoCollapse()
-                                  }}
-                                  className={cn(
-                                    'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200',
-                                    isSelected
-                                      ? 'bg-foreground text-background'
-                                      : 'bg-background text-foreground border-border',
-                                    intervalChosen && !isSelected && 'opacity-40 hover:opacity-100'
-                                  )}
-                                >
-                                  {n} dias
-                                </button>
-                              )
-                            })}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCustomInterval(true)
-                                setIntervalChosen(true)
-                              }}
-                              className={cn(
-                                "rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-all duration-200 bg-background text-foreground border-border",
-                                intervalChosen && 'opacity-40 hover:opacity-100'
-                              )}
-                            >
-                              Outro
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <NumberStepper
-                              value={getSafeNumber(interval, 1)}
-                              onChange={onIntervalChange}
-                              min={1}
-                              step={1}
-                              suffix="dias"
-                              size="sm"
-                              className="w-36 animate-in fade-in slide-in-from-left-2 duration-200"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setCustomInterval(false)}
-                              className="rounded-full border px-2.5 py-1.5 text-xs font-medium min-h-[36px] min-w-[36px] transition-all bg-background text-muted-foreground border-border hover:text-foreground animate-in fade-in zoom-in-95 duration-200"
-                            >
-                              <ArrowLeft className="h-3.5 w-3.5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Linha Separadora com Ícone de Conexão */}
-          <div className="relative w-full pt-6 pb-2">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <div className="bg-card px-3">
-                <svg
-                  className="h-5 w-5 text-muted-foreground"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Previsão de recebimento — Stepper Vertical ou Alerta */}
-          {irregularPatternWarning ? (
-            <div className="pt-4 pb-2">
-              <Label className="text-sm font-semibold block mb-4 text-center">
-                Previsão de recebimento
-              </Label>
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                <p className="text-sm text-red-800">{irregularPatternWarning}</p>
-              </div>
-            </div>
-          ) : installmentDates && (() => {
-            const safeInst = getSafeNumber(installments, 1)
-            const safeInterval = getSafeNumber(interval, 30)
-            const safeFirstDays = getSafeNumber(firstInstallmentDays, 30)
-            const installmentValue = grossTotal > 0 ? grossTotal / safeInst : 0
-            const installmentNetValue = totalValue > 0 ? totalValue / safeInst : 0
-            const installmentCommission = totalCommission > 0 ? totalCommission / safeInst : 0
-            const taxTotal = grossTotal - totalValue
-            const installmentTax = taxTotal > 0 ? taxTotal / safeInst : 0
-
-            const allDates: Date[] = []
-
-            if (customDaysList && customDaysList.length === safeInst) {
-              // Irregular pattern: use explicit days from sale date
-              const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
-              for (const days of customDaysList) {
-                const d = new Date(saleDateObj)
-                d.setDate(d.getDate() + days)
-                allDates.push(d)
-              }
-            } else {
-              const baseDate = firstInstallmentDate
-                ? new Date(firstInstallmentDate + 'T12:00:00')
-                : new Date(calculateDateFromDays(safeFirstDays, saleDate) + 'T12:00:00')
-
-              for (let i = 0; i < safeInst; i++) {
-                const d = new Date(baseDate)
-                d.setDate(d.getDate() + i * safeInterval)
-                allDates.push(d)
-              }
-            }
-
-            const INITIAL_VISIBLE = 3
-            const MAX_SCROLL_VISIBLE = 12
-            const initialDates = allDates.slice(0, Math.min(safeInst, INITIAL_VISIBLE))
-            const extraDates = allDates.slice(INITIAL_VISIBLE)
-            const hasMore = safeInst > INITIAL_VISIBLE
-            const needsScroll = expandedPreview && safeInst > MAX_SCROLL_VISIBLE
-
-            const formatCurrency = (value: number) =>
-              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-
-            const formatDate = (date: Date) =>
-              new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
-
-            return (
-              <div className="pt-4 pb-2">
-                <Label className="text-sm font-semibold block mb-4 text-center">
-                  Previsão de recebimento
-                </Label>
-                {(() => {
-                  const renderStep = (date: Date, idx: number, isLast: boolean) => (
-                    <div key={idx} className={cn("relative pl-8", isLast ? "pb-0" : "pb-7")}>
-                      {!isLast && (
-                        <div className="absolute left-[9px] top-[18px] bottom-0 w-px bg-border" />
-                      )}
-                      <div className="absolute left-0 top-0 w-[18px] h-[18px] rounded-full bg-muted flex items-center justify-center">
-                        <span className="text-[10px] font-semibold text-muted-foreground">{idx + 1}</span>
-                      </div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex flex-col pt-[3px]">
-                          <span className="text-sm font-medium text-foreground">
-                            {formatDate(date)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/50">
-                            {(() => {
-                              const saleDateObj = saleDate ? new Date(saleDate + 'T12:00:00') : new Date()
-                              const diffMs = date.getTime() - saleDateObj.getTime()
-                              const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24))
-                              if (diffDays === 0) return 'Hoje'
-                              if (diffDays === 1) return 'Amanhã'
-                              return `Daqui a ${diffDays} dias`
-                            })()}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-end flex-shrink-0">
-                          {installmentCommission > 0 ? (
-                            <>
-                              <span className="text-xs text-muted-foreground/60">
-                                {formatCurrency(installmentValue)}
-                              </span>
-                              <span className="text-lg font-bold text-foreground leading-tight">
-                                {formatCurrency(installmentCommission)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-base font-semibold text-foreground">
-                              {installmentValue > 0 ? formatCurrency(installmentValue) : '-'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-
-                  const totalCount = initialDates.length + (expandedPreview ? extraDates.length : 0)
-
-                  return (
-                    <div className={cn(needsScroll && 'max-h-[480px] overflow-y-auto pr-1')}>
-                      <div className="relative ml-1">
-                        {initialDates.map((date, idx) =>
-                          renderStep(date, idx, !hasMore && idx === initialDates.length - 1)
-                        )}
-                        {extraDates.length > 0 && (
-                          <div
-                            className="overflow-hidden transition-all duration-300 ease-in-out"
-                            style={{
-                              maxHeight: expandedPreview ? `${extraDates.length * 100}px` : '0px',
-                              opacity: expandedPreview ? 1 : 0,
-                            }}
-                          >
-                            {extraDates.map((date, idx) => {
-                              const globalIdx = INITIAL_VISIBLE + idx
-                              return renderStep(date, globalIdx, globalIdx === allDates.length - 1)
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {hasMore && (
-                  <div className="flex justify-center pt-3">
+            )}
+            {showSuggestions && isInputFocused && (
+              <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                {suggestions
+                  .filter(s => s.value !== '0')
+                  .filter(s => s.value.startsWith(quickCondition) || s.label.toLowerCase().includes(quickCondition.toLowerCase()))
+                  .map((s, i) => (
                     <button
+                      key={i}
                       type="button"
-                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                      onClick={() => setExpandedPreview(!expandedPreview)}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        onSelectSuggestion(s.value)
+                        setShowSuggestions(false)
+                        setIsInputFocused(false)
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
                     >
-                      {expandedPreview ? (
-                        <>
-                          <ChevronUp className="h-3 w-3" />
-                          Ver menos
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-3 w-3" />
-                          Ver mais {safeInst - INITIAL_VISIBLE} parcelas
-                        </>
-                      )}
+                      <span className="font-medium text-sm">{s.label}</span>
+                      {s.description && <span className="text-[10px] text-muted-foreground">{s.description}</span>}
                     </button>
-                  </div>
-                )}
+                  ))}
               </div>
-            )
-          })()}
+            )}
+          </div>
+
+          {irregularPatternWarning && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
+              <div className="h-5 w-5 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-amber-600 font-bold text-xs">!</span>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">{irregularPatternWarning}</p>
+            </div>
+          )}
+
+          <FormulaSeparator />
+
+          {/* Card resultado */}
+          <div className="bg-muted/30 rounded-xl border border-border/50 p-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground ml-1">1ª parcela (dias após venda)</Label>
+              <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-muted-foreground ml-1">Nº Parcelas</Label>
+                <NumberStepper value={safeInst} onChange={onInstallmentsChange} min={1} max={36} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-muted-foreground ml-1">Intervalo (dias)</Label>
+                <NumberStepper value={safeInterval} onChange={onIntervalChange} min={0} max={180} />
+              </div>
+            </div>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
+  )
+}
+
+export function PaymentConditionSection(props: PaymentConditionSectionProps) {
+  const [open, setOpen] = useState(false)
+  const isMobile = useIsMobile()
+
+  const safeInst = getSafeNumber(props.installments, 1)
+  const safeInterval = getSafeNumber(props.interval, 30)
+  const safeFirstDays = getSafeNumber(props.firstInstallmentDays, 0)
+  const isVista = safeInst === 1
+
+  const firstDate = props.firstInstallmentDate || calculateDateFromDays(safeFirstDays, props.saleDate)
+
+  const schedule = props.quickCondition || `${safeFirstDays}/${Array.from({ length: safeInst - 1 }, (_, i) => safeFirstDays + (i + 1) * safeInterval).join('/')}`
+
+  const summaryLabel = isVista ? 'À vista' : `Parcelado ${safeInst}x`
+
+  const hasConfig = !!(props.quickCondition || safeInst > 1 || safeFirstDays > 0)
+
+  const formContent = (
+    <div className="space-y-5">
+      <PaymentFormContent {...props} onClose={() => setOpen(false)} />
+      <Button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="w-full h-12 text-base font-medium"
+      >
+        Confirmar
+      </Button>
+    </div>
+  )
+
+  return (
+    <>
+      {/* Resumo */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold tracking-tight">Pagamento</h2>
+        {hasConfig && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-4">
+              <Banknote className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{summaryLabel}</span>
+                <span className="text-muted-foreground text-sm">Condição</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{formatDateShort(props.saleDate)}</span>
+                <span className="text-muted-foreground text-sm">Data da venda</span>
+              </div>
+            </div>
+            {(!isVista || safeFirstDays > 0) && (
+              <div className="flex items-center gap-4">
+                <CalendarCheck className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold">{formatDateShort(firstDate)}</span>
+                  <span className="text-muted-foreground text-sm">1ª parcela</span>
+                </div>
+              </div>
+            )}
+            {!isVista && (
+              <div className="flex items-center gap-4">
+                <Hash className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold font-mono">{schedule}</span>
+                  <span className="text-muted-foreground text-sm">Cronograma</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        <DashedActionButton
+          icon={<PencilIcon className="h-4 w-4" />}
+          onClick={() => setOpen(true)}
+        >
+          {hasConfig ? 'Editar pagamento' : 'Configurar pagamento'}
+        </DashedActionButton>
+      </div>
+
+      {/* Modal (desktop) / Drawer (mobile) */}
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Condições de Pagamento</DrawerTitle>
+              <DrawerDescription className="sr-only">Configure as condições de pagamento da venda</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-6 overflow-y-auto">
+              {formContent}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Condições de Pagamento</DialogTitle>
+              <DialogDescription className="sr-only">Configure as condições de pagamento da venda</DialogDescription>
+            </DialogHeader>
+            {formContent}
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   )
 }

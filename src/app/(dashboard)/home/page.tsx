@@ -1,8 +1,7 @@
 'use client'
 
 import { StatCard, RankingCard, CommissionEvolutionChart } from "@/components/dashboard"
-import { PageHeader } from "@/components/layout"
-import { Button } from "@/components/ui/button"
+import { useHeaderActions } from "@/components/layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState, useEffect, useCallback } from 'react'
 import { getHomeAnalyticsAction } from '@/app/actions/dashboard'
@@ -13,7 +12,6 @@ import {
   Target,
   ShoppingCart,
   DollarSign,
-  Calendar as CalendarIcon,
   HandCoins
 } from "lucide-react"
 
@@ -36,6 +34,8 @@ export default function AnalyticsPage() {
     loadData()
   }, [loadData])
 
+  useHeaderActions(null)
+
   if (loading) {
     return (
       <div className="flex flex-col gap-8 items-center justify-center min-h-[400px]">
@@ -47,19 +47,9 @@ export default function AnalyticsPage() {
 
   const cards = data?.cards
   const rankings = data?.rankings
-  const now = new Date()
-  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-  const dateRange = `${firstDay.toLocaleDateString('pt-BR')} - ${lastDay.toLocaleDateString('pt-BR')}`
 
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
-      <PageHeader title="Resumo de Performance 🚀">
-        <Button variant="outline" className="datepicker-trigger flex items-center gap-2">
-          <CalendarIcon className="h-4 w-4" />
-          {dateRange}
-        </Button>
-      </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}

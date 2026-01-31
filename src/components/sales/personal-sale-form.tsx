@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Card, CardContent } from '@/components/ui/card'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientDialog } from '@/components/clients'
 import { ProductDialog } from '@/components/products'
@@ -29,6 +31,8 @@ type Props = {
   productsBySupplier: Record<string, Product[]>
   sale?: PersonalSaleWithItems
   mode?: 'create' | 'edit'
+  formId?: string
+  onSavingChange?: (saving: boolean) => void
 }
 
 function parsePaymentCondition(condition: string | null): {
@@ -37,7 +41,7 @@ function parsePaymentCondition(condition: string | null): {
   interval: number
 } {
   if (!condition || condition.trim() === '') {
-    return { type: 'vista', installments: 3, interval: 30 }
+    return { type: 'vista', installments: 1, interval: 30 }
   }
 
   const parts = condition
@@ -45,29 +49,29 @@ function parsePaymentCondition(condition: string | null): {
     .map((p) => parseInt(p.trim()))
     .filter((n) => !isNaN(n))
   if (parts.length === 0) {
-    return { type: 'vista', installments: 3, interval: 30 }
+    return { type: 'vista', installments: 1, interval: 30 }
   }
 
   const interval = parts.length > 1 ? parts[1] - parts[0] : parts[0]
   return {
-    type: 'parcelado',
+    type: parts.length > 1 ? 'parcelado' : 'vista',
     installments: parts.length,
     interval: interval > 0 ? interval : 30,
   }
 }
 
 function detectDescendingOrder(parts: number[]): number | null {
-    for (let i = 1; i < parts.length; i++) {
-      if (parts[i] <= parts[i - 1]) return i
-    }
-    return null
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i] <= parts[i - 1]) return i
   }
+  return null
+}
 
-  const getSafeNumber = (val: string | number, min: number = 0) => {
-    if (val === '' || val === undefined || val === null) return min
-    const num = typeof val === 'string' ? parseInt(val) : val
-    return isNaN(num) ? min : num
-  }
+const getSafeNumber = (val: string | number, min: number = 0) => {
+  if (val === '' || val === undefined || val === null) return min
+  const num = typeof val === 'string' ? parseInt(val) : val
+  return isNaN(num) ? min : num
+}
 
 const calculateDateFromDays = (days: number, baseDateStr: string) => {
   const date = new Date(baseDateStr + 'T12:00:00')
@@ -83,7 +87,7 @@ const calculateDaysFromDate = (targetDateStr: string, baseDateStr: string) => {
   return diffDays
 }
 
-export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create' }: Props) {
+export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create', formId, onSavingChange }: Props) {
   const router = useRouter()
   const { preferences, setPreference } = usePreferences()
   const [saving, setSaving] = useState(false)
@@ -91,7 +95,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const isEdit = mode === 'edit' && !!sale
   const formBodyRef = useRef<HTMLDivElement>(null)
 
-  // Mobile Drawer State
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
@@ -136,7 +139,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         productName: item.product_name,
       }))
     }
-    // Use a stable ID for the initial entry to avoid hydration mismatch
     return [
       {
         id: 'initial-entry',
@@ -168,7 +170,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [clientRefreshTrigger, setClientRefreshTrigger] = useState(0)
   const [installmentsSheetOpen, setInstallmentsSheetOpen] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
-  const [productRefreshTrigger, setProductRefreshTrigger] = useState(0)
 
   const selectedProducts = supplierId ? productsBySupplier[supplierId] || [] : []
 
@@ -187,13 +188,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const calculateTieredRate = (rule: CommissionRule, value: number) => {
     if (!rule.tiers || rule.tiers.length === 0) return rule.percentage || 0
-
     const tier = rule.tiers.find((t) => {
       const minMatches = value >= t.min
       const maxMatches = t.max === null || value <= t.max
       return minMatches && maxMatches
     })
-
     return tier ? tier.percentage : rule.tiers[rule.tiers.length - 1].percentage || 0
   }
 
@@ -209,7 +208,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     const gross = parseFloat(currentGross !== undefined ? currentGross : entry.grossValue) || 0
     const productId = currentProductId !== undefined ? currentProductId : entry.productId
 
-    // 1. Produto
     if (productId) {
       const product = selectedProducts.find((p) => p.id === productId)
       if (product) {
@@ -224,13 +222,11 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       }
     }
 
-    // 2. Pasta (Fornecedor)
     if (selectedSupplier) {
       const supplierRule = selectedSupplier.commission_rules.find((r) => r.target === target && r.type === 'tiered' && r.is_default)
       if (supplierRule) {
         return calculateTieredRate(supplierRule, gross)
       }
-
       const fixed = target === 'commission' ? selectedSupplier.default_commission_rate : selectedSupplier.default_tax_rate
       return fixed || 0
     }
@@ -240,18 +236,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-
-    if (!supplierId) {
-      toast.error('Selecione um fornecedor')
-      return
-    }
-
-    if (!clientId) {
-      toast.error('Selecione um cliente')
+    if (!supplierId || !clientId) {
+      toast.error(!supplierId ? 'Selecione um fornecedor' : 'Selecione um cliente')
       return
     }
 
     setSaving(true)
+    onSavingChange?.(true)
 
     try {
       const payload = {
@@ -275,22 +266,14 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       for (const entry of valueEntries) {
         const comm = parseFloat(entry.commissionRate) || 0
         const tax = parseFloat(entry.taxRate) || 0
-
         if (entry.productId) {
-          updateProduct(entry.productId, {
-            default_commission_rate: comm,
-            default_tax_rate: tax,
-          })
+          updateProduct(entry.productId, { default_commission_rate: comm, default_tax_rate: tax })
         } else if (supplierId) {
-          updatePersonalSupplierWithRules(supplierId, {
-            default_commission_rate: comm,
-            default_tax_rate: tax,
-          })
+          updatePersonalSupplierWithRules(supplierId, { default_commission_rate: comm, default_tax_rate: tax })
         }
       }
 
       const result = isEdit ? await updatePersonalSale(sale.id, payload) : await createPersonalSale(payload)
-
       if (result.success) {
         toast.success(isEdit ? 'Venda atualizada' : 'Venda cadastrada')
         router.push('/minhasvendas')
@@ -299,29 +282,24 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       }
     } finally {
       setSaving(false)
+      onSavingChange?.(false)
     }
   }
 
   function handleAddValueEntry() {
     const newId = crypto.randomUUID()
-
-    // Determine default tax/commission rates
     let defaultTaxRate = ''
     let defaultCommissionRate = ''
 
-    // 1. If supplier has rules via getEffectiveRate, use those
     if (selectedSupplier) {
       const supplierTax = selectedSupplier.default_tax_rate || 0
       const supplierComm = selectedSupplier.default_commission_rate || 0
-      // Check for tiered default rules too
       const tieredTax = selectedSupplier.commission_rules.find((r) => r.target === 'tax' && r.type === 'tiered' && r.is_default)
       const tieredComm = selectedSupplier.commission_rules.find((r) => r.target === 'commission' && r.type === 'tiered' && r.is_default)
-
       if (tieredTax || supplierTax) defaultTaxRate = String(tieredTax ? 0 : supplierTax)
       if (tieredComm || supplierComm) defaultCommissionRate = String(tieredComm ? 0 : supplierComm)
     }
 
-    // 2. Fallback: copy from last entry with grossValue > 0
     if (!defaultTaxRate && !defaultCommissionRate) {
       const lastWithValue = [...valueEntries].reverse().find((e) => parseFloat(e.grossValue) > 0)
       if (lastWithValue) {
@@ -332,20 +310,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
     setValueEntries((prev) => [
       ...prev,
-      {
-        id: newId,
-        quantity: 1,
-        grossValue: '',
-        taxRate: defaultTaxRate,
-        commissionRate: defaultCommissionRate,
-      },
+      { id: newId, quantity: 1, grossValue: '', taxRate: defaultTaxRate, commissionRate: defaultCommissionRate },
     ])
     return newId
   }
 
   function handleAddValueEntryAndEdit() {
     const newId = handleAddValueEntry()
-    // Wait for state update, then open drawer
     setTimeout(() => {
       setEditingEntryId(newId)
       setIsDrawerOpen(true)
@@ -355,7 +326,6 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   function handleRemoveValueEntry(id: string) {
     setSwipedItemId(null)
     setRemovingIds((prev) => new Set(prev).add(id))
-
     setTimeout(() => {
       setValueEntries((prev) => prev.filter((entry) => entry.id !== id))
       setRemovingIds((prev) => {
@@ -367,27 +337,18 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   }
 
   const minSwipeDistance = 50
-
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
   }
-
   const onTouchMove = (e: React.TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX)
   }
-
   const onTouchEnd = (entryId: string) => {
     if (!touchStart || !touchEnd) return
-
     const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-
-    if (isLeftSwipe) {
-      setSwipedItemId(entryId)
-    } else {
-      setSwipedItemId(null)
-    }
+    if (distance > minSwipeDistance) setSwipedItemId(entryId)
+    else setSwipedItemId(null)
   }
 
   function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) {
@@ -395,17 +356,13 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       prev.map((entry) => {
         if (entry.id === id) {
           const updatedEntry = { ...entry, [field]: value }
-
           if (field === 'grossValue' || field === 'productId') {
             const valStr = typeof value === 'string' ? value : String(value)
             const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
             const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
-
-            // Only override if there's an actual rule; preserve manually-set / pre-filled values otherwise
             if (newComm || field === 'productId') updatedEntry.commissionRate = String(newComm)
             if (newTax || field === 'productId') updatedEntry.taxRate = String(newTax)
           }
-
           return updatedEntry
         }
         return entry
@@ -413,24 +370,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     )
   }
 
-  function handleCancel() {
-    router.push('/minhasvendas')
-  }
-
   function handleSupplierChange(value: string) {
     setSupplierId(value)
-    setValueEntries((prev) =>
-      prev.map((entry) => ({
-        ...entry,
-        productId: undefined,
-        productName: undefined,
-      }))
-    )
-
-    // Auto-set as default if user only has one supplier
-    if (suppliersList.length === 1 && !preferences.defaultSupplierId) {
-      setPreference('defaultSupplierId', value)
-    }
+    setValueEntries((prev) => prev.map((entry) => ({ ...entry, productId: undefined, productName: undefined })))
+    if (suppliersList.length === 1 && !preferences.defaultSupplierId) setPreference('defaultSupplierId', value)
   }
 
   function handleClientChange(id: string | null, name: string) {
@@ -456,23 +399,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   function handleSupplierCreated(supplier: PersonalSupplierWithRules) {
     setSuppliersList((prev) => {
       const exists = prev.some((s) => s.id === supplier.id)
-      if (exists) {
-        return prev.map((s) => (s.id === supplier.id ? supplier : s))
-      }
-      return [...prev, supplier]
+      return exists ? prev.map((s) => (s.id === supplier.id ? supplier : s)) : [...prev, supplier]
     })
-    setTimeout(() => {
-      setSupplierId(supplier.id)
-    }, 0)
+    setTimeout(() => setSupplierId(supplier.id), 0)
   }
 
   function handleProductCreated(product: Product) {
-    // Auto-select the newly created product in the current entry
-    if (productSearchOpen.entryId) {
-      const entryId = productSearchOpen.entryId
+    if (editingEntryId) {
       setValueEntries((prev) =>
         prev.map((entry) => {
-          if (entry.id === entryId) {
+          if (entry.id === editingEntryId) {
             return {
               ...entry,
               productId: product.id,
@@ -485,26 +421,12 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       )
       toast.success(`Item ${product.name} criado e selecionado`)
     }
-    
-    // Trigger refresh of products list
-    setProductRefreshTrigger((prev) => prev + 1)
     router.refresh()
-  }
-
-  function handleAddNewProduct() {
-    if (!supplierId) {
-      toast.error('Selecione um fornecedor primeiro')
-      return
-    }
-    setProductDialogOpen(true)
   }
 
   const handleFirstDateChange = (date: string) => {
     setFirstInstallmentDate(date)
-    if (date && saleDate) {
-      const days = calculateDaysFromDate(date, saleDate)
-      setFirstInstallmentDays(days)
-    }
+    if (date && saleDate) setFirstInstallmentDays(calculateDaysFromDate(date, saleDate))
   }
 
   const handleSaleDateChange = (date: string) => {
@@ -515,72 +437,42 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
 
   const handleQuickConditionBlur = () => {
     setIsUpdatingFromQuick(true)
-
     const normalized = quickCondition.replace(/[\s,-]+/g, '/')
-
     if (normalized.includes('...')) {
       setIsUpdatingFromQuick(false)
       return
     }
-
-    const parts = normalized
-      .split('/')
-      .map((p) => parseInt(p.trim()))
-      .filter((n) => !isNaN(n))
-
+    const parts = normalized.split('/').map((p) => parseInt(p.trim())).filter((n) => !isNaN(n))
     if (parts.length > 0) {
       const first = parts[0]
       const count = parts.length
-
       const badIndex = detectDescendingOrder(parts)
       if (badIndex !== null) {
-        setIrregularPatternWarning(
-          `A ${badIndex + 1}ª parcela (${parts[badIndex]} dias) deve ser maior que a ${badIndex}ª (${parts[badIndex - 1]} dias).`
-        )
+        setIrregularPatternWarning(`A ${badIndex + 1}ª parcela (${parts[badIndex]} dias) deve ser maior que a ${badIndex}ª (${parts[badIndex - 1]} dias).`)
         return
       }
-
       setIrregularPatternWarning(null)
-
       let detectedInterval = getSafeNumber(interval, 30)
-
-      if (parts.length > 1) {
-        detectedInterval = parts[1] - parts[0]
-      } else if (parts.length === 1 && first > 0) {
-        detectedInterval = 30
-      }
-
+      if (parts.length > 1) detectedInterval = parts[1] - parts[0]
+      else if (parts.length === 1 && first > 0) detectedInterval = 30
       if (detectedInterval <= 0) detectedInterval = 30
 
-      // Detect pattern from 2nd installment onwards (intervals between consecutive parts from index 1+)
       if (parts.length >= 2) {
-        const intervalsFrom2nd: number[] = []
-        for (let i = 1; i < parts.length; i++) {
-          intervalsFrom2nd.push(parts[i] - parts[i - 1])
-        }
-        // Pattern detected if all intervals from 2nd onward are equal
-        // For 2 parts, we have 1 interval — that's a pattern
+        const intervalsFrom2nd = []
+        for (let i = 1; i < parts.length; i++) intervalsFrom2nd.push(parts[i] - parts[i - 1])
         const patternInterval = intervalsFrom2nd.length >= 1 ? intervalsFrom2nd[intervalsFrom2nd.length - 1] : null
-        const hasPattern = patternInterval !== null && patternInterval > 0 &&
-          (intervalsFrom2nd.length <= 1 || intervalsFrom2nd.slice(1).every(i => i === intervalsFrom2nd[1]))
-
+        const hasPattern = patternInterval !== null && patternInterval > 0 && (intervalsFrom2nd.length <= 1 || intervalsFrom2nd.slice(1).every(i => i === intervalsFrom2nd[1]))
         setDetectedPattern(hasPattern ? { interval: patternInterval, count } : null)
-      } else {
-        setDetectedPattern(null)
-      }
+      } else setDetectedPattern(null)
 
-      // Check if intervals are irregular — store explicit days list
       const isRegular = parts.length <= 2 || parts.every((_, i) => i === 0 || parts[i] - parts[i - 1] === detectedInterval)
       setCustomDaysList(isRegular ? null : parts)
-
       setInstallments(count)
       setFirstInstallmentDays(first)
       setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
       setInterval(detectedInterval)
-
       setQuickCondition(parts.join('/'))
     }
-
     setTimeout(() => setIsUpdatingFromQuick(false), 100)
   }
 
@@ -588,10 +480,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (!detectedPattern) return
     const safeFirst = getSafeNumber(firstInstallmentDays, 0)
     const newCount = detectedPattern.count + 1
-    const newParts: number[] = []
-    for (let i = 0; i < newCount; i++) {
-      newParts.push(safeFirst + i * detectedPattern.interval)
-    }
+    const newParts = []
+    for (let i = 0; i < newCount; i++) newParts.push(safeFirst + i * detectedPattern.interval)
     setIsUpdatingFromQuick(true)
     setQuickCondition(newParts.join('/'))
     setCustomDaysList(null)
@@ -605,10 +495,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (!detectedPattern || detectedPattern.count <= 1) return
     const safeFirst = getSafeNumber(firstInstallmentDays, 0)
     const newCount = detectedPattern.count - 1
-    const newParts: number[] = []
-    for (let i = 0; i < newCount; i++) {
-      newParts.push(safeFirst + i * detectedPattern.interval)
-    }
+    const newParts = []
+    for (let i = 0; i < newCount; i++) newParts.push(safeFirst + i * detectedPattern.interval)
     setIsUpdatingFromQuick(true)
     setQuickCondition(newParts.join('/'))
     setCustomDaysList(null)
@@ -622,287 +510,156 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     setIrregularPatternWarning(null)
     setCustomDaysList(null)
     setDetectedPattern(null)
-
     if (value === '0') {
       setQuickCondition('0')
       setIsUpdatingFromQuick(true)
-      setInstallments(1)
-      setFirstInstallmentDays(0)
-      setFirstInstallmentDate(saleDate)
-      setInterval('')
+      setInstallments(1); setFirstInstallmentDays(0); setFirstInstallmentDate(saleDate); setInterval('')
       setHasChangedSteppers(true)
       setTimeout(() => setIsUpdatingFromQuick(false), 100)
       return
     }
     setQuickCondition(value)
-
     setTimeout(() => {
-      const parts = value
-        .split('/')
-        .map((p) => parseInt(p.trim()))
-        .filter((n) => !isNaN(n))
+      const parts = value.split('/').map((p) => parseInt(p.trim())).filter((n) => !isNaN(n))
       if (parts.length > 0) {
         const first = parts[0]
         const detectedInterval = parts.length > 1 ? parts[1] - parts[0] : 30
-        setInstallments(parts.length)
-        setFirstInstallmentDays(first)
-        setFirstInstallmentDate(calculateDateFromDays(first, saleDate))
-        setInterval(detectedInterval > 0 ? detectedInterval : 30)
+        setInstallments(parts.length); setFirstInstallmentDays(first); setFirstInstallmentDate(calculateDateFromDays(first, saleDate)); setInterval(detectedInterval > 0 ? detectedInterval : 30)
         setHasChangedSteppers(true)
       }
     }, 0)
   }
 
   useMemo(() => {
-    if (isUpdatingFromQuick) {
-      return
-    }
-
-    // Don't overwrite quickCondition when using custom (irregular) days
-    if (customDaysList) {
-      return
-    }
-
-    if (!sale && !hasChangedSteppers && !quickCondition) {
-      return
-    }
-
+    if (isUpdatingFromQuick || customDaysList || (!sale && !hasChangedSteppers && !quickCondition)) return
     const safeInstallments = getSafeNumber(installments, 1)
     const safeInterval = getSafeNumber(interval, 0)
     const safeFirstDays = getSafeNumber(firstInstallmentDays, safeInstallments === 1 ? 0 : 30)
-
-    // Don't generate condition if interval not yet chosen for multi-installment
-    if (safeInstallments > 1 && safeInterval <= 0) {
-      return
-    }
-
+    if (safeInstallments > 1 && safeInterval <= 0) return
     const parts = []
-    for (let i = 0; i < safeInstallments; i++) {
-      parts.push(safeFirstDays + i * safeInterval)
-    }
+    for (let i = 0; i < safeInstallments; i++) parts.push(safeFirstDays + i * safeInterval)
     setQuickCondition(parts.join('/'))
   }, [installments, interval, firstInstallmentDays, isUpdatingFromQuick, sale, hasChangedSteppers, quickCondition, customDaysList])
 
   const handleInstallmentsChange = (val: number) => {
     setInstallments(val)
     setHasChangedSteppers(true)
-    if (val === 1) {
-      setFirstInstallmentDays(0)
-      setFirstInstallmentDate(saleDate)
-    } else if (getSafeNumber(firstInstallmentDays, 0) <= 0) {
-      setFirstInstallmentDays(30)
-      setFirstInstallmentDate(calculateDateFromDays(30, saleDate))
-    }
+    if (val === 1) { setFirstInstallmentDays(0); setFirstInstallmentDate(saleDate) }
+    else if (getSafeNumber(firstInstallmentDays, 0) <= 0) { setFirstInstallmentDays(30); setFirstInstallmentDate(calculateDateFromDays(30, saleDate)) }
   }
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="w-full">
-        <div className="space-y-6">
-          <IdentificationSection
-            suppliers={suppliersList}
-            supplierId={supplierId}
-            clientId={clientId}
-            clientRefreshTrigger={clientRefreshTrigger}
-            showClient={isEdit || !!supplierId}
-            isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
-            onSupplierChange={handleSupplierChange}
-            onClientChange={handleClientChange}
-            onSupplierCreated={handleSupplierCreated}
-            onDefaultSupplierChange={(checked) => {
-              setPreference('defaultSupplierId', checked ? supplierId : null)
-            }}
-            onClientAddClick={(name) => {
-              setClientInitialName(name || '')
-              setClientDialogOpen(true)
-            }}
-          />
-
-          <div
-            ref={formBodyRef}
-            className={cn(
-              "grid transition-all duration-500 ease-in-out",
-              (isEdit || !!clientId)
-                ? "grid-rows-[1fr] opacity-100"
-                : "grid-rows-[0fr] opacity-0"
-            )}
-          >
-          <div className="overflow-hidden">
-          <div className="space-y-6">
-              <ValuesSection
-                informItems={informItems}
-                supplierId={supplierId}
-                valueEntries={valueEntries}
-                removingIds={removingIds}
-                swipedItemId={swipedItemId}
-                selectedSupplier={selectedSupplier}
-                onInformItemsChange={(checked) => {
-                  setInformItems(checked)
-                  setPreference('saleInformItems', checked)
-                }}
-                onAddValueEntry={handleAddValueEntry}
-                onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
-                onRemoveValueEntry={handleRemoveValueEntry}
-                onUpdateValueEntry={handleUpdateValueEntry}
-                onProductSearchClick={() => {}}
-                onSwipedItemIdChange={setSwipedItemId}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-                onEditingEntryClick={(entryId) => {
-                  setEditingEntryId(entryId)
-                  setIsDrawerOpen(true)
-                }}
-                calculateTieredRate={calculateTieredRate}
-              />
-
-              <PaymentConditionSection
-                saleDate={saleDate}
-                firstInstallmentDate={firstInstallmentDate}
-                installments={installments}
-                interval={interval}
-                firstInstallmentDays={firstInstallmentDays}
-                quickCondition={quickCondition}
-                irregularPatternWarning={irregularPatternWarning}
-                customDaysList={customDaysList}
-                detectedPattern={detectedPattern}
-                onPatternAdd={handlePatternAdd}
-                onPatternRemove={handlePatternRemove}
-                totalValue={totalValue}
-                grossTotal={valueEntries.reduce((sum, entry) => {
-                  const qty = informItems ? entry.quantity || 1 : 1
-                  return sum + qty * (parseFloat(entry.grossValue) || 0)
-                }, 0)}
-                totalCommission={valueEntries.reduce((sum, entry) => {
-                  const qty = informItems ? entry.quantity || 1 : 1
-                  const gross = parseFloat(entry.grossValue) || 0
-                  const taxRate = parseFloat(entry.taxRate) || 0
-                  const commRate = parseFloat(entry.commissionRate) || 0
-                  const base = qty * gross * (1 - taxRate / 100)
-                  return sum + base * (commRate / 100)
-                }, 0)}
-                onSaleDateChange={handleSaleDateChange}
-                onFirstInstallmentDateChange={handleFirstDateChange}
-                onInstallmentsChange={handleInstallmentsChange}
-                onIntervalChange={(val) => {
-                  setInterval(val)
-                  setHasChangedSteppers(true)
-                }}
-                onFirstInstallmentDaysChange={(val) => {
-                  setFirstInstallmentDays(val)
-                  setFirstInstallmentDate(calculateDateFromDays(val, saleDate))
-                  setHasChangedSteppers(true)
-                }}
-                onQuickConditionChange={(value) => {
-                  setQuickCondition(value)
-                  setIsUpdatingFromQuick(true)
-                  setIrregularPatternWarning(null)
-                }}
-                onQuickConditionBlur={handleQuickConditionBlur}
-                onClearCondition={() => {
-                  setQuickCondition('')
-                  setInstallments(1)
-                  setInterval('')
-                  setFirstInstallmentDays(0)
-                  setFirstInstallmentDate(saleDate)
-                  setIrregularPatternWarning(null)
-                  setCustomDaysList(null)
-                  setDetectedPattern(null)
-                  setHasChangedSteppers(false)
-                  setIsUpdatingFromQuick(false)
-                }}
-                onSelectSuggestion={handleSelectSuggestion}
-              />
-
-              <NotesSection notes={notes} onNotesChange={setNotes} />
-
-              <div className="flex justify-end gap-4 pb-10">
-                <Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={saving} size="lg">
-                  {saving ? 'Salvando...' : isEdit ? 'Salvar Alterações' : 'Salvar Venda'}
-                </Button>
+      <form id={formId} onSubmit={handleSubmit} className="w-full">
+        <div className="space-y-10 pt-4">
+          <Card className="border-border/60 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/40">
+                <div className="p-6 space-y-4">
+                  <h2 className="text-lg font-bold tracking-tight">Identificação</h2>
+                  <IdentificationSection
+                    suppliers={suppliersList}
+                    supplierId={supplierId}
+                    clientId={clientId}
+                    clientRefreshTrigger={clientRefreshTrigger}
+                    isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
+                    onSupplierChange={handleSupplierChange}
+                    onClientChange={handleClientChange}
+                    onSupplierCreated={handleSupplierCreated}
+                    onDefaultSupplierChange={(checked) => setPreference('defaultSupplierId', checked ? supplierId : null)}
+                    onClientAddClick={(name) => { setClientInitialName(name || ''); setClientDialogOpen(true) }}
+                  />
+                </div>
               </div>
-          </div>
-          </div>
-          </div>
+              <div ref={formBodyRef}>
+                <div>
+                  <div className="divide-y divide-border/40">
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-bold tracking-tight">Valores</h2>
+                        <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+                          <label htmlFor="inform-items-switch" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
+                          <Switch id="inform-items-switch" checked={informItems} onCheckedChange={(checked) => {
+                            if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
+                            setInformItems(checked); setPreference('saleInformItems', checked)
+                          }} className="scale-75 data-[state=checked]:bg-primary" />
+                        </div>
+                      </div>
+                      <ValuesSection
+                        informItems={informItems}
+                        supplierId={supplierId}
+                        valueEntries={valueEntries}
+                        removingIds={removingIds}
+                        swipedItemId={swipedItemId}
+                        selectedSupplier={selectedSupplier}
+                        onAddValueEntry={handleAddValueEntry}
+                        onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
+                        onRemoveValueEntry={handleRemoveValueEntry}
+                        onUpdateValueEntry={handleUpdateValueEntry}
+                        onProductSearchClick={() => {}}
+                        onSwipedItemIdChange={setSwipedItemId}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                        onEditingEntryClick={(entryId) => { setEditingEntryId(entryId); setIsDrawerOpen(true) }}
+                        calculateTieredRate={calculateTieredRate}
+                      />
+                    </div>
+                    <div className="p-6 space-y-4">
+                      <PaymentConditionSection
+                        saleDate={saleDate}
+                        firstInstallmentDate={firstInstallmentDate}
+                        installments={installments}
+                        interval={interval}
+                        firstInstallmentDays={firstInstallmentDays}
+                        quickCondition={quickCondition}
+                        irregularPatternWarning={irregularPatternWarning}
+                        customDaysList={customDaysList}
+                        detectedPattern={detectedPattern}
+                        onPatternAdd={handlePatternAdd}
+                        onPatternRemove={handlePatternRemove}
+                        totalValue={totalValue}
+                        grossTotal={valueEntries.reduce((sum, entry) => sum + (informItems ? entry.quantity || 1 : 1) * (parseFloat(entry.grossValue) || 0), 0)}
+                        totalCommission={valueEntries.reduce((sum, entry) => {
+                          const qty = informItems ? entry.quantity || 1 : 1
+                          const base = qty * (parseFloat(entry.grossValue) || 0) * (1 - (parseFloat(entry.taxRate) || 0) / 100)
+                          return sum + base * ((parseFloat(entry.commissionRate) || 0) / 100)
+                        }, 0)}
+                        onSaleDateChange={handleSaleDateChange}
+                        onFirstInstallmentDateChange={handleFirstDateChange}
+                        onInstallmentsChange={handleInstallmentsChange}
+                        onIntervalChange={(val) => { setInterval(val); setHasChangedSteppers(true) }}
+                        onFirstInstallmentDaysChange={(val) => { setFirstInstallmentDays(val); setFirstInstallmentDate(calculateDateFromDays(val, saleDate)); setHasChangedSteppers(true) }}
+                        onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                        onQuickConditionBlur={handleQuickConditionBlur}
+                        onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                        onSelectSuggestion={handleSelectSuggestion}
+                      />
+                    </div>
+                    <div className="p-6">
+                      <NotesSection notes={notes} onNotesChange={setNotes} />
+                    </div>
+                    <div className="p-6 rounded-b-xl bg-muted/5">
+                      <Button type="submit" disabled={saving} size="lg" className="w-full text-lg h-14">{saving ? 'Registrando...' : isEdit ? 'Salvar Alterações' : 'Registrar Venda'}</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </form>
-
-      <ClientDialog
-        open={clientDialogOpen}
-        onOpenChange={setClientDialogOpen}
-        onSuccess={handleClientCreated}
-        initialName={clientInitialName}
-      />
-
-
-      {supplierId && (
-        <ProductDialog
-          open={productDialogOpen}
-          onOpenChange={(open) => {
-            setProductDialogOpen(open)
-            if (!open) setEditProductDialogProduct(null)
-          }}
-          supplierId={supplierId}
-          product={editProductDialogProduct}
-          onProductCreated={handleProductCreated}
-          showSku={false}
-        />
-      )}
-
-      <InstallmentsSheet
-        open={installmentsSheetOpen}
-        onOpenChange={setInstallmentsSheetOpen}
-        saleDate={saleDate}
-        installments={getSafeNumber(installments, 1)}
-        interval={getSafeNumber(interval, 30)}
-        totalValue={totalValue}
-        commissionPercentage={null}
-      />
-
-      <MobileItemDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        entry={valueEntries.find((e) => e.id === editingEntryId) || null}
-        informItems={informItems}
-        supplierId={supplierId}
-        products={selectedProducts}
-        onProductSelect={(product) => {
-          if (!editingEntryId) return
-          const eid = editingEntryId
-
-          const newCommissionRate = getEffectiveRate(eid, 'commission', product.unit_price?.toString(), product.id)
-          const newTaxRate = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
-
-          setValueEntries((prev) =>
-            prev.map((entry) => {
-              if (entry.id === eid) {
-                return {
-                  ...entry,
-                  productId: product.id,
-                  productName: product.name,
-                  grossValue: product.unit_price?.toString() || entry.grossValue,
-                  commissionRate: String(newCommissionRate),
-                  taxRate: String(newTaxRate),
-                }
-              }
-              return entry
-            })
-          )
-          toast.success(`Item ${product.name} selecionado`)
-        }}
-        onEditProduct={(product) => {
-          setEditProductDialogProduct(product)
-          setProductDialogOpen(true)
-        }}
-        onUpdateEntry={handleUpdateValueEntry}
-        onDeleteEntry={(id) => {
-          handleRemoveValueEntry(id)
-          setIsDrawerOpen(false)
-        }}
-      />
+      <ClientDialog open={clientDialogOpen} onOpenChange={setClientDialogOpen} onSuccess={handleClientCreated} initialName={clientInitialName} />
+      {supplierId && <ProductDialog open={productDialogOpen} onOpenChange={(open) => { setProductDialogOpen(open); if (!open) setEditProductDialogProduct(null) }} supplierId={supplierId} product={editProductDialogProduct} onProductCreated={handleProductCreated} showSku={false} />}
+      <InstallmentsSheet open={installmentsSheetOpen} onOpenChange={setInstallmentsSheetOpen} saleDate={saleDate} installments={getSafeNumber(installments, 1)} interval={getSafeNumber(interval, 30)} totalValue={totalValue} commissionPercentage={null} />
+      <MobileItemDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} entry={valueEntries.find((e) => e.id === editingEntryId) || null} informItems={informItems} supplierId={supplierId} products={selectedProducts} onProductSelect={(product) => {
+        if (!editingEntryId) return
+        const eid = editingEntryId
+        const newComm = getEffectiveRate(eid, 'commission', product.unit_price?.toString(), product.id)
+        const newTax = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
+        setValueEntries((prev) => prev.map((entry) => entry.id === eid ? { ...entry, productId: product.id, productName: product.name, grossValue: product.unit_price?.toString() || entry.grossValue, commissionRate: String(newComm), taxRate: String(newTax) } : entry))
+        toast.success(`Item ${product.name} selecionado`)
+      }} onEditProduct={(product) => { setEditProductDialogProduct(product); setProductDialogOpen(true) }} onUpdateEntry={handleUpdateValueEntry} onDeleteEntry={(id) => { handleRemoveValueEntry(id); setIsDrawerOpen(false) }} />
     </>
   )
 }

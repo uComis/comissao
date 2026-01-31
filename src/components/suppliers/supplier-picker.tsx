@@ -54,6 +54,7 @@ type Props = {
   onChange: (value: string) => void
   onSupplierCreated?: (supplier: PersonalSupplierWithRules) => void
   onAddClick?: () => void
+  label?: string
   placeholder?: string
   className?: string
 }
@@ -64,7 +65,8 @@ export function SupplierPicker({
   onChange,
   onSupplierCreated,
   onAddClick,
-  placeholder = 'Selecione a pasta',
+  label = 'Fornecedor (Pasta)',
+  placeholder = 'Selecionar fornecedor',
   className,
 }: Props) {
   const isMobile = useIsMobile()
@@ -336,24 +338,22 @@ export function SupplierPicker({
           role="combobox"
           onClick={() => setOpen(true)}
           className={cn(
-            'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
+            'h-auto min-h-[60px] justify-between font-normal w-full rounded-xl bg-white !p-[15px]',
             !displayValue && 'text-muted-foreground',
             className
           )}
         >
-          <span className="flex items-center gap-3 truncate">
-            {displayValue ? (
-              <>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#409eff]/15 text-sm font-semibold text-[#409eff]">
-                  {getInitials(displayValue)}
-                </span>
+          <div className="flex flex-col items-start gap-0.5 truncate">
+            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+            <span className="flex items-center gap-3 truncate">
+              {displayValue ? (
                 <span className="font-medium text-foreground">{displayValue}</span>
-              </>
-            ) : (
-              placeholder
-            )}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              ) : (
+                <span className="text-muted-foreground/60">{placeholder}</span>
+              )}
+            </span>
+          </div>
+          <ChevronDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
 
         <Drawer open={open} onOpenChange={setOpen}>
@@ -386,24 +386,22 @@ export function SupplierPicker({
             role="combobox"
             aria-expanded={open}
             className={cn(
-              'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
+              'h-auto min-h-[60px] justify-between font-normal w-full rounded-xl bg-white !p-[15px]',
               !displayValue && 'text-muted-foreground',
               className
             )}
           >
-            <span className="flex items-center gap-3 truncate">
-              {displayValue ? (
-                <>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#409eff]/15 text-sm font-semibold text-[#409eff]">
-                    {getInitials(displayValue)}
-                  </span>
+            <div className="flex flex-col items-start gap-0.5 truncate">
+              <span className="text-xs font-medium text-muted-foreground">{label}</span>
+              <span className="flex items-center gap-3 truncate">
+                {displayValue ? (
                   <span className="font-medium text-foreground">{displayValue}</span>
-                </>
-              ) : (
-                placeholder
-              )}
-            </span>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                ) : (
+                  <span className="text-muted-foreground/60">{placeholder}</span>
+                )}
+              </span>
+            </div>
+            <ChevronDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -467,6 +465,17 @@ export function SupplierPicker({
                 </CommandGroup>
               )}
             </CommandList>
+            <div className="border-t p-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start text-sm"
+                onClick={handleAddNew}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar nova pasta
+              </Button>
+            </div>
           </Command>
         </PopoverContent>
       </Popover>

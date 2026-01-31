@@ -1,6 +1,7 @@
 export { AppSidebar } from './app-sidebar'
 export { BottomNav } from './bottom-nav'
 export { Header } from './header'
-export { PageHeader } from './page-header'
+export { LayoutPageHeader } from './page-header'
+export { PageHeaderProvider, useSetPageHeader, useHeaderActions } from './page-header-context'
 export { Providers } from './providers'
 export { ThemeToggle } from './theme-toggle'

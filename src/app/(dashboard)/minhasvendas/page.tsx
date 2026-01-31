@@ -1,10 +1,10 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, Rocket, PlusCircle } from 'lucide-react'
+import { Rocket, PlusCircle } from 'lucide-react'
 import { getPersonalSales } from '@/app/actions/personal-sales'
 import { PersonalSaleTable } from '@/components/sales'
-import { PageHeader } from '@/components/layout'
+import { MinhasVendasActions } from './page-header-setter'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function SalesContent() {
@@ -35,17 +35,7 @@ async function SalesContent() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Minhas Vendas" 
-        description="Clique na linha para visualizar ou clique com o botão direito para mais opções"
-      >
-        <Button asChild>
-          <Link href="/minhasvendas/nova">
-            <Plus className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Nova Venda</span>
-          </Link>
-        </Button>
-      </PageHeader>
+      <MinhasVendasActions />
       <PersonalSaleTable sales={sales} />
     </div>
   )

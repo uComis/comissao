@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { PageHeader } from '@/components/layout'
+import { useHeaderActions } from '@/components/layout'
 import { Search, MoreHorizontal, LogIn, Eye, Loader2 } from 'lucide-react'
 import { listAllUsers, loginAsUser } from '@/app/actions/admin'
 import { usePreferences } from '@/hooks/use-preferences'
@@ -66,7 +66,19 @@ export function UsersClient() {
   const [impersonateUser, setImpersonateUser] = useState<AdminUser | null>(null)
   const [impersonating, setImpersonating] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  
+
+  useHeaderActions(
+    <div className="relative">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        placeholder="Buscar por nome ou email..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-64 pl-9"
+      />
+    </div>
+  )
+
   const pageSize = preferences.adminUsersPageSize
 
   // Debounce da pesquisa
@@ -142,21 +154,6 @@ export function UsersClient() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Usuários"
-        description="Gerencie os usuários do sistema"
-      >
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-64 pl-9"
-          />
-        </div>
-      </PageHeader>
-
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { Plus, Users, Download, Loader2 } from 'lucide-react'
-import { PageHeader } from '@/components/layout'
+import { useHeaderActions } from '@/components/layout'
 import type { SellerWithRule, IntegrationWithType } from '@/types'
 
 export default function VendedoresPage() {
@@ -21,6 +21,25 @@ export default function VendedoresPage() {
   const [showInactive, setShowInactive] = useState(false)
   const [integration, setIntegration] = useState<IntegrationWithType | null>(null)
   const [importing, setImporting] = useState(false)
+
+  useHeaderActions(
+    <>
+      {integration && (
+        <Button variant="outline" onClick={handleImportSellers} disabled={importing}>
+          {importing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          {importing ? 'Importando...' : 'Importar'}
+        </Button>
+      )}
+      <Button onClick={() => setDialogOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" />
+        Novo Vendedor
+      </Button>
+    </>
+  )
 
   const loadSellers = useCallback(async () => {
     if (!organization) return
@@ -92,26 +111,6 @@ export default function VendedoresPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Vendedores" 
-        description="Gerencie os vendedores da sua organização"
-      >
-        {integration && (
-          <Button variant="outline" onClick={handleImportSellers} disabled={importing}>
-            {importing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            {importing ? 'Importando...' : 'Importar'}
-          </Button>
-        )}
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Vendedor
-        </Button>
-      </PageHeader>
-
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

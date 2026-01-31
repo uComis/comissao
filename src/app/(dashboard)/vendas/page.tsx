@@ -53,7 +53,7 @@ import {
 } from '@/components/ui/pagination'
 import { toast } from 'sonner'
 import { usePreferences } from '@/hooks/use-preferences'
-import { PageHeader } from '@/components/layout'
+import { useHeaderActions } from '@/components/layout'
 import type { SaleWithCommission } from '@/types'
 
 function formatCurrency(value: number): string {
@@ -283,6 +283,55 @@ export default function VendasPage() {
     }
   }
 
+  useHeaderActions(
+    <>
+      <Select value={period} onValueChange={setPeriod}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Selecione o período" />
+        </SelectTrigger>
+        <SelectContent>
+          {periods.map((p) => (
+            <SelectItem key={p.value} value={p.value}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        onClick={() => setShowCloseDialog(true)}
+        disabled={closing || totals.openCount === 0 || selectionType !== null}
+      >
+        <Lock className={`mr-2 h-4 w-4 ${closing ? 'animate-pulse' : ''}`} />
+        {closing ? 'Fechando...' : 'Fechar Período'}
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon" disabled={selectionType !== null}>
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleSync} disabled={syncing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Sincronizar vendas'}
+          </DropdownMenuItem>
+          {totals.closedCount > 0 && (
+            <DropdownMenuItem onClick={() => setSelectionType('reverse')}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Estornar comissões
+            </DropdownMenuItem>
+          )}
+          {sales.length > 0 && (
+            <DropdownMenuItem onClick={() => setSelectionType('delete')}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Excluir vendas
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </>
+  )
+
   if (orgLoading) {
     return (
       <div className="space-y-6">
@@ -298,55 +347,6 @@ export default function VendasPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Vendas" 
-        description="Vendas importadas do CRM"
-      >
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Selecione o período" />
-          </SelectTrigger>
-          <SelectContent>
-            {periods.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          onClick={() => setShowCloseDialog(true)}
-          disabled={closing || totals.openCount === 0 || selectionType !== null}
-        >
-          <Lock className={`mr-2 h-4 w-4 ${closing ? 'animate-pulse' : ''}`} />
-          {closing ? 'Fechando...' : 'Fechar Período'}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" disabled={selectionType !== null}>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleSync} disabled={syncing}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Sincronizando...' : 'Sincronizar vendas'}
-            </DropdownMenuItem>
-            {totals.closedCount > 0 && (
-              <DropdownMenuItem onClick={() => setSelectionType('reverse')}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Estornar comissões
-              </DropdownMenuItem>
-            )}
-            {sales.length > 0 && (
-              <DropdownMenuItem onClick={() => setSelectionType('delete')}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir vendas
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

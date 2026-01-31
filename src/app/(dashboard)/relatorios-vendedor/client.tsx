@@ -21,8 +21,6 @@ import { format, parseISO } from 'date-fns'
 import { PlusCircle, TrendingUp, Users, Package, PieChart as PieChartIcon, Rocket } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/layout'
-
 const chartConfig = {
   vendas: {
     label: 'Vendas',
@@ -146,11 +144,6 @@ export default function PersonalReportsClient() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Relatórios de Performance" 
-        description="Análise estratégica da sua carteira, fornecedores e resultados."
-      />
-
       <Tabs defaultValue="geral" className="space-y-4">
         <TabsList>
           <TabsTrigger value="geral">Visão Geral</TabsTrigger>

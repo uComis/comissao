@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Scale, Star, Layers } from 'lucide-react'
-import { PageHeader } from '@/components/layout'
+import { useHeaderActions } from '@/components/layout'
 import type { CommissionRuleWithSellers, Seller } from '@/types'
 
 export default function RegrasPage() {
@@ -19,6 +19,13 @@ export default function RegrasPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
+
+  useHeaderActions(
+    <Button onClick={() => setDialogOpen(true)}>
+      <Plus className="mr-2 h-4 w-4" />
+      Nova Regra
+    </Button>
+  )
 
   const loadData = useCallback(async () => {
     if (!organization) return
@@ -70,16 +77,6 @@ export default function RegrasPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Regras de Comissão" 
-        description="Configure as regras de cálculo de comissões"
-      >
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Regra
-        </Button>
-      </PageHeader>
-
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

@@ -1,35 +1,24 @@
 import { Suspense } from 'react'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
-import { PersonalSaleForm } from '@/components/sales'
-import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
+import { NovaVendaShell } from './shell'
 
 async function NovaVendaContent() {
   const suppliers = await getPersonalSuppliers()
-  
+
   // Buscar produtos de cada fornecedor
   const productsBySupplier: Record<string, Awaited<ReturnType<typeof getProductsBySupplier>>> = {}
-  
+
   for (const supplier of suppliers) {
     productsBySupplier[supplier.id] = await getProductsBySupplier(supplier.id)
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-5 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
-        <PageHeader
-          title="Registro de venda"
-        />
-      </div>
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both delay-150">
-        <PersonalSaleForm
-          suppliers={suppliers}
-          productsBySupplier={productsBySupplier}
-        />
-      </div>
-    </div>
+    <NovaVendaShell
+      suppliers={suppliers}
+      productsBySupplier={productsBySupplier}
+    />
   )
 }
 
@@ -54,4 +43,3 @@ export default function NovaVendaPage() {
     </div>
   )
 }
-

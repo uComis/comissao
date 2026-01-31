@@ -3,10 +3,8 @@ import { notFound } from 'next/navigation'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
-import { PersonalSaleForm } from '@/components/sales'
-import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
+import { EditarVendaShell } from './shell'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -29,18 +27,12 @@ async function EditarVendaContent({ id }: { id: string }) {
   }
 
   return (
-    <>
-      <PageHeader 
-        title="Editar Venda" 
-        description="Altere os dados da venda"
-      />
-      <PersonalSaleForm
-        suppliers={suppliers}
-        productsBySupplier={productsBySupplier}
-        sale={sale}
-        mode="edit"
-      />
-    </>
+    <EditarVendaShell
+      suppliers={suppliers}
+      productsBySupplier={productsBySupplier}
+      sale={sale}
+      backHref={`/minhasvendas/${id}`}
+    />
   )
 }
 
@@ -67,4 +59,3 @@ export default async function EditarVendaPage({ params }: Props) {
     </div>
   )
 }
-

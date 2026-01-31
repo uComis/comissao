@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { ArrowLeft, LogIn, Building2, ShoppingCart, Calendar, Mail, Shield, Loader2 } from 'lucide-react'
+import { LogIn, Building2, ShoppingCart, Calendar, Mail, Shield, Loader2 } from 'lucide-react'
+import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 import { loginAsUser } from '@/app/actions/admin'
 import { toast } from 'sonner'
 import { format, formatDistanceToNow } from 'date-fns'
@@ -46,6 +46,16 @@ export function UserDetailsClient({ user }: Props) {
   const router = useRouter()
   const [showImpersonateDialog, setShowImpersonateDialog] = useState(false)
   const [impersonating, setImpersonating] = useState(false)
+
+  useSetPageHeader({ title: 'Detalhes do Usuário', description: 'Informações completas do usuário', backHref: '/admin/usuarios' })
+  useHeaderActions(
+    !user.is_super_admin ? (
+      <Button onClick={() => setShowImpersonateDialog(true)}>
+        <LogIn className="h-4 w-4 mr-2" />
+        Logar como
+      </Button>
+    ) : null
+  )
 
   const handleImpersonate = async () => {
     setImpersonating(true)
@@ -85,27 +95,6 @@ export function UserDetailsClient({ user }: Props) {
 
   return (
     <div className="container py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/admin/usuarios">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Detalhes do Usuário</h1>
-          <p className="text-muted-foreground">
-            Informações completas do usuário
-          </p>
-        </div>
-        {!user.is_super_admin && (
-          <Button onClick={() => setShowImpersonateDialog(true)}>
-            <LogIn className="h-4 w-4 mr-2" />
-            Logar como
-          </Button>
-        )}
-      </div>
-
       <div className="grid gap-6 md:grid-cols-2">
         {/* Card Principal */}
         <Card>

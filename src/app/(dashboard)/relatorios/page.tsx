@@ -18,8 +18,6 @@ import { Label } from '@/components/ui/label'
 import type { Seller } from '@/types'
 
 import { BillingCompositionChart } from '@/components/dashboard'
-import { PageHeader } from '@/components/layout'
-
 type ReportData = {
   gross: number
   deduction: number
@@ -104,11 +102,6 @@ export default function RelatoriosPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Relatórios" 
-        description="Visão consolidada para fechamento" 
-      />
-
       {/* Filtros */}
       <Card>
         <CardHeader>

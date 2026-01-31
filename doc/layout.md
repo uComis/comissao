@@ -2,59 +2,110 @@
 
 Documentação dos componentes padronizados de estrutura de página.
 
-## PageHeader
+## PageHeader (Context-based)
 
-Cabeçalho padrão para todas as páginas de listagem/gestão.
+O cabeçalho de página é renderizado **uma única vez no layout** (`LayoutPageHeader`). Cada página define seu título/ações via hooks de contexto.
 
-**Localização:** `src/components/layout/page-header.tsx`
+### Arquitetura
 
-### Props
+| Arquivo | Responsabilidade |
+|---------|-----------------|
+| `src/components/layout/page-header-context.tsx` | `PageHeaderProvider`, `useSetPageHeader`, `useHeaderActions` |
+| `src/components/layout/page-header.tsx` | `LayoutPageHeader` — lê do context e renderiza |
+| `src/lib/route-config.ts` | Mapa estático rota → título/descrição (fallback) |
+| `src/app/(dashboard)/route-page-header.tsx` | Aplica fallback do route-config automaticamente |
 
-| Prop          | Tipo        | Obrigatório | Descrição                         |
-| ------------- | ----------- | ----------- | --------------------------------- |
-| `title`       | `string`    | Sim         | Título principal da página        |
-| `description` | `string`    | Não         | Descrição/subtítulo               |
-| `children`    | `ReactNode` | Não         | Slot para ações (botões, filtros) |
+### Como funciona
 
-### Uso
+1. O **layout** envolve children com `<PageHeaderProvider>` e renderiza `<LayoutPageHeader />`
+2. O `<RoutePageHeader />` aplica título/descrição do `route-config.ts` como fallback
+3. Cada **página** pode sobrescrever via hooks:
+   - `useSetPageHeader({ title, description?, backHref? })` — define título
+   - `useHeaderActions(<JSX>)` — define botões de ação
+
+### Comportamento sticky
+
+O PageHeader é **sempre sticky** (`sticky top-20 md:top-0 z-20 bg-background`). No mobile, compensa a altura do header global (`top-20`). No desktop, usa `top-0`.
+
+### Uso — Página simples (apenas route-config)
+
+Se a rota está em `route-config.ts`, não precisa de hook nenhum. O título aparece automaticamente.
+
+### Uso — Página com ações (client component)
 
 ```tsx
-import { PageHeader } from '@/components/layout'
+'use client'
+import { useHeaderActions } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
-;<PageHeader title="Meus Clientes" description="Gerencie sua carteira de clientes">
-  <Button>
-    <Plus className="h-4 w-4 md:mr-2" />
-    <span className="hidden md:inline">Novo Cliente</span>
-  </Button>
-</PageHeader>
+
+export function ClientesClient() {
+  useHeaderActions(
+    <Button>
+      <Plus className="h-4 w-4 md:mr-2" />
+      <span className="hidden md:inline">Novo Cliente</span>
+    </Button>
+  )
+
+  return <div>...</div>
+}
 ```
 
-### Padrão Visual
+### Uso — Página com título dinâmico
 
+```tsx
+'use client'
+import { useSetPageHeader, useHeaderActions } from '@/components/layout'
+
+export function SaleDetail({ sale }: Props) {
+  useSetPageHeader({
+    title: 'Detalhes da Venda',
+    description: `${sale.client_name} - ${sale.date}`,
+    backHref: '/minhasvendas',
+  })
+
+  useHeaderActions(
+    <Button asChild>
+      <Link href={`/minhasvendas/${sale.id}/editar`}>Editar</Link>
+    </Button>
+  )
+
+  return <div>...</div>
+}
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Título da Página                              [ Ação ]     │
-│  Descrição opcional em texto menor                          │
-└─────────────────────────────────────────────────────────────┘
+
+### Uso — Server component com ações
+
+Crie um componente client auxiliar que chama os hooks e retorna `null`:
+
+```tsx
+// page-header-setter.tsx
+'use client'
+import { useHeaderActions } from '@/components/layout'
+
+export function MyPageActions() {
+  useHeaderActions(<Button>Ação</Button>)
+  return null
+}
+
+// page.tsx (server)
+import { MyPageActions } from './page-header-setter'
+
+export default function Page() {
+  return <>
+    <MyPageActions />
+    {/* rest of page */}
+  </>
+}
 ```
 
 ### Regras
 
-- **Sempre usar** em páginas de listagem (clientes, vendas, fornecedores, etc.)
-- **Botões de ação** ficam no slot `children`, alinhados à direita
+- **Nunca importar `PageHeader` diretamente** — use os hooks
+- **`useHeaderActions` deve ser chamado incondicionalmente** (regra de hooks). Condições ficam dentro do JSX
 - **Ícones em botões**: visíveis sempre, texto visível apenas em telas maiores (`hidden md:inline`)
-
----
-
-## Páginas que usam
-
-| Página            | Título        | Ações        |
-| ----------------- | ------------- | ------------ |
-| `/clientes`       | Meus Clientes | Novo Cliente |
-| `/minhasvendas`   | Minhas Vendas | Nova Venda   |
-| `/fornecedores`   | Minhas Pastas | Adicionar    |
-| `/admin/usuarios` | Usuários      | Busca        |
+- **Back button**: usar `backHref` no `useSetPageHeader`
+- **Novas rotas simples**: adicionar em `route-config.ts` e não precisa de hook
 
 ---
 
@@ -201,6 +252,63 @@ Expandido:
 ### Onde usar
 
 Qualquer formulário de criação rápida: novo cliente, nova venda, novo fornecedor, nova regra, etc.
+
+---
+
+## DashedActionButton
+
+Botão dashed para ações de seção — adicionar valor, configurar pagamento, etc.
+
+**Localização:** `src/components/ui/dashed-action-button.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|-------------|-----------|
+| `icon` | `ReactNode` | Não | Ícone à esquerda (ex: `<Plus className="h-4 w-4" />`) |
+| `prominent` | `boolean` | Não | Seção vazia — aumenta altura para `h-16` e borda mais visível |
+| `className` | `string` | Não | Classes extras |
+| `children` | `ReactNode` | Sim | Texto do botão |
+
+Herda todas as props de `<button>`.
+
+### Padrão Visual
+
+```
+Estado normal (h-12):
+┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
+│      [icon]  Texto da ação          │
+└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+
+Estado prominent (h-16, seção vazia):
+┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐
+│                                      │
+│      [icon]  Texto da ação           │
+│                                      │
+└─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘
+```
+
+### Uso
+
+```tsx
+import { DashedActionButton } from '@/components/ui/dashed-action-button'
+import { Plus } from 'lucide-react'
+
+<DashedActionButton
+  icon={<Plus className="h-4 w-4" />}
+  prominent={isEmpty}
+  onClick={handleAdd}
+>
+  Adicionar valor
+</DashedActionButton>
+```
+
+### Regras
+
+- **Cores muted** — cinza discreto, não compete com conteúdo
+- **`prominent`** apenas quando a seção está vazia (chama atenção para a primeira ação)
+- **Ícone h-4 w-4** — padrão para manter consistência
+- **Sempre `type="button"`** — já definido internamente
 
 ---
 

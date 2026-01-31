@@ -10,9 +10,9 @@ import { RuleForm, type RuleFormRef } from '@/components/rules'
 import { ProductTable, ProductDialog } from '@/components/products'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2, Plus, Package, Trash2, Edit2, Star } from 'lucide-react'
+import { Loader2, Plus, Package, Trash2, Edit2, Star } from 'lucide-react'
 import Link from 'next/link'
-import { PageHeader } from '@/components/layout'
+import { useSetPageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
 import type { Product, CommissionRule } from '@/types'
 import {
@@ -55,6 +55,12 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
 
   const isEditing = !!supplier
+
+  useSetPageHeader({
+    title: isEditing ? 'Editar Pasta' : 'Nova Pasta',
+    description: isEditing ? 'Atualize os dados do fornecedor' : 'Cadastre uma nova empresa/fábrica que você representa',
+    backHref: '/fornecedores',
+  })
 
   function formatCnpj(value: string): string {
     const digits = value.replace(/\D/g, '').slice(0, 14)
@@ -221,18 +227,6 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/fornecedores">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <PageHeader 
-          title={isEditing ? 'Editar Pasta' : 'Nova Pasta'}
-          description={isEditing ? 'Atualize os dados do fornecedor' : 'Cadastre uma nova empresa/fábrica que você representa'}
-        />
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grid 2 colunas no desktop */}
         <div className="grid gap-6 md:grid-cols-2">

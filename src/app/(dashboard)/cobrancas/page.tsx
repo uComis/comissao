@@ -1,7 +1,6 @@
 import { Suspense } from 'react'
 import { getInvoicesAction } from '@/app/actions/billing'
 import { CobrancasClient } from './client'
-import { PageHeader } from '@/components/layout'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata = {
@@ -13,11 +12,6 @@ export default async function CobrancasPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Faturamento e Cobranças" 
-        description="Gerencie seus pagamentos, histórico de faturas e status da sua assinatura."
-      />
-
       <Suspense fallback={<CobrancasSkeleton />}>
         <CobrancasClient initialInvoices={invoices} />
       </Suspense>

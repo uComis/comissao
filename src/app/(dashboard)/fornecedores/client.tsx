@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Building2 } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
-import { PageHeader } from '@/components/layout'
+import { useHeaderActions } from '@/components/layout'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
 type Props = {
@@ -17,7 +17,14 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   const router = useRouter()
   const [suppliers, setSuppliers] = useState(initialSuppliers)
   const [dialogOpen, setDialogOpen] = useState(false)
-  
+
+  useHeaderActions(
+    <Button size="sm" onClick={() => setDialogOpen(true)}>
+      <Plus className="h-4 w-4 md:mr-2" />
+      <span className="hidden md:inline">Adicionar</span>
+    </Button>
+  )
+
   const hasSuppliers = suppliers.length > 0
 
   function handleSupplierCreated(newSupplier: PersonalSupplierWithRules) {
@@ -27,16 +34,6 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Minhas Pastas" 
-        description="Empresas que você representa"
-      >
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 md:mr-2" />
-          <span className="hidden md:inline">Adicionar</span>
-        </Button>
-      </PageHeader>
-
       {hasSuppliers ? (
         <SupplierTable suppliers={suppliers} />
       ) : (

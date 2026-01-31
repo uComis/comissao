@@ -30,7 +30,7 @@ import {
 } from '@/components/dashboard'
 import { Button } from '@/components/ui/button'
 import { Printer } from 'lucide-react'
-import { PageHeader } from '@/components/layout'
+import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 import type { DashboardSummary, DashboardHistory } from '@/types'
 
 function formatCurrency(value: number): string {
@@ -126,6 +126,31 @@ export default function DashboardPage() {
     loadHistory()
   }, [loadHistory])
 
+  useSetPageHeader({ title: 'Dashboard', description: `Resumo de ${formatPeriodLabel(period)}` })
+  useHeaderActions(
+    <>
+      <Select value={period} onValueChange={setPeriod}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Selecione o período" />
+        </SelectTrigger>
+        <SelectContent>
+          {periods.map((p) => (
+            <SelectItem key={p.value} value={p.value}>
+              {p.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        variant="outline"
+        onClick={() => window.open(`/impressao/dashboard?mes=${period}`, '_blank')}
+      >
+        <Printer className="h-4 w-4 mr-2" />
+        Imprimir
+      </Button>
+    </>
+  )
+
   if (orgLoading) {
     return (
       <div className="space-y-6">
@@ -150,30 +175,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Dashboard" 
-        description={`Resumo de ${formatPeriodLabel(period)}`}
-      >
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Selecione o período" />
-          </SelectTrigger>
-          <SelectContent>
-            {periods.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
-                {p.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant="outline"
-          onClick={() => window.open(`/impressao/dashboard?mes=${period}`, '_blank')}
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Imprimir
-        </Button>
-      </PageHeader>
 
       {/* Gráfico de evolução multi-série */}
       <EvolutionChart data={history?.periods ?? []} loading={historyLoading} />

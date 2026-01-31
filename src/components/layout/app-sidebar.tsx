@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from '@/components/ui/sidebar'
-import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug, Mail } from 'lucide-react'
+import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug, Mail, PanelLeft } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -24,6 +24,8 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { UsageWidget } from '@/components/billing/usage-widget'
 import { UserControl } from './user-control'
+import { ThemeToggle } from './theme-toggle'
+import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
 
 type UserMode = 'personal' | 'organization' | null
@@ -109,10 +111,12 @@ export function AppSidebar() {
 
   if (!mounted) return null
 
+  const { toggleSidebar } = useSidebar()
+
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader>
-        <div className="flex items-center justify-center px-4 py-[clamp(1.5rem,5vh,2.5rem)]">
+        <div className="flex items-center justify-between px-4 py-[clamp(1.5rem,5vh,2.5rem)]">
           <Image
             src={logoSrc}
             alt="uComis"
@@ -121,6 +125,13 @@ export function AppSidebar() {
             priority
             className="h-7 w-auto opacity-90 hover:opacity-100 transition-opacity"
           />
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors"
+            aria-label="Recolher menu"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -209,6 +220,9 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
+        <div className="hidden md:flex items-center justify-center py-1">
+          <ThemeToggle />
+        </div>
         {/* User Control - Desktop only */}
         <div className="hidden md:block">
           <UserControl />

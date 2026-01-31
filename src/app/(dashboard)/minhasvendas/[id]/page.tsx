@@ -1,7 +1,5 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -13,11 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, Pencil } from 'lucide-react'
 import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getReceivables } from '@/app/actions/receivables'
 import { ReceivablesCard } from '@/components/sales'
-import { PageHeader } from '@/components/layout'
+import { SaleDetailHeader } from './page-header-setter'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -128,26 +125,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href="/minhasvendas">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <PageHeader 
-            title="Detalhes da Venda" 
-            description={`${sale.client_name} - ${formatDate(sale.sale_date)}`}
-          >
-            <Button asChild>
-              <Link href={`/minhasvendas/${id}/editar`}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
-              </Link>
-            </Button>
-          </PageHeader>
-        </div>
-      </div>
+      <SaleDetailHeader id={id} clientName={sale.client_name} saleDate={formatDate(sale.sale_date)} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         {/* Coluna Esquerda (maior) */}

@@ -52,6 +52,7 @@ type Props = {
   value: string | null
   onChange: (clientId: string | null, clientName: string) => void
   onAddClick?: () => void
+  label?: string
   placeholder?: string
   className?: string
   refreshTrigger?: number
@@ -61,7 +62,8 @@ export function ClientPicker({
   value,
   onChange,
   onAddClick,
-  placeholder = 'Selecionar cliente...',
+  label = 'Cliente',
+  placeholder = 'Selecionar cliente',
   className,
   refreshTrigger = 0,
 }: Props) {
@@ -364,26 +366,24 @@ export function ClientPicker({
           onClick={() => setOpen(true)}
           disabled={loadingClients}
           className={cn(
-            'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
+            'h-auto min-h-[60px] justify-between font-normal w-full rounded-xl bg-white !p-[15px]',
             !displayValue && 'text-muted-foreground',
             className
           )}
         >
-          <span className="flex items-center gap-3 truncate">
-            {loadingClients ? (
-              'Carregando...'
-            ) : displayValue ? (
-              <>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
-                  {getInitials(displayValue)}
-                </span>
+          <div className="flex flex-col items-start gap-0.5 truncate">
+            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+            <span className="flex items-center gap-3 truncate">
+              {loadingClients ? (
+                'Carregando...'
+              ) : displayValue ? (
                 <span className="font-medium text-foreground">{displayValue}</span>
-              </>
-            ) : (
-              placeholder
-            )}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              ) : (
+                <span className="text-muted-foreground/60">{placeholder}</span>
+              )}
+            </span>
+          </div>
+          <ChevronDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
 
         <Drawer open={open} onOpenChange={setOpen}>
@@ -417,26 +417,24 @@ export function ClientPicker({
             aria-expanded={open}
             disabled={loadingClients}
             className={cn(
-              'h-[60px] justify-between font-normal w-full rounded-xl bg-white',
+              'h-auto min-h-[60px] justify-between font-normal w-full rounded-xl bg-white !p-[15px]',
               !displayValue && 'text-muted-foreground',
               className
             )}
           >
-            <span className="flex items-center gap-3 truncate">
-              {loadingClients ? (
-                'Carregando...'
-              ) : displayValue ? (
-                <>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f59e0b]/15 text-sm font-semibold text-[#f59e0b]">
-                    {getInitials(displayValue)}
-                  </span>
+            <div className="flex flex-col items-start gap-0.5 truncate">
+              <span className="text-xs font-medium text-muted-foreground">{label}</span>
+              <span className="flex items-center gap-3 truncate">
+                {loadingClients ? (
+                  'Carregando...'
+                ) : displayValue ? (
                   <span className="font-medium text-foreground">{displayValue}</span>
-                </>
-              ) : (
-                placeholder
-              )}
-            </span>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                ) : (
+                  <span className="text-muted-foreground/60">{placeholder}</span>
+                )}
+              </span>
+            </div>
+            <ChevronDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent
@@ -500,6 +498,17 @@ export function ClientPicker({
                 </CommandGroup>
               )}
             </CommandList>
+            <div className="border-t p-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start text-sm"
+                onClick={handleAddNew}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar novo cliente
+              </Button>
+            </div>
           </Command>
         </PopoverContent>
       </Popover>

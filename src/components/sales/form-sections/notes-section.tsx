@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useRef, useEffect, useState } from 'react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 
@@ -10,42 +10,42 @@ type NotesSectionProps = {
 
 export function NotesSection({ notes, onNotesChange }: NotesSectionProps) {
   const [open, setOpen] = useState(!!notes)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (open && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [open])
 
   return (
-    <div>
-      <div className={cn(
-        "grid transition-all duration-300 ease-in-out",
-        !open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-      )}>
-        <div className="overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-          >
-            + Observação
-          </button>
-        </div>
-      </div>
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center justify-between w-full py-1 group"
+      >
+        <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">Observações</span>
+        {open ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        )}
+      </button>
 
       <div className={cn(
         "grid transition-all duration-300 ease-in-out",
         open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
       )}>
         <div className="overflow-hidden">
-          <Card>
-            <CardHeader>
-              <CardTitle>Observações</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                placeholder="Anotações sobre a venda..."
-                rows={4}
-              />
-            </CardContent>
-          </Card>
+          <Textarea
+            ref={textareaRef}
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            placeholder="Anotações sobre a venda..."
+            rows={3}
+            className="rounded-xl focus-visible:ring-0 focus-visible:border-primary/50"
+          />
         </div>
       </div>
     </div>

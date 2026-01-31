@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/collapsible"
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PageHeader } from '@/components/layout'
 import {
   Item,
   ItemActions,
@@ -282,11 +281,6 @@ export default function MinhaContaPage() {
 
   return (
     <div className="space-y-6 max-w-2xl md:mx-auto">
-      <PageHeader
-        title="Minha Conta"
-        description="Gerencie suas informações"
-      />
-
       <div className="relative overflow-hidden">
         {/* Menu List */}
         <div
