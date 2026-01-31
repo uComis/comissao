@@ -47,7 +47,7 @@ export function UserDetailsClient({ user }: Props) {
   const [showImpersonateDialog, setShowImpersonateDialog] = useState(false)
   const [impersonating, setImpersonating] = useState(false)
 
-  useSetPageHeader({ title: 'Detalhes do Usuário', description: 'Informações completas do usuário', backHref: '/admin/usuarios' })
+  useSetPageHeader({ title: 'Detalhes do Usuário', backHref: '/admin/usuarios' })
   useHeaderActions(
     !user.is_super_admin ? (
       <Button onClick={() => setShowImpersonateDialog(true)}>

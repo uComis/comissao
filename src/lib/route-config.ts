@@ -1,6 +1,5 @@
 type RouteConfig = {
   title: string
-  description?: string
   backHref?: string
 }
 
@@ -8,21 +7,21 @@ export const routeConfigs: Record<string, RouteConfig> = {
   '/': { title: 'Dashboard' },
   '/dashboard': { title: 'Dashboard' },
   '/home': { title: 'Dashboard' },
-  '/recebiveis': { title: 'Faturamento', description: 'Resumo de fluxo de caixa e comissões.' },
-  '/clientes': { title: 'Meus Clientes', description: 'Gerencie sua carteira de clientes' },
-  '/minhasvendas': { title: 'Minhas Vendas', description: 'Clique na linha para visualizar ou clique com o botão direito para mais opções' },
+  '/recebiveis': { title: 'Faturamento' },
+  '/clientes': { title: 'Meus Clientes' },
+  '/minhasvendas': { title: 'Minhas Vendas' },
   '/minhasvendas/nova': { title: 'Registro de venda', backHref: '/minhasvendas' },
-  '/fornecedores': { title: 'Minhas Pastas', description: 'Empresas que você representa' },
-  '/fornecedores/novo': { title: 'Nova Pasta', description: 'Cadastre uma nova empresa/fábrica que você representa', backHref: '/fornecedores' },
-  '/vendedores': { title: 'Vendedores', description: 'Gerencie os vendedores da sua organização' },
-  '/vendas': { title: 'Vendas', description: 'Vendas importadas do CRM' },
-  '/regras': { title: 'Regras de Comissão', description: 'Configure as regras de cálculo de comissões' },
-  '/relatorios': { title: 'Relatórios', description: 'Visão consolidada para fechamento' },
-  '/relatorios-vendedor': { title: 'Relatórios de Performance', description: 'Análise estratégica da sua carteira, fornecedores e resultados.' },
-  '/configuracoes': { title: 'Configurações', description: 'Gerencie integrações e configurações da organização' },
-  '/minhaconta': { title: 'Minha Conta', description: 'Gerencie suas informações' },
-  '/admin/usuarios': { title: 'Usuários', description: 'Gerencie os usuários do sistema' },
-  '/cobrancas': { title: 'Faturamento e Cobranças', description: 'Gerencie seus pagamentos, histórico de faturas e status da sua assinatura.' },
+  '/fornecedores': { title: 'Minhas Pastas' },
+  '/fornecedores/novo': { title: 'Nova Pasta', backHref: '/fornecedores' },
+  '/vendedores': { title: 'Vendedores' },
+  '/vendas': { title: 'Vendas' },
+  '/regras': { title: 'Regras de Comissão' },
+  '/relatorios': { title: 'Relatórios' },
+  '/relatorios-vendedor': { title: 'Relatórios de Performance' },
+  '/configuracoes': { title: 'Configurações' },
+  '/minhaconta': { title: 'Minha Conta' },
+  '/admin/usuarios': { title: 'Usuários' },
+  '/cobrancas': { title: 'Faturamento e Cobranças' },
 }
 
 /**

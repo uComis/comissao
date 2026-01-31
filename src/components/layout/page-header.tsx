@@ -8,7 +8,7 @@ import { SidebarOpenTrigger } from './sidebar-open-trigger'
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
-  const { title, description, backHref } = usePageHeader()
+  const { title, backHref } = usePageHeader()
   const actions = usePageHeaderActions()
 
   const hasContent = title || actions
@@ -28,12 +28,7 @@ export function LayoutPageHeader() {
             </Button>
           )}
           {title && (
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
-              {description && (
-                <p className="text-sm text-muted-foreground truncate">{description}</p>
-              )}
-            </div>
+            <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
           )}
         </div>
         {actions && (

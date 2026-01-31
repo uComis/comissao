@@ -19,7 +19,7 @@ type Props = {
 export function EditarVendaShell({ suppliers, productsBySupplier, sale, backHref }: Props) {
   const [saving, setSaving] = useState(false)
 
-  useSetPageHeader({ title: 'Editar Venda', description: 'Altere os dados da venda', backHref })
+  useSetPageHeader({ title: 'Editar Venda', backHref })
   useHeaderActions(
     <>
       <Button variant="outline" asChild disabled={saving}>

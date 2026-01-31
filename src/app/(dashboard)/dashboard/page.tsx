@@ -126,7 +126,7 @@ export default function DashboardPage() {
     loadHistory()
   }, [loadHistory])
 
-  useSetPageHeader({ title: 'Dashboard', description: `Resumo de ${formatPeriodLabel(period)}` })
+  useSetPageHeader({ title: 'Dashboard' })
   useHeaderActions(
     <>
       <Select value={period} onValueChange={setPeriod}>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 
 export function SaleDetailHeader({ id, clientName, saleDate }: { id: string; clientName: string | null; saleDate: string }) {
-  useSetPageHeader({ title: 'Detalhes da Venda', description: `${clientName ?? ''} - ${saleDate}`, backHref: '/minhasvendas' })
+  useSetPageHeader({ title: 'Detalhes da Venda', backHref: '/minhasvendas' })
   useHeaderActions(
     <Button asChild>
       <Link href={`/minhasvendas/${id}/editar`}>
