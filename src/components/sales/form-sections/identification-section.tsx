@@ -70,7 +70,7 @@ export function IdentificationSection({
         </div>
 
         {/* Cliente */}
-        <div>
+        <div className="mt-3">
           <ClientPicker
             value={clientId}
             onChange={onClientChange}
