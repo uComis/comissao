@@ -220,7 +220,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
   useSetPageHeader({
     title: isHome ? 'Faturamento' : 'Recebíveis',
-    description: isHome ? 'Resumo de fluxo de caixa e comissões.' : 'Gerencie seu fluxo de comissões com precisão.',
   })
   useHeaderActions(
     !isEditMode ? (

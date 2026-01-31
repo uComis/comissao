@@ -1,17 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
 import { SidebarOpenTrigger } from './sidebar-open-trigger'
+import { useAiChat } from '@/components/ai-assistant'
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
   const { title, backHref } = usePageHeader()
   const actions = usePageHeaderActions()
-
-  const hasContent = title || actions
+  const { toggle: toggleAiChat } = useAiChat()
 
   return (
     <div className="bg-background border-b h-20 flex items-center relative">
@@ -31,11 +31,12 @@ export function LayoutPageHeader() {
             <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
           )}
         </div>
-        {actions && (
-          <div className="page-header-actions flex items-center gap-2 shrink-0">
-            {actions}
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="ghost" size="icon" onClick={toggleAiChat}>
+            <Sparkles className="h-4 w-4" />
+          </Button>
+          {actions && <div className="ml-2 flex items-center gap-2">{actions}</div>}
+        </div>
       </div>
     </div>
   )

@@ -4,8 +4,8 @@ import { createContext, useContext, useState, useEffect, useRef, useCallback, us
 
 type PageHeaderState = {
   title: string
-
   backHref?: string
+  taskMode?: boolean
 }
 
 type PageHeaderContextValue = {
@@ -69,17 +69,17 @@ export function usePageHeaderActions() {
 }
 
 /** Pages call this to set title/description/backHref */
-export function useSetPageHeader(opts: { title: string; backHref?: string }) {
+export function useSetPageHeader(opts: { title: string; backHref?: string; taskMode?: boolean }) {
   const { set, actionsRef, notifyActions } = useCtx()
   useEffect(() => {
     set(opts)
     return () => {
-      set({ title: '', backHref: undefined })
+      set({ title: '', backHref: undefined, taskMode: false })
       actionsRef.current = undefined
       notifyActions()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.title, opts.backHref, set, actionsRef, notifyActions])
+  }, [opts.title, opts.backHref, opts.taskMode, set, actionsRef, notifyActions])
 }
 
 /** Pages call this to set action buttons in the header */

@@ -465,7 +465,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       if (detectedInterval <= 0) detectedInterval = 30
 
       if (parts.length >= 2) {
-        const intervalsFrom2nd = []
+        const intervalsFrom2nd: number[] = []
         for (let i = 1; i < parts.length; i++) intervalsFrom2nd.push(parts[i] - parts[i - 1])
         const patternInterval = intervalsFrom2nd.length >= 1 ? intervalsFrom2nd[intervalsFrom2nd.length - 1] : null
         const hasPattern = patternInterval !== null && patternInterval > 0 && (intervalsFrom2nd.length <= 1 || intervalsFrom2nd.slice(1).every(i => i === intervalsFrom2nd[1]))

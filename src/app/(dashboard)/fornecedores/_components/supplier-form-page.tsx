@@ -58,7 +58,6 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
 
   useSetPageHeader({
     title: isEditing ? 'Editar Pasta' : 'Nova Pasta',
-    description: isEditing ? 'Atualize os dados do fornecedor' : 'Cadastre uma nova empresa/fábrica que você representa',
     backHref: '/fornecedores',
   })
 

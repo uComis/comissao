@@ -16,7 +16,7 @@ type Props = {
 export function NovaVendaShell({ suppliers, productsBySupplier }: Props) {
   const [saving, setSaving] = useState(false)
 
-  useSetPageHeader({ title: 'Registro de venda', backHref: '/minhasvendas' })
+  useSetPageHeader({ title: 'Registro de venda', backHref: '/minhasvendas', taskMode: true })
   useHeaderActions(
     <>
       <Button variant="outline" asChild disabled={saving}>
