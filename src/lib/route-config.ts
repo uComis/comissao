@@ -7,7 +7,7 @@ type RouteConfig = {
 export const routeConfigs: Record<string, RouteConfig> = {
   '/': { title: 'Dashboard' },
   '/dashboard': { title: 'Dashboard' },
-  '/home': { title: '' },
+  '/home': { title: 'Dashboard' },
   '/recebiveis': { title: 'Faturamento', description: 'Resumo de fluxo de caixa e comissões.' },
   '/clientes': { title: 'Meus Clientes', description: 'Gerencie sua carteira de clientes' },
   '/minhasvendas': { title: 'Minhas Vendas', description: 'Clique na linha para visualizar ou clique com o botão direito para mais opções' },

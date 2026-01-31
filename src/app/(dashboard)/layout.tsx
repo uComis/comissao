@@ -20,11 +20,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <SidebarInset className="flex flex-col">
           <PageHeaderProvider>
             <RoutePageHeader />
-            {/* Mobile: header com logo + theme + avatar + page header */}
+            {/* Mobile: unified header (logo on home, title on internal pages) */}
             <div className="sticky top-0 z-30 w-full bg-background md:hidden">
               <BillingBanners />
               <Header />
-              <LayoutPageHeader />
             </div>
             {/* Desktop: billing banners + page header (trigger inside) */}
             <div className="sticky top-0 z-30 w-full bg-background hidden md:block">
