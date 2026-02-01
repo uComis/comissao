@@ -53,7 +53,7 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}
-        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+        <div className="grid grid-cols-2 gap-2 md:gap-4 lg:col-span-2">
           <StatCard
             label="Minha Comissão"
             value={formatCurrency(cards?.commission.current || 0)}

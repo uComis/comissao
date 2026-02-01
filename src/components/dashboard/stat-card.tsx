@@ -157,8 +157,8 @@ export function StatCard({
         
         {/* Show circular progress in header if exists, otherwise show icon */}
         {progress !== undefined ? (
-          <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
-            <svg className="h-full w-full -rotate-90">
+          <div className="relative h-8 w-8 md:h-10 md:w-10 shrink-0 flex items-center justify-center">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 40 40">
               <circle
                 cx="20"
                 cy="20"
@@ -181,7 +181,7 @@ export function StatCard({
                 className={cn("transition-all duration-500", progressColorClass)}
               />
             </svg>
-            <span className={cn("absolute text-[10px] font-bold", progressColorClass)}>{Math.round(progress)}%</span>
+            <span className={cn("absolute text-[8px] md:text-[10px] font-bold", progressColorClass)}>{Math.round(progress)}%</span>
           </div>
         ) : (
           <Icon className={cn(
@@ -221,15 +221,15 @@ export function StatCard({
         </div>
         
         {remainingLabel && (
-          <p className={cn("text-[10px] font-semibold mt-2 truncate", progressColorClass)}>
+          <p className={cn("text-[9px] md:text-[10px] font-semibold mt-1 md:mt-2 truncate", progressColorClass)}>
             {remainingLabel}
           </p>
         )}
         {showTrend ? (
-          <div className="flex items-center gap-1 mt-2">
+          <div className="flex items-center gap-1 mt-1 md:mt-2">
             <span className={cn(
               "flex items-center font-medium",
-              "text-xs",
+              "text-[10px] md:text-xs",
               isPositive ? 'text-green-500' : 'text-red-500'
             )}>
               {isPositive ? (
@@ -240,10 +240,10 @@ export function StatCard({
               {isPositive ? '+' : ''}
               {displayPercentage}%
             </span>
-            <span className="text-muted-foreground" style={{ fontSize: '10px' }}>{percentageLabel}</span>
+            <span className="text-muted-foreground text-[9px] md:text-[10px]">{percentageLabel}</span>
           </div>
         ) : subtitle ? (
-          <p className="text-[10px] font-medium text-muted-foreground mt-1 uppercase">{subtitle}</p>
+          <p className="text-[9px] md:text-[10px] font-medium text-muted-foreground mt-1 uppercase">{subtitle}</p>
         ) : null}
       </CardContent>
 
