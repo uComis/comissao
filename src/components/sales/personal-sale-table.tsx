@@ -52,6 +52,20 @@ function formatDate(dateStr: string | null): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr + 'T00:00:00'))
 }
 
+function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDate()
+  const month = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  const year = d.getFullYear()
+  return `${day} ${month} ${year}`
+}
+
+function getCommissionPercent(gross: number | null, commission: number | null): string | null {
+  if (!gross || !commission || gross === 0) return null
+  return ((commission / gross) * 100).toFixed(1) + '%'
+}
+
 export function PersonalSaleTable({ sales }: Props) {
   const router = useRouter()
   const isMobile = useIsMobile()
@@ -160,12 +174,9 @@ export function PersonalSaleTable({ sales }: Props) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  {/* Sale Number + Cliente */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">#{sale.sale_number}</span>
-                    <div className="font-medium truncate">
-                      {sale.client_name || 'Cliente não informado'}
-                    </div>
+                  {/* Cliente */}
+                  <div className="font-medium truncate">
+                    {sale.client_name || 'Cliente não informado'}
                   </div>
 
                   {/* Fornecedor */}
@@ -194,7 +205,10 @@ export function PersonalSaleTable({ sales }: Props) {
                   </div>
 
                   {/* Comissão - destaque */}
-                  <div className="text-lg text-green-500 font-semibold">
+                  <div className={cn(
+                    "text-lg font-semibold",
+                    sale.commission_value && sale.commission_value > 0 ? "text-[#409eff]" : "text-muted-foreground"
+                  )}>
                     {formatCurrency(sale.commission_value)}
                   </div>
                 </div>
@@ -207,52 +221,55 @@ export function PersonalSaleTable({ sales }: Props) {
     )
   }
 
-  // Desktop: Table view
+  // Desktop: Table view (refined)
   return (
     <>
       <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">#</TableHead>
-              <TableHead>Data</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Fornecedor</TableHead>
+              <TableHead>Pasta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="text-right">Comissão</TableHead>
-              <TableHead className="w-[60px]"></TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sales.map((sale) => (
-              <TableRow 
-                key={sale.id}
-                className="cursor-pointer hover:bg-muted/50"
-                onClick={() => handleView(sale.id)}
-                onContextMenu={(e) => handleContextMenu(e, sale)}
-              >
-                <TableCell className="text-sm text-muted-foreground">
-                  #{sale.sale_number}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {formatDate(sale.sale_date)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {sale.client_name || '-'}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {sale.supplier?.name || '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrency(sale.gross_value)}
-                </TableCell>
-                <TableCell className="text-right text-green-600">
-                  {formatCurrency(sale.commission_value)}
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <ActionMenu sale={sale} />
-                </TableCell>
-              </TableRow>
-            ))}
+            {sales.map((sale) => {
+              const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
+              const hasCommission = sale.commission_value != null && sale.commission_value > 0
+
+              return (
+                <TableRow
+                  key={sale.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleView(sale.id)}
+                  onContextMenu={(e) => handleContextMenu(e, sale)}
+                >
+                  <TableCell className="py-3">
+                    <div className="font-medium">{sale.client_name || 'Cliente não informado'}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{formatDateShort(sale.sale_date)}</div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {sale.supplier?.name || '-'}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatCurrency(sale.gross_value)}
+                  </TableCell>
+                  <TableCell className="text-right py-3">
+                    <div className={cn("font-medium tabular-nums", hasCommission ? "text-[#409eff]" : "text-muted-foreground")}>
+                      {formatCurrency(sale.commission_value)}
+                    </div>
+                    {percent && (
+                      <div className="text-xs text-muted-foreground mt-0.5">{percent}</div>
+                    )}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <ActionMenu sale={sale} />
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
       </Table>
       <DeleteDialog />
