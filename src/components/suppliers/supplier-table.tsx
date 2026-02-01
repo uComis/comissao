@@ -38,6 +38,7 @@ import type { CommissionRule } from '@/types'
 
 type Props = {
   suppliers: PersonalSupplierWithRules[]
+  onDelete?: (id: string) => void
 }
 
 function formatCnpj(cnpj: string): string {
@@ -61,7 +62,7 @@ function getRuleDescription(rule: CommissionRule | null): string {
 }
 
 
-export function SupplierTable({ suppliers }: Props) {
+export function SupplierTable({ suppliers, onDelete }: Props) {
   const router = useRouter()
   const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -93,6 +94,7 @@ export function SupplierTable({ suppliers }: Props) {
       const result = await deletePersonalSupplier(deleteId)
       if (result.success) {
         toast.success('Fornecedor excluído')
+        onDelete?.(deleteId)
       } else {
         toast.error(result.error)
       }

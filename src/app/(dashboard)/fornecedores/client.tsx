@@ -35,7 +35,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   return (
     <div className="space-y-6">
       {hasSuppliers ? (
-        <SupplierTable suppliers={suppliers} />
+        <SupplierTable suppliers={suppliers} onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))} />
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">

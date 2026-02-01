@@ -24,7 +24,6 @@ import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { UsageWidget } from '@/components/billing/usage-widget'
 import { UserControl } from './user-control'
-import { ThemeToggle } from './theme-toggle'
 import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
 
@@ -219,9 +218,6 @@ export function AppSidebar() {
         )}
       </SidebarContent>
       <SidebarFooter>
-        <div className="hidden md:flex items-center justify-center py-1">
-          <ThemeToggle />
-        </div>
         {/* User Control - Desktop only */}
         <div className="hidden md:block">
           <UserControl />

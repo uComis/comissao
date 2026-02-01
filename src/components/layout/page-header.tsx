@@ -1,17 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { ArrowLeft, Sparkles, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
 import { SidebarOpenTrigger } from './sidebar-open-trigger'
 import { useAiChat } from '@/components/ai-assistant'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
   const { title, backHref } = usePageHeader()
   const actions = usePageHeaderActions()
   const { toggle: toggleAiChat } = useAiChat()
+  const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  const isDark = mounted && resolvedTheme === 'dark'
 
   return (
     <div className="bg-background border-b h-20 flex items-center relative">
@@ -32,6 +39,14 @@ export function LayoutPageHeader() {
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setTheme(isDark ? 'light' : 'dark')}>
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isDark ? 'Tema claro' : 'Tema escuro'}</TooltipContent>
+          </Tooltip>
           <Button variant="ghost" size="icon" onClick={toggleAiChat}>
             <Sparkles className="h-4 w-4" />
           </Button>
