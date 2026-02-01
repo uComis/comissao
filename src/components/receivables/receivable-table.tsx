@@ -81,9 +81,6 @@ export function ReceivableTable({
             <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3">
               Comissão
             </th>
-            <th className="text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-3 w-20">
-              Venda
-            </th>
           </tr>
         </thead>
         <tbody>
@@ -93,7 +90,7 @@ export function ReceivableTable({
             if (row.type === 'month') {
               return (
                 <tr key={`month-${row.month}`} className="bg-transparent">
-                  <td colSpan={isEditMode ? 6 : 5} className="px-4 pt-5 pb-2">
+                  <td colSpan={isEditMode ? 5 : 4} className="px-4 pt-5 pb-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-muted-foreground capitalize">
                         {row.month}
@@ -202,13 +199,6 @@ export function ReceivableTable({
                   >
                     {formatCurrency(r.expected_commission || 0)}
                   </span>
-                </td>
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  {r.sale_number && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      #{r.sale_number}
-                    </span>
-                  )}
                 </td>
               </tr>
             )
