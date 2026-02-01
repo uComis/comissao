@@ -89,7 +89,7 @@ export function BottomNav() {
         )}
         style={{ transitionDuration: `${ANIM_DURATION}ms` }}
       >
-        <div className="flex items-center justify-end gap-3">
+        <div className="grid grid-cols-2 gap-3 [&>*]:w-full [&>a]:w-full [&_a]:w-full [&_button]:w-full">
           {actions}
         </div>
       </div>
