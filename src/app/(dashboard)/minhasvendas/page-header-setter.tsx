@@ -7,10 +7,10 @@ import { Plus } from 'lucide-react'
 
 export function MinhasVendasActions() {
   useHeaderActions(
-    <Button asChild>
+    <Button asChild className="hidden md:inline-flex">
       <Link href="/minhasvendas/nova">
-        <Plus className="h-4 w-4 md:mr-2" />
-        <span className="hidden md:inline">Nova Venda</span>
+        <Plus className="h-4 w-4 mr-2" />
+        <span>Nova Venda</span>
       </Link>
     </Button>
   )

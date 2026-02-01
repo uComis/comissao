@@ -30,7 +30,7 @@ export function NovaVendaShell({ suppliers, productsBySupplier }: Props) {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mt-5 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both delay-150">
+      <div className="mt-2 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both delay-150">
         <PersonalSaleForm
           suppliers={suppliers}
           productsBySupplier={productsBySupplier}

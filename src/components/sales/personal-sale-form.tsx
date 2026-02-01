@@ -558,62 +558,59 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   return (
     <>
       <form id={formId} onSubmit={handleSubmit} className="w-full">
-        <div className="space-y-10 pt-4">
-          <Card className="border-border/60 shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="divide-y divide-border/40">
-                <div className="p-6 space-y-4">
-                  <h2 className="text-lg font-bold tracking-tight">Identificação</h2>
-                  <IdentificationSection
-                    suppliers={suppliersList}
+        <div className="space-y-0 md:space-y-6">
+          {/* Mobile: sem card, campos direto na página. Desktop: card com borda */}
+          <div className="md:hidden">
+            <div className="space-y-5 px-1">
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
+                <IdentificationSection
+                  suppliers={suppliersList}
+                  supplierId={supplierId}
+                  clientId={clientId}
+                  clientRefreshTrigger={clientRefreshTrigger}
+                  isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
+                  onSupplierChange={handleSupplierChange}
+                  onClientChange={handleClientChange}
+                  onSupplierCreated={handleSupplierCreated}
+                  onDefaultSupplierChange={(checked) => setPreference('defaultSupplierId', checked ? supplierId : null)}
+                  onClientAddClick={(name) => { setClientInitialName(name || ''); setClientDialogOpen(true) }}
+                />
+              </div>
+              <div ref={formBodyRef} className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
+                    <div className="flex items-center space-x-2">
+                      <label htmlFor="inform-items-switch" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
+                      <Switch id="inform-items-switch" checked={informItems} onCheckedChange={(checked) => {
+                        if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
+                        setInformItems(checked); setPreference('saleInformItems', checked)
+                      }} className="scale-75 data-[state=checked]:bg-primary" />
+                    </div>
+                  </div>
+                  <ValuesSection
+                    informItems={informItems}
                     supplierId={supplierId}
-                    clientId={clientId}
-                    clientRefreshTrigger={clientRefreshTrigger}
-                    isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
-                    onSupplierChange={handleSupplierChange}
-                    onClientChange={handleClientChange}
-                    onSupplierCreated={handleSupplierCreated}
-                    onDefaultSupplierChange={(checked) => setPreference('defaultSupplierId', checked ? supplierId : null)}
-                    onClientAddClick={(name) => { setClientInitialName(name || ''); setClientDialogOpen(true) }}
+                    valueEntries={valueEntries}
+                    removingIds={removingIds}
+                    swipedItemId={swipedItemId}
+                    selectedSupplier={selectedSupplier}
+                    onAddValueEntry={handleAddValueEntry}
+                    onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
+                    onRemoveValueEntry={handleRemoveValueEntry}
+                    onUpdateValueEntry={handleUpdateValueEntry}
+                    onProductSearchClick={() => {}}
+                    onSwipedItemIdChange={setSwipedItemId}
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                    onEditingEntryClick={(entryId) => { setEditingEntryId(entryId); setIsDrawerOpen(true) }}
+                    calculateTieredRate={calculateTieredRate}
                   />
                 </div>
-              </div>
-              <div ref={formBodyRef}>
-                <div>
-                  <div>
-                    <div className="p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-bold tracking-tight">Valores</h2>
-                        <div className="flex items-center space-x-2">
-                          <label htmlFor="inform-items-switch" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
-                          <Switch id="inform-items-switch" checked={informItems} onCheckedChange={(checked) => {
-                            if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
-                            setInformItems(checked); setPreference('saleInformItems', checked)
-                          }} className="scale-75 data-[state=checked]:bg-primary" />
-                        </div>
-                      </div>
-                      <ValuesSection
-                        informItems={informItems}
-                        supplierId={supplierId}
-                        valueEntries={valueEntries}
-                        removingIds={removingIds}
-                        swipedItemId={swipedItemId}
-                        selectedSupplier={selectedSupplier}
-                        onAddValueEntry={handleAddValueEntry}
-                        onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
-                        onRemoveValueEntry={handleRemoveValueEntry}
-                        onUpdateValueEntry={handleUpdateValueEntry}
-                        onProductSearchClick={() => {}}
-                        onSwipedItemIdChange={setSwipedItemId}
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
-                        onEditingEntryClick={(entryId) => { setEditingEntryId(entryId); setIsDrawerOpen(true) }}
-                        calculateTieredRate={calculateTieredRate}
-                      />
-                    </div>
-                    <div className="p-6 space-y-4">
-                      <PaymentConditionSection
+                <div className="space-y-3">
+                  <PaymentConditionSection
                         saleDate={saleDate}
                         firstInstallmentDate={firstInstallmentDate}
                         installments={installments}
@@ -640,17 +637,103 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                         onQuickConditionBlur={handleQuickConditionBlur}
                         onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
-                        onSelectSuggestion={handleSelectSuggestion}
-                        onViewInstallments={() => setInstallmentsSheetOpen(true)}
-                      />
-                    </div>
-                    <div className="p-6">
-                      <NotesSection notes={notes} onNotesChange={setNotes} />
-                    </div>
-                    <div className="p-6 rounded-b-xl bg-muted/5">
-                      <Button type="submit" disabled={saving} size="lg" className="w-full text-lg h-14">{saving ? 'Registrando...' : isEdit ? 'Salvar Alterações' : 'Registrar Venda'}</Button>
+                    onSelectSuggestion={handleSelectSuggestion}
+                    onViewInstallments={() => setInstallmentsSheetOpen(true)}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <NotesSection notes={notes} onNotesChange={setNotes} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: card com borda e padding */}
+          <Card className="hidden md:block border-border/60 shadow-sm overflow-hidden">
+            <CardContent className="p-0">
+              <div className="divide-y divide-border/40">
+                <div className="px-6 py-3 space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
+                  <IdentificationSection
+                    suppliers={suppliersList}
+                    supplierId={supplierId}
+                    clientId={clientId}
+                    clientRefreshTrigger={clientRefreshTrigger}
+                    isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
+                    onSupplierChange={handleSupplierChange}
+                    onClientChange={handleClientChange}
+                    onSupplierCreated={handleSupplierCreated}
+                    onDefaultSupplierChange={(checked) => setPreference('defaultSupplierId', checked ? supplierId : null)}
+                    onClientAddClick={(name) => { setClientInitialName(name || ''); setClientDialogOpen(true) }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="px-6 py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
+                    <div className="flex items-center space-x-2">
+                      <label htmlFor="inform-items-switch-desktop" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
+                      <Switch id="inform-items-switch-desktop" checked={informItems} onCheckedChange={(checked) => {
+                        if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
+                        setInformItems(checked); setPreference('saleInformItems', checked)
+                      }} className="scale-75 data-[state=checked]:bg-primary" />
                     </div>
                   </div>
+                  <ValuesSection
+                    informItems={informItems}
+                    supplierId={supplierId}
+                    valueEntries={valueEntries}
+                    removingIds={removingIds}
+                    swipedItemId={swipedItemId}
+                    selectedSupplier={selectedSupplier}
+                    onAddValueEntry={handleAddValueEntry}
+                    onAddValueEntryAndEdit={handleAddValueEntryAndEdit}
+                    onRemoveValueEntry={handleRemoveValueEntry}
+                    onUpdateValueEntry={handleUpdateValueEntry}
+                    onProductSearchClick={() => {}}
+                    onSwipedItemIdChange={setSwipedItemId}
+                    onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
+                    onTouchEnd={onTouchEnd}
+                    onEditingEntryClick={(entryId) => { setEditingEntryId(entryId); setIsDrawerOpen(true) }}
+                    calculateTieredRate={calculateTieredRate}
+                  />
+                </div>
+                <div className="px-6 py-3 space-y-2">
+                  <PaymentConditionSection
+                    saleDate={saleDate}
+                    firstInstallmentDate={firstInstallmentDate}
+                    installments={installments}
+                    interval={interval}
+                    firstInstallmentDays={firstInstallmentDays}
+                    quickCondition={quickCondition}
+                    irregularPatternWarning={irregularPatternWarning}
+                    customDaysList={customDaysList}
+                    detectedPattern={detectedPattern}
+                    onPatternAdd={handlePatternAdd}
+                    onPatternRemove={handlePatternRemove}
+                    totalValue={totalValue}
+                    grossTotal={valueEntries.reduce((sum, entry) => sum + (informItems ? entry.quantity || 1 : 1) * (parseFloat(entry.grossValue) || 0), 0)}
+                    totalCommission={valueEntries.reduce((sum, entry) => {
+                      const qty = informItems ? entry.quantity || 1 : 1
+                      const base = qty * (parseFloat(entry.grossValue) || 0) * (1 - (parseFloat(entry.taxRate) || 0) / 100)
+                      return sum + base * ((parseFloat(entry.commissionRate) || 0) / 100)
+                    }, 0)}
+                    onSaleDateChange={handleSaleDateChange}
+                    onFirstInstallmentDateChange={handleFirstDateChange}
+                    onInstallmentsChange={handleInstallmentsChange}
+                    onIntervalChange={(val) => { setInterval(val); setHasChangedSteppers(true) }}
+                    onFirstInstallmentDaysChange={(val) => { setFirstInstallmentDays(val); setFirstInstallmentDate(calculateDateFromDays(val, saleDate)); setHasChangedSteppers(true) }}
+                    onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                    onQuickConditionBlur={handleQuickConditionBlur}
+                    onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                    onSelectSuggestion={handleSelectSuggestion}
+                    onViewInstallments={() => setInstallmentsSheetOpen(true)}
+                  />
+                </div>
+                <div className="px-6 py-2">
+                  <NotesSection notes={notes} onNotesChange={setNotes} />
                 </div>
               </div>
             </CardContent>

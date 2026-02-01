@@ -302,7 +302,7 @@ export function PaymentConditionSection(props: PaymentConditionSectionProps) {
     <>
       {/* Resumo */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold tracking-tight">Pagamento</h2>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pagamento</h3>
         {hasConfig && (
           <div className="grid gap-4 grid-cols-2">
             <div className="flex items-center gap-4">

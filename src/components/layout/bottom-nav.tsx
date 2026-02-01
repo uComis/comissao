@@ -5,15 +5,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
 
 const gestaoItems = [
   { title: 'Meus Clientes', url: '/clientes', icon: Users },
   { title: 'Minhas Pastas', url: '/fornecedores', icon: Building2 },
 ]
+
+type BottomNavPhase = 'visible' | 'hiding' | 'hidden' | 'showing'
+
+const ANIM_DURATION = 250
 
 export function BottomNav() {
   const pathname = usePathname()
@@ -23,18 +26,69 @@ export function BottomNav() {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
+  // Animation state machine
+  const [phase, setPhase] = useState<BottomNavPhase>('hidden')
+  const [displayedTaskMode, setDisplayedTaskMode] = useState(taskMode)
+  const prevTaskMode = useRef(taskMode)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+
   useEffect(() => {
     setMounted(true)
+    // Initial slide-up
+    const t = setTimeout(() => setPhase('showing'), 50)
+    return () => clearTimeout(t)
   }, [])
 
-  const isPathActive = (url: string) => pathname === url || pathname.startsWith(`${url}/`)
+  // When showing phase starts, mark visible after animation
+  useEffect(() => {
+    if (phase === 'showing') {
+      timerRef.current = setTimeout(() => setPhase('visible'), ANIM_DURATION)
+      return () => clearTimeout(timerRef.current)
+    }
+  }, [phase])
+
+  // Detect taskMode change → trigger hide/show cycle
+  useEffect(() => {
+    if (prevTaskMode.current !== taskMode) {
+      prevTaskMode.current = taskMode
+
+      // Start hiding
+      setPhase('hiding')
+
+      // After hide animation, swap content and show
+      timerRef.current = setTimeout(() => {
+        setDisplayedTaskMode(taskMode)
+        setPhase('showing')
+      }, ANIM_DURATION)
+
+      return () => clearTimeout(timerRef.current)
+    }
+  }, [taskMode])
+
+  // Sync displayedTaskMode when no animation needed (initial render, same mode navigation)
+  useEffect(() => {
+    if (phase === 'visible' || phase === 'hidden') {
+      setDisplayedTaskMode(taskMode)
+    }
+  }, [taskMode, phase])
+
+  const isPathActive = useCallback((url: string) => pathname === url || pathname.startsWith(`${url}/`), [pathname])
   const isGestaoActive = gestaoItems.some(item => isPathActive(item.url))
   const isDark = mounted && resolvedTheme === 'dark'
 
-  // Task mode: fixed bottom bar with page actions (Cancelar/Salvar)
-  if (taskMode) {
+  const translateClass = (phase === 'visible' || phase === 'showing')
+    ? 'translate-y-0'
+    : 'translate-y-full'
+
+  if (displayedTaskMode) {
     return (
-      <div className="fixed inset-x-0 bottom-0 z-30 md:hidden bg-background border-t px-4 py-3">
+      <div
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-30 md:hidden bg-background border-t px-4 py-3 transition-transform ease-out',
+          translateClass
+        )}
+        style={{ transitionDuration: `${ANIM_DURATION}ms` }}
+      >
         <div className="flex items-center justify-end gap-3">
           {actions}
         </div>
@@ -44,29 +98,15 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-2 z-30 flex justify-center md:hidden pointer-events-none"
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-30 md:hidden bg-background border-t transition-transform ease-out',
+        translateClass
+      )}
+      style={{ transitionDuration: `${ANIM_DURATION}ms` }}
       aria-label="Navegação inferior"
     >
-      <div className="relative flex h-16 w-[92%] max-w-[420px] items-center pointer-events-auto">
-        {/* Camada de fundo com SVG para o recorte orgânico (efeito concave) */}
-        <div className="absolute inset-0 -z-10">
-          <svg
-            width="100%"
-            height="100%"
-            viewBox="0 0 320 64"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-full w-full drop-shadow-[0_-4px_12px_rgba(0,0,0,0.1)]"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M320 20C320 8.95431 311.046 0 300 0H192.4C190.2 0 188.1 0.8 186.4 2.2C179.4 8.2 170.4 12 160 12C149.6 12 140.6 8.2 133.6 2.2C131.9 0.8 129.8 0 127.6 0H20C8.95431 0 0 8.95431 0 20V44C0 55.0457 8.95431 64 20 64H300C311.046 64 320 55.0457 320 44V20Z"
-              className="fill-neutral-300 dark:fill-secondary/90 backdrop-blur-xl"
-            />
-          </svg>
-        </div>
-
-        <div className="grid w-full grid-cols-5 items-center px-1">
+      <div className="flex h-16 items-center px-2">
+        <div className="grid w-full grid-cols-5 items-center">
           <NavItem
             href="/home"
             icon={TrendingUp}
@@ -78,18 +118,15 @@ export function BottomNav() {
             href="/minhasvendas"
             icon={Receipt}
             label="Vendas"
-            isActive={isPathActive('/minhasvendas')}
+            isActive={isPathActive('/minhasvendas') && !pathname.includes('/nova') && !pathname.includes('/editar')}
           />
 
-          {/* Botão Central (Nova) */}
-          <div className="relative flex justify-center -mt-6">
-            <Link
-              href="/minhasvendas/nova"
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-[#409eff] text-white shadow-[0_4px_20px_rgba(64,158,255,0.4)] ring-4 ring-background transition-transform active:scale-90"
-            >
-              <Plus className="h-8 w-8" strokeWidth={3} />
-            </Link>
-          </div>
+          <NavItem
+            href="/minhasvendas/nova"
+            icon={Plus}
+            label="Nova"
+            isActive={pathname === '/minhasvendas/nova'}
+          />
 
           <NavItem
             href="/faturamento"
@@ -108,14 +145,14 @@ export function BottomNav() {
                   isGestaoActive ? 'text-[#409eff]' : 'text-muted-foreground'
                 )}
               >
-                <FolderOpen className={cn("h-5 w-5", isGestaoActive && "stroke-[2.5px]")} />
+                <FolderOpen className={cn('h-5 w-5', isGestaoActive && 'stroke-[2.5px]')} />
                 <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">Menu</span>
               </button>
             </PopoverTrigger>
             <PopoverContent
               side="top"
               align="end"
-              className="w-52 p-1.5 mb-8 rounded-2xl bg-secondary/95 backdrop-blur-xl border-border/40 shadow-2xl"
+              className="w-52 p-1.5 mb-2 rounded-2xl bg-secondary/95 backdrop-blur-xl border-border/40 shadow-2xl"
               sideOffset={8}
             >
               <div className="flex flex-col gap-0.5">
@@ -185,7 +222,7 @@ function NavItem({
         isActive ? 'text-[#409eff]' : 'text-muted-foreground'
       )}
     >
-      <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5px]")} />
+      <Icon className={cn('h-5 w-5', isActive && 'stroke-[2.5px]')} />
       <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">{label}</span>
     </Link>
   )
