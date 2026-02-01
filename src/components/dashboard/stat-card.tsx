@@ -142,16 +142,16 @@ export function StatCard({
 
   const cardContent = (
     <Card className={cn(
-      "h-full py-4 relative overflow-hidden",
+      "h-full py-3 md:py-4 gap-2 md:gap-6 relative overflow-hidden",
       showProgressBar && "pb-5",
       onClick ? "transition-all duration-200" : "border-none shadow-sm",
       active ? "border-2 border-primary/50 shadow-md scale-[1.02]" : onClick ? "border-2 border-transparent hover:bg-accent/50" : ""
     )}>
       <CardHeader className={cn(
-        "flex flex-row items-center justify-between space-y-0 pb-2",
-        "px-4 sm:px-6" // Mobile: px-4, Desktop: px-6
+        "flex flex-row items-center justify-between space-y-0 pb-0 md:pb-2",
+        "px-3 md:px-6"
       )}>
-        <CardTitle className="font-medium text-muted-foreground text-sm">
+        <CardTitle className="font-medium text-muted-foreground text-xs md:text-sm">
           {label}
         </CardTitle>
         
@@ -185,14 +185,14 @@ export function StatCard({
           </div>
         ) : (
           <Icon className={cn(
-            "h-5 w-5",
+            "h-4 w-4 md:h-5 md:w-5",
             "text-muted-foreground/50",
             iconClassName
           )} />
         )}
       </CardHeader>
       <CardContent ref={contentRef} className={cn(
-        "px-4 sm:px-6 pt-0 mt-auto" // Mobile: px-4, Desktop: px-6
+        "px-3 md:px-6 pt-0 mt-auto"
       )}>
         <div className="flex items-end justify-between gap-2">
           <TooltipProvider delayDuration={0}>
@@ -200,7 +200,8 @@ export function StatCard({
               <TooltipTrigger asChild>
                 <div className={cn(
                   "font-bold leading-tight cursor-default",
-                  fontSize, // Dynamic font size based on available space
+                  "text-xl md:text-2xl",
+                  fontSize === 'text-3xl' && "md:!text-3xl",
                   valueClassName
                 )}>
                   {displayValue}
