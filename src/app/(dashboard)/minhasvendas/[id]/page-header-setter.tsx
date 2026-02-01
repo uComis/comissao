@@ -10,8 +10,8 @@ export function SaleDetailHeader({ id, clientName, saleDate }: { id: string; cli
   useHeaderActions(
     <Button asChild>
       <Link href={`/minhasvendas/${id}/editar`}>
-        <Pencil className="h-4 w-4 mr-2" />
-        Editar
+        <Pencil className="h-4 w-4 md:mr-2" />
+        <span className="hidden md:inline">Editar</span>
       </Link>
     </Button>
   )
