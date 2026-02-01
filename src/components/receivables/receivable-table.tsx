@@ -87,7 +87,9 @@ export function ReceivableTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => {
+          {(() => {
+            let itemIndex = 0
+            return rows.map((row, idx) => {
             if (row.type === 'month') {
               return (
                 <tr key={`month-${row.month}`} className="bg-transparent">
@@ -118,6 +120,8 @@ export function ReceivableTable({
             const key = `${r.personal_sale_id}-${r.installment_number}`
             const isSelected = selectedIds.includes(key)
             const progress = (r.installment_number / r.total_installments) * 100
+            const isEven = itemIndex % 2 === 0
+            itemIndex++
 
             return (
               <tr
@@ -129,7 +133,8 @@ export function ReceivableTable({
                   isSelected && 'bg-primary/5',
                   isOverdue && !isSelected && 'bg-destructive/5',
                   isToday && !isSelected && !isOverdue && 'bg-amber-500/5',
-                  !isSelected && !isOverdue && !isToday && 'hover:bg-muted/50'
+                  !isSelected && !isOverdue && !isToday && isEven && 'bg-muted/30',
+                  !isSelected && !isOverdue && !isToday && 'hover:bg-muted/80'
                 )}
               >
                 {isEditMode && (
@@ -207,7 +212,8 @@ export function ReceivableTable({
                 </td>
               </tr>
             )
-          })}
+          })
+          })()}
         </tbody>
       </table>
     </div>

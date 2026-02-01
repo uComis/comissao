@@ -20,7 +20,8 @@ export function ReceivableStats({ stats, filterStatus, onFilterChange, formatCur
   return (
     <div className="relative">
       {/* Mobile: horizontal scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory md:hidden scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 snap-x snap-mandatory md:hidden scrollbar-hide">
+        <div className="shrink-0 w-4" aria-hidden="true" />
         <div className="snap-start shrink-0 w-[calc(50%-4px)] min-w-[140px]">
           <StatCard
             label="Total Projetado"
@@ -61,6 +62,7 @@ export function ReceivableStats({ stats, filterStatus, onFilterChange, formatCur
             active={filterStatus === 'received'}
           />
         </div>
+        <div className="shrink-0 w-2" aria-hidden="true" />
       </div>
 
       {/* Desktop: grid 4 columns */}
