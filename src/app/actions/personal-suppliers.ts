@@ -26,6 +26,11 @@ export type PersonalSupplier = {
 export type PersonalSupplierWithRules = PersonalSupplier & {
   commission_rules: CommissionRule[]
   default_rule?: CommissionRule | null
+  // Aggregated stats
+  total_sales?: number
+  total_gross?: number
+  total_commission?: number
+  last_sale_date?: string | null
 }
 
 // Schemas de validação
@@ -98,7 +103,7 @@ export async function getPersonalSuppliers(): Promise<PersonalSupplierWithRules[
 
   // Agrupar regras por fornecedor
   const rulesBySupplier: Record<string, CommissionRule[]> = {}
-  
+
   if (rules) {
     rules.forEach(rule => {
       // Garantir que personal_supplier_id existe na regra (deveria, pois filtramos por ele)
@@ -112,17 +117,35 @@ export async function getPersonalSuppliers(): Promise<PersonalSupplierWithRules[
     })
   }
 
+  // Buscar stats agregados (vendas, faturamento, comissão)
+  const { data: stats } = await supabase
+    .rpc('get_personal_suppliers_with_stats', { p_user_id: user.id })
+
+  const statsById: Record<string, { total_sales: number; total_gross: number; total_commission: number; last_sale_date: string | null }> = {}
+  if (stats) {
+    for (const row of stats) {
+      statsById[row.id] = {
+        total_sales: Number(row.total_sales) || 0,
+        total_gross: Number(row.total_gross) || 0,
+        total_commission: Number(row.total_commission) || 0,
+        last_sale_date: row.last_sale_date,
+      }
+    }
+  }
+
   // Combinar dados
   return suppliers.map(supplier => {
     const supplierRules = rulesBySupplier[supplier.id] || []
-    const defaultRule = supplier.commission_rule_id 
-        ? supplierRules.find(r => r.id === supplier.commission_rule_id) 
+    const defaultRule = supplier.commission_rule_id
+        ? supplierRules.find(r => r.id === supplier.commission_rule_id)
         : supplierRules[0] // Fallback
+    const supplierStats = statsById[supplier.id]
 
     return {
         ...supplier,
         commission_rules: supplierRules,
-        default_rule: defaultRule || null
+        default_rule: defaultRule || null,
+        ...(supplierStats || { total_sales: 0, total_gross: 0, total_commission: 0, last_sale_date: null }),
     }
   })
 }

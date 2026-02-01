@@ -4,6 +4,7 @@ import { useHeaderActions } from '@/components/layout'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
+import { Fab } from '@/components/ui/fab'
 
 export function MinhasVendasActions() {
   useHeaderActions(
@@ -14,5 +15,5 @@ export function MinhasVendasActions() {
       </Link>
     </Button>
   )
-  return null
+  return <Fab href="/minhasvendas/nova" label="Nova Venda" />
 }

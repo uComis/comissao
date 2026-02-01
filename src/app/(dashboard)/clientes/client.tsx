@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { ClientTable } from '@/components/clients/client-table'
 import { ClientDialog } from '@/components/clients/client-dialog'
+import { Fab } from '@/components/ui/fab'
 import { useHeaderActions } from '@/components/layout'
 import type { PersonalClient } from '@/types'
 
@@ -18,9 +19,9 @@ export function ClientesClient({ initialClients }: Props) {
   const [editingClient, setEditingClient] = useState<PersonalClient | null>(null)
 
   useHeaderActions(
-    <Button onClick={handleNewClient}>
-      <Plus className="h-4 w-4 md:mr-2" />
-      <span className="hidden md:inline">Novo Cliente</span>
+    <Button onClick={handleNewClient} className="hidden md:inline-flex">
+      <Plus className="h-4 w-4 mr-2" />
+      <span>Novo Cliente</span>
     </Button>
   )
 
@@ -50,6 +51,7 @@ export function ClientesClient({ initialClients }: Props) {
 
   return (
     <div className="space-y-6">
+      <Fab onClick={handleNewClient} label="Novo Cliente" />
       <ClientTable
         clients={clients}
         onEdit={handleEdit}

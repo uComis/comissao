@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Building2 } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
+import { Fab } from '@/components/ui/fab'
 import { useHeaderActions } from '@/components/layout'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
@@ -19,9 +20,9 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   useHeaderActions(
-    <Button size="sm" onClick={() => setDialogOpen(true)}>
-      <Plus className="h-4 w-4 md:mr-2" />
-      <span className="hidden md:inline">Adicionar</span>
+    <Button size="sm" onClick={() => setDialogOpen(true)} className="hidden md:inline-flex">
+      <Plus className="h-4 w-4 mr-2" />
+      <span>Adicionar</span>
     </Button>
   )
 
@@ -34,6 +35,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
 
   return (
     <div className="space-y-6">
+      <Fab onClick={() => setDialogOpen(true)} label="Nova Pasta" />
       {hasSuppliers ? (
         <SupplierTable suppliers={suppliers} onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))} />
       ) : (
