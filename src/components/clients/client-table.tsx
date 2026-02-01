@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -27,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { MoreHorizontal, Pencil, Trash2, Mail, Phone, Calendar, FileText } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, ShoppingCart, Calendar } from 'lucide-react'
 import { deletePersonalClient } from '@/app/actions/personal-clients'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -39,54 +40,27 @@ type Props = {
   onDeleted: (clientId: string) => void
 }
 
+function formatCurrency(value: number | null | undefined): string {
+  if (value == null || value === 0) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+function formatDateShort(dateStr: string | null | undefined): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDate()
+  const month = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  const year = d.getFullYear()
+  return `${day} ${month} ${year}`
+}
+
 export function ClientTable({ clients, onEdit, onDeleted }: Props) {
   const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-
-  function formatCpf(cpf: string): string {
-    return cpf
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
-  }
-
-  function formatCnpj(cnpj: string): string {
-    return cnpj
-      .replace(/(\d{2})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1.$2')
-      .replace(/(\d{3})(\d)/, '$1/$2')
-      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
-  }
-
-  function formatPhone(phone: string): string {
-    const numbers = phone.replace(/\D/g, '')
-    if (numbers.length <= 10) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '($1) $2')
-        .replace(/(\d{4})(\d)/, '$1-$2')
-    }
-    return numbers
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{5})(\d)/, '$1-$2')
-  }
-
-  function getDocument(client: PersonalClient): string {
-    if (client.cpf) return formatCpf(client.cpf)
-    if (client.cnpj) return formatCnpj(client.cnpj)
-    return '—'
-  }
-
-  function getWhatsAppLink(phone: string): string {
-    const numbers = phone.replace(/\D/g, '')
-    // Adiciona 55 (Brasil) se não tiver código do país
-    const fullNumber = numbers.length <= 11 ? `55${numbers}` : numbers
-    return `https://wa.me/${fullNumber}`
-  }
-
-  function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('pt-BR')
-  }
 
   async function handleDelete() {
     if (!deleteId) return
@@ -120,7 +94,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
   const ActionMenu = ({ client }: { client: PersonalClient }) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
           <MoreHorizontal className="h-4 w-4" />
           <span className="sr-only">Ações</span>
         </Button>
@@ -169,67 +143,61 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
     return (
       <>
         <div className="space-y-3">
-          {clients.map((client) => (
-            <Card
-              key={client.id}
-              className="p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0 space-y-2">
-                  {/* Nome */}
-                  <div className="font-medium truncate">
-                    {client.name}
+          {clients.map((client) => {
+            const hasCommission = (client.total_commission ?? 0) > 0
+            const salesCount = client.total_sales ?? 0
+            const lastDate = formatDateShort(client.last_sale_date)
+
+            return (
+              <Card
+                key={client.id}
+                className="p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    {/* Nome */}
+                    <div className="font-medium truncate">
+                      {client.name}
+                    </div>
+
+                    {/* Vendas */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
+                      <span>{salesCount > 0
+                        ? `${salesCount} venda${salesCount !== 1 ? 's' : ''}`
+                        : 'Nenhuma venda'}</span>
+                    </div>
+
+                    {/* Última venda */}
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{lastDate || '—'}</span>
+                    </div>
                   </div>
 
-                  {/* Documento */}
-                  {(client.cpf || client.cnpj) && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileText className="h-3.5 w-3.5 shrink-0" />
-                      <span className="text-xs">{getDocument(client)}</span>
+                  {/* Coluna direita: Menu + Valores */}
+                  <div className="flex flex-col items-end gap-1">
+                    <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
+                      <ActionMenu client={client} />
                     </div>
-                  )}
 
-                  {/* Telefone */}
-                  {client.phone && (
-                    <a
-                      href={getWhatsAppLink(client.phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="https://cdn-icons-png.flaticon.com/16/5968/5968841.png"
-                        alt="WhatsApp"
-                        className="h-3.5 w-3.5"
-                      />
-                      <span className="text-xs">{formatPhone(client.phone)}</span>
-                    </a>
-                  )}
-
-                  {/* Email */}
-                  {client.email && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      <span className="text-xs truncate">{client.email}</span>
+                    {/* Faturamento */}
+                    <div className="text-xs text-muted-foreground">
+                      {(client.total_gross ?? 0) > 0 ? formatCurrency(client.total_gross) : '—'}
                     </div>
-                  )}
 
-                  {/* Data de cadastro */}
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>{formatDate(client.created_at)}</span>
+                    {/* Comissão */}
+                    <div className={cn(
+                      "text-lg font-semibold",
+                      hasCommission ? "text-[#409eff]" : "text-muted-foreground"
+                    )}>
+                      {formatCurrency(client.total_commission)}
+                    </div>
                   </div>
                 </div>
-
-                {/* Menu de ações */}
-                <div className="-mr-2 -mt-1" onClick={(e) => e.stopPropagation()}>
-                  <ActionMenu client={client} />
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            )
+          })}
         </div>
         <DeleteDialog />
       </>
@@ -240,63 +208,50 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
   return (
     <>
       <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Cadastro</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clients.map((client) => (
+        <TableHeader>
+          <TableRow>
+            <TableHead>Cliente</TableHead>
+            <TableHead className="text-center">Vendas</TableHead>
+            <TableHead className="text-center">Faturamento</TableHead>
+            <TableHead className="text-center">Comissão</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {clients.map((client) => {
+            const hasCommission = (client.total_commission ?? 0) > 0
+            const salesCount = client.total_sales ?? 0
+            const lastDate = formatDateShort(client.last_sale_date)
+
+            return (
               <TableRow key={client.id}>
-                <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {getDocument(client)}
-                </TableCell>
-                <TableCell>
-                  {client.phone ? (
-                    <a
-                      href={getWhatsAppLink(client.phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      title="Abrir no WhatsApp"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="https://cdn-icons-png.flaticon.com/16/5968/5968841.png"
-                        alt="WhatsApp"
-                        className="h-4 w-4"
-                      />
-                      {formatPhone(client.phone)}
-                    </a>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
+                <TableCell className="py-3">
+                  <div className="font-medium">{client.name}</div>
+                  {lastDate && (
+                    <div className="text-xs text-muted-foreground mt-0.5">última venda: {lastDate}</div>
                   )}
                 </TableCell>
-                <TableCell>
-                  {client.email ? (
-                    <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      {client.email}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">—</span>
-                  )}
+                <TableCell className="text-center tabular-nums text-muted-foreground">
+                  {salesCount > 0 ? salesCount : '—'}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                  {formatDate(client.created_at)}
+                <TableCell className="text-center tabular-nums text-muted-foreground">
+                  {(client.total_gross ?? 0) > 0 ? formatCurrency(client.total_gross) : '—'}
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-center py-3">
+                  <div className={cn(
+                    "font-medium tabular-nums",
+                    hasCommission ? "text-[#409eff]" : "text-muted-foreground"
+                  )}>
+                    {formatCurrency(client.total_commission)}
+                  </div>
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <ActionMenu client={client} />
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
+            )
+          })}
+        </TableBody>
       </Table>
       <DeleteDialog />
     </>

@@ -33,14 +33,15 @@ export async function getPersonalClients(): Promise<PersonalClient[]> {
   if (!user) throw new Error('User not authenticated')
 
   const { data, error } = await supabase
-    .from('personal_clients')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-    .order('name', { ascending: true })
+    .rpc('get_personal_clients_with_stats', { p_user_id: user.id })
 
   if (error) throw error
-  return data || []
+  return (data || []).map((row: Record<string, unknown>) => ({
+    ...row,
+    total_sales: Number(row.total_sales) || 0,
+    total_gross: Number(row.total_gross) || 0,
+    total_commission: Number(row.total_commission) || 0,
+  })) as PersonalClient[]
 }
 
 export async function searchPersonalClients(search: string): Promise<PersonalClient[]> {

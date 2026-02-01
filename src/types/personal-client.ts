@@ -10,6 +10,11 @@ export type PersonalClient = {
   is_active: boolean
   created_at: string
   updated_at: string
+  // Aggregated fields (from sales join)
+  total_sales?: number
+  total_gross?: number
+  total_commission?: number
+  last_sale_date?: string | null
 }
 
 export type CreatePersonalClientInput = {
