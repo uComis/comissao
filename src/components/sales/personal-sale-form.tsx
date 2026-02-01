@@ -3,8 +3,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { Card, CardContent } from '@/components/ui/card'
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from '@/components/ui/popover'
+import { List, Zap } from 'lucide-react'
 import { InstallmentsSheet } from './installments-sheet'
 import { ClientDialog } from '@/components/clients'
 import { ProductDialog } from '@/components/products'
@@ -561,7 +562,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         <div className="space-y-0 md:space-y-6">
           {/* Mobile: sem card, campos direto na página. Desktop: card com borda */}
           <div className="md:hidden">
-            <div className="space-y-5 px-1">
+            <div className="space-y-6 px-1">
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
                 <IdentificationSection
@@ -577,17 +578,45 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   onClientAddClick={(name) => { setClientInitialName(name || ''); setClientDialogOpen(true) }}
                 />
               </div>
-              <div ref={formBodyRef} className="space-y-5">
+              <div ref={formBodyRef} className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
-                    <div className="flex items-center space-x-2">
-                      <label htmlFor="inform-items-switch" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
-                      <Switch id="inform-items-switch" checked={informItems} onCheckedChange={(checked) => {
-                        if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
-                        setInformItems(checked); setPreference('saleInformItems', checked)
-                      }} className="scale-75 data-[state=checked]:bg-primary" />
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                          {informItems ? <List className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 p-4 space-y-3">
+                        {informItems ? (
+                          <>
+                            <p className="text-sm font-semibold">Modo rápido</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">Informe apenas valores totais, sem detalhar produtos ou quantidades.</p>
+                            <PopoverClose asChild>
+                              <Button size="sm" className="w-full" onClick={() => { setInformItems(false); setPreference('saleInformItems', false) }}>
+                                <Zap className="h-3.5 w-3.5 mr-2" />
+                                Ativar modo rápido
+                              </Button>
+                            </PopoverClose>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-semibold">Modo detalhado</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">Informe produtos, quantidades e valores individuais. Ideal para vendas com múltiplos itens.</p>
+                            <PopoverClose asChild>
+                              <Button size="sm" className="w-full" onClick={() => {
+                                if (!supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
+                                setInformItems(true); setPreference('saleInformItems', true)
+                              }}>
+                                <List className="h-3.5 w-3.5 mr-2" />
+                                Ativar modo detalhado
+                              </Button>
+                            </PopoverClose>
+                          </>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <ValuesSection
                     informItems={informItems}
@@ -652,7 +681,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <Card className="hidden md:block border-border/60 shadow-sm overflow-hidden">
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
-                <div className="px-6 py-3 space-y-2">
+                <div className="px-6 py-4 space-y-3">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
                   <IdentificationSection
                     suppliers={suppliersList}
@@ -669,16 +698,44 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                 </div>
               </div>
               <div>
-                <div className="px-6 py-3 space-y-2">
+                <div className="px-6 py-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
-                    <div className="flex items-center space-x-2">
-                      <label htmlFor="inform-items-switch-desktop" className="text-[12px] font-bold text-muted-foreground/80 cursor-pointer">Detalhado</label>
-                      <Switch id="inform-items-switch-desktop" checked={informItems} onCheckedChange={(checked) => {
-                        if (checked && !supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
-                        setInformItems(checked); setPreference('saleInformItems', checked)
-                      }} className="scale-75 data-[state=checked]:bg-primary" />
-                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                          {informItems ? <List className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 p-4 space-y-3">
+                        {informItems ? (
+                          <>
+                            <p className="text-sm font-semibold">Modo rápido</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">Informe apenas valores totais, sem detalhar produtos ou quantidades.</p>
+                            <PopoverClose asChild>
+                              <Button size="sm" className="w-full" onClick={() => { setInformItems(false); setPreference('saleInformItems', false) }}>
+                                <Zap className="h-3.5 w-3.5 mr-2" />
+                                Ativar modo rápido
+                              </Button>
+                            </PopoverClose>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-semibold">Modo detalhado</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">Informe produtos, quantidades e valores individuais. Ideal para vendas com múltiplos itens.</p>
+                            <PopoverClose asChild>
+                              <Button size="sm" className="w-full" onClick={() => {
+                                if (!supplierId) { toast.error('Selecione um fornecedor primeiro'); return }
+                                setInformItems(true); setPreference('saleInformItems', true)
+                              }}>
+                                <List className="h-3.5 w-3.5 mr-2" />
+                                Ativar modo detalhado
+                              </Button>
+                            </PopoverClose>
+                          </>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <ValuesSection
                     informItems={informItems}
@@ -700,7 +757,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     calculateTieredRate={calculateTieredRate}
                   />
                 </div>
-                <div className="px-6 py-3 space-y-2">
+                <div className="px-6 py-4 space-y-3">
                   <PaymentConditionSection
                     saleDate={saleDate}
                     firstInstallmentDate={firstInstallmentDate}
@@ -732,7 +789,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     onViewInstallments={() => setInstallmentsSheetOpen(true)}
                   />
                 </div>
-                <div className="px-6 py-2">
+                <div className="px-6 py-4 space-y-3">
                   <NotesSection notes={notes} onNotesChange={setNotes} />
                 </div>
               </div>
