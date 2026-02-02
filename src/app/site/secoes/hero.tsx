@@ -52,7 +52,7 @@ export function Hero() {
                 size="lg"
                 className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 text-base sm:text-lg px-6 py-2 w-fit"
               >
-                <Link href="#precos">Comece agora</Link>
+                <Link href="/login">Comece agora</Link>
               </Button>
             </div>
           </div>

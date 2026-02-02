@@ -111,7 +111,7 @@ export function Header() {
                 asChild
                 className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
               >
-                <Link href="#precos">Comece agora</Link>
+                <Link href="/login">Comece agora</Link>
               </Button>
             </div>
 
@@ -128,7 +128,7 @@ export function Header() {
                 asChild
                 className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
               >
-                <Link href="#precos">Comece agora</Link>
+                <Link href="/login">Comece agora</Link>
               </Button>
             </div>
 
