@@ -31,7 +31,7 @@ export async function proxy(request: NextRequest) {
   const timer = startTimer(`PROXY ${pathname}`)
 
   // Redireciona www.ucomis.com para /site
-  if (hostname === 'www.ucomis.com' && !pathname.startsWith('/site')) {
+  if (hostname === 'www.ucomis.com' && !pathname.startsWith('/site') && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
     const url = request.nextUrl.clone()
     url.pathname = '/site'
     return NextResponse.redirect(url)
