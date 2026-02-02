@@ -38,10 +38,11 @@ export interface HomeDashboardData {
 }
 
 export class DashboardService {
-  private static CACHE_KEY = 'home_analytics'
+  static async getHomeAnalytics(referenceDate?: Date): Promise<HomeDashboardData | null> {
+    const now = referenceDate || new Date()
+    const cacheKey = `home_analytics_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  static async getHomeAnalytics(): Promise<HomeDashboardData | null> {
-    const cached = await CacheService.get<HomeDashboardData>(this.CACHE_KEY)
+    const cached = await CacheService.get<HomeDashboardData>(cacheKey)
     if (cached) return cached
 
     const supabase = await createClient()
@@ -52,7 +53,6 @@ export class DashboardService {
     const minDate = await getDataRetentionFilter(user.id)
 
     // 1. Data ranges
-    const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
@@ -105,7 +105,7 @@ export class DashboardService {
     const currentGross = currentSales.reduce((sum, s) => sum + (Number(s.gross_value) || 0), 0)
     const lastGross = lastSales.reduce((sum, s) => sum + (Number(s.gross_value) || 0), 0)
 
-    // --- RANKINGS ---
+    // --- RANKINGS (current month for cards) ---
     const clientMap = new Map<string, number>()
     currentSales.forEach(s => {
       clientMap.set(s.client_name, (clientMap.get(s.client_name) || 0) + (Number(s.gross_value) || 0))
@@ -116,7 +116,6 @@ export class DashboardService {
       const othersValue = sortedClients.slice(5).reduce((sum, [, val]) => sum + val, 0)
       topClients.push(['Outros', othersValue])
     }
-    const topClientNames = topClients.filter(([name]) => name !== 'Outros').map(c => c[0])
 
     const supplierMap = new Map<string, number>()
     currentSales.forEach(s => {
@@ -131,7 +130,21 @@ export class DashboardService {
       const othersValue = sortedSuppliers.slice(5).reduce((sum, [, val]) => sum + val, 0)
       topSuppliers.push(['Outros', othersValue])
     }
-    const topSupplierNames = topSuppliers.filter(([name]) => name !== 'Outros').map(s => s[0])
+
+    // --- TOP NAMES for evolution (from ALL 6 months, not just current) ---
+    const allClientMap = new Map<string, number>()
+    allSales.forEach(s => {
+      allClientMap.set(s.client_name, (allClientMap.get(s.client_name) || 0) + (Number(s.commission_value) || 0))
+    })
+    const topClientNames = Array.from(allClientMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 5).map(c => c[0])
+
+    const allSupplierMap = new Map<string, number>()
+    allSales.forEach(s => {
+      const supplier = s.personal_suppliers as unknown as { name: string } | null
+      const name = supplier?.name || 'Outras'
+      allSupplierMap.set(name, (allSupplierMap.get(name) || 0) + (Number(s.commission_value) || 0))
+    })
+    const topSupplierNames = Array.from(allSupplierMap.entries()).sort((a,b) => b[1] - a[1]).slice(0, 5).map(s => s[0])
 
     // --- EVOLUTION ---
     const getMonthLabel = (date: Date) => date.toLocaleString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()
@@ -199,7 +212,7 @@ export class DashboardService {
       }
     }
 
-    await CacheService.set(this.CACHE_KEY, payload, 3600)
+    await CacheService.set(cacheKey, payload, 3600)
     return payload
   }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { StatCard, RankingCard, CommissionEvolutionChart } from "@/components/dashboard"
+import { MonthPicker } from "@/components/dashboard/month-picker"
 import { useHeaderActions } from "@/components/layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState, useEffect, useCallback } from 'react'
@@ -8,7 +9,7 @@ import { getHomeAnalyticsAction } from '@/app/actions/dashboard'
 import { HomeDashboardData } from '@/lib/services/dashboard-service'
 import { GoalDialog } from '@/components/dashboard/goal-dialog'
 import { formatCurrency } from '@/lib/utils'
-import { 
+import {
   Target,
   ShoppingCart,
   DollarSign,
@@ -20,15 +21,19 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<HomeDashboardData | null>(null)
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
 
   const loadData = useCallback(async () => {
-    // setLoading(true) // Removido pois já inicia como true
-    const result = await getHomeAnalyticsAction()
+    setLoading(true)
+    const result = await getHomeAnalyticsAction(selectedMonth.toISOString())
     if (result) {
       setData(result)
     }
     setLoading(false)
-  }, [])
+  }, [selectedMonth])
 
   useEffect(() => {
     loadData()
@@ -50,6 +55,11 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
+
+      <div className="flex items-center justify-between max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}

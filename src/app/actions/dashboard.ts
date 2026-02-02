@@ -2,9 +2,10 @@
 
 import { DashboardService, HomeDashboardData } from '@/lib/services/dashboard-service'
 
-export async function getHomeAnalyticsAction(): Promise<HomeDashboardData | null> {
+export async function getHomeAnalyticsAction(month?: string): Promise<HomeDashboardData | null> {
   try {
-    return await DashboardService.getHomeAnalytics()
+    const referenceDate = month ? new Date(month) : undefined
+    return await DashboardService.getHomeAnalytics(referenceDate)
   } catch (error) {
     console.error('Action Error - getHomeAnalyticsAction:', error)
     return null
