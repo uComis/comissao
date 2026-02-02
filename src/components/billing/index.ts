@@ -1,4 +1,5 @@
 export { TrialBanner } from './trial-banner'
+export { SidebarTrialCard } from './sidebar-trial-card'
 export { BillingNotificationProvider } from './billing-notification-provider'
 export { UsageWidget } from './usage-widget'
 export { BlockedSuppliersBanner } from './blocked-suppliers-banner'

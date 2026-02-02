@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Package, Pencil } from 'lucide-react'
+import { Package, Pencil, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -165,6 +165,23 @@ export function ProductSearchPopover({
               </CommandGroup>
             )}
           </CommandList>
+          {onAddNewProduct && (
+            <div className="border-t p-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start text-sm"
+                onClick={() => {
+                  setOpen(false)
+                  setSearch('')
+                  onAddNewProduct()
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar novo item
+              </Button>
+            </div>
+          )}
         </Command>
       </PopoverContent>
     </Popover>
