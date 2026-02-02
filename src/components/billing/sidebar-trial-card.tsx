@@ -46,9 +46,9 @@ export function SidebarTrialCard() {
   const barColor = getBarColor(daysRemaining)
 
   return (
-    <div className="mx-2 mb-[clamp(0.5rem,1vh,1rem)] group">
-      <Link href="/planos" className="block">
-        <div className="p-[clamp(0.5rem,1.5vh,0.75rem)] rounded-lg border bg-card shadow-sm hover:bg-accent/50 transition-colors cursor-pointer">
+    <div className="mx-2 mb-[clamp(0.5rem,1vh,1rem)]">
+      <Link href="/planos" className="block group">
+        <div className="p-[clamp(0.5rem,1.5vh,0.75rem)] rounded-lg border bg-card shadow-sm group-hover:bg-accent/50 transition-colors cursor-pointer">
           {/* Estado normal */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
