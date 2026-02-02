@@ -42,6 +42,7 @@ type MobileItemDrawerProps = {
   products: Product[]
   onProductSelect: (product: Product) => void
   onEditProduct?: (product: Product) => void
+  onAddNewProduct?: () => void
   onUpdateEntry: (id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) => void
   onDeleteEntry: (id: string) => void
 }
@@ -53,8 +54,9 @@ function ItemFormContent({
   products,
   onProductSelect,
   onEditProduct,
+  onAddNewProduct,
   onUpdateEntry,
-}: Pick<MobileItemDrawerProps, 'entry' | 'informItems' | 'supplierId' | 'products' | 'onProductSelect' | 'onEditProduct' | 'onUpdateEntry'>) {
+}: Pick<MobileItemDrawerProps, 'entry' | 'informItems' | 'supplierId' | 'products' | 'onProductSelect' | 'onEditProduct' | 'onAddNewProduct' | 'onUpdateEntry'>) {
   if (!entry) return null
 
   return (
@@ -81,6 +83,7 @@ function ItemFormContent({
               productName={entry.productName}
               onProductSelect={onProductSelect}
               onEditProduct={onEditProduct}
+              onAddNewProduct={onAddNewProduct}
               disabled={!supplierId}
             />
           )}
@@ -330,6 +333,7 @@ export function MobileItemDrawer({
   products,
   onProductSelect,
   onEditProduct,
+  onAddNewProduct,
   onUpdateEntry,
   onDeleteEntry,
 }: MobileItemDrawerProps) {
@@ -349,6 +353,7 @@ export function MobileItemDrawer({
       products={products}
       onProductSelect={onProductSelect}
       onEditProduct={onEditProduct}
+      onAddNewProduct={onAddNewProduct}
       onUpdateEntry={onUpdateEntry}
     />
   )

@@ -807,7 +807,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
         const newTax = getEffectiveRate(eid, 'tax', product.unit_price?.toString(), product.id)
         setValueEntries((prev) => prev.map((entry) => entry.id === eid ? { ...entry, productId: product.id, productName: product.name, grossValue: product.unit_price?.toString() || entry.grossValue, commissionRate: String(newComm), taxRate: String(newTax) } : entry))
         toast.success(`Item ${product.name} selecionado`)
-      }} onEditProduct={(product) => { setEditProductDialogProduct(product); setProductDialogOpen(true) }} onUpdateEntry={handleUpdateValueEntry} onDeleteEntry={(id) => { handleRemoveValueEntry(id); setIsDrawerOpen(false) }} />
+      }} onEditProduct={(product) => { setEditProductDialogProduct(product); setProductDialogOpen(true) }} onAddNewProduct={() => { setEditProductDialogProduct(null); setProductDialogOpen(true) }} onUpdateEntry={handleUpdateValueEntry} onDeleteEntry={(id) => { handleRemoveValueEntry(id); setIsDrawerOpen(false) }} />
     </>
   )
 }
