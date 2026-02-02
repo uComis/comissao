@@ -29,7 +29,6 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { getEnvironmentVariables, EnvironmentVariable } from '@/app/actions/profiles'
-import { getSubscription } from '@/app/actions/billing'
 import { useCurrentUser } from '@/contexts/current-user-context'
 import { updateUserMode } from '@/app/actions/user-preferences'
 import { toast } from 'sonner'
@@ -51,11 +50,6 @@ import {
   ItemTitle
 } from '@/components/ui/item'
 
-interface SubscriptionInfo {
-  planName: string
-  status: string
-}
-
 type MenuSection = 'perfil' | 'seguranca' | 'plano'
 
 export default function MinhaContaPage() {
@@ -69,11 +63,9 @@ export default function MinhaContaPage() {
   const [envVarsOpen, setEnvVarsOpen] = useState(false)
   const [showSecrets, setShowSecrets] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
   const [userMode, setUserMode] = useState<'personal' | 'organization' | null>(null)
   const [isUpdatingMode, setIsUpdatingMode] = useState(false)
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   
@@ -158,22 +150,6 @@ export default function MinhaContaPage() {
   }
 
   const { currentUser } = useCurrentUser()
-
-  useEffect(() => {
-    async function loadInitialData() {
-      if (!user?.id) return
-
-      const sub = await getSubscription(user.id)
-
-      if (sub) {
-        setSubscription({
-          planName: (sub.plan_snapshot as { name?: string })?.name || 'Plano',
-          status: sub.status
-        })
-      }
-    }
-    loadInitialData()
-  }, [user?.id])
 
   useEffect(() => {
     if (currentUser?.preferences) {
@@ -656,35 +632,54 @@ export default function MinhaContaPage() {
                   <CardDescription>Gerencie sua assinatura e limites</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                    <div>
-                      <p className="font-semibold">
-                        Plano Atual: {subscription?.planName || 'FREE'}
-                        {subscription?.status === 'past_due' && (
-                          <Badge variant="destructive" className="ml-2">Pendente</Badge>
+                  {(() => {
+                    const billing = currentUser?.billing
+                    const effectivePlan = billing?.effectivePlan || 'free'
+                    const planLabel = effectivePlan.toUpperCase()
+                    const isInTrial = billing?.isInTrial ?? false
+                    const isPaidUp = billing?.isPaidUp ?? false
+                    const cancelAtPeriodEnd = billing?.cancelAtPeriodEnd ?? false
+                    const daysRemaining = billing?.trial?.daysRemaining ?? 0
+
+                    return (
+                      <>
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                          <div>
+                            <p className="font-semibold flex items-center gap-2">
+                              Plano Atual: {planLabel}
+                              {isInTrial && (
+                                <Badge variant="secondary">Trial ({daysRemaining}d)</Badge>
+                              )}
+                              {cancelAtPeriodEnd && (
+                                <Badge variant="destructive">Cancelando</Badge>
+                              )}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {isInTrial
+                                ? `Você está no período de teste. ${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}.`
+                                : isPaidUp
+                                  ? 'Sua assinatura está ativa.'
+                                  : 'Você está usando a versão gratuita com limites reduzidos.'
+                              }
+                            </p>
+                          </div>
+                          <Button variant="default" size="sm" asChild>
+                            <Link href="/planos">Ver planos</Link>
+                          </Button>
+                        </div>
+                        {isPaidUp && (
+                          <div className="pt-2">
+                            <Button variant="link" className="p-0 h-auto text-primary gap-1" asChild>
+                              <Link href="/cobrancas">
+                                Ver histórico de faturas e pagamentos
+                                <ArrowRight className="w-3 h-3" />
+                              </Link>
+                            </Button>
+                          </div>
                         )}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {subscription
-                          ? `Sua assinatura está ${subscription.status === 'active' ? 'ativa' : 'pendente de pagamento'}.`
-                          : 'Você está usando a versão gratuita com limites reduzidos.'
-                        }
-                      </p>
-                    </div>
-                    <Button variant="default" size="sm" onClick={() => setIsPlanModalOpen(true)}>
-                      {subscription ? 'Gerenciar Plano' : 'Fazer Upgrade'}
-                    </Button>
-                  </div>
-                  {subscription && (
-                    <div className="pt-2">
-                      <Button variant="link" className="p-0 h-auto text-primary gap-1" asChild>
-                        <Link href="/cobrancas">
-                          Ver histórico de faturas e pagamentos
-                          <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
+                      </>
+                    )
+                  })()}
                 </CardContent>
               </Card>
             )}
