@@ -30,7 +30,7 @@ export function BottomNav() {
   const [phase, setPhase] = useState<BottomNavPhase>('hidden')
   const [displayedTaskMode, setDisplayedTaskMode] = useState(taskMode)
   const prevTaskMode = useRef(taskMode)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -43,7 +43,7 @@ export function BottomNav() {
   useEffect(() => {
     if (phase === 'showing') {
       timerRef.current = setTimeout(() => setPhase('visible'), ANIM_DURATION)
-      return () => clearTimeout(timerRef.current)
+      return () => { if (timerRef.current) clearTimeout(timerRef.current) }
     }
   }, [phase])
 
@@ -61,7 +61,7 @@ export function BottomNav() {
         setPhase('showing')
       }, ANIM_DURATION)
 
-      return () => clearTimeout(timerRef.current)
+      return () => { if (timerRef.current) clearTimeout(timerRef.current) }
     }
   }, [taskMode])
 
