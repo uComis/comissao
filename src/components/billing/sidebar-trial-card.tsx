@@ -47,8 +47,8 @@ export function SidebarTrialCard() {
 
   return (
     <div className="mx-2 mb-[clamp(0.5rem,1vh,1rem)]">
-      <Link href="/planos" className="block group">
-        <div className="p-[clamp(0.5rem,1.5vh,0.75rem)] rounded-lg border bg-card shadow-sm group-hover:bg-accent/50 transition-colors cursor-pointer">
+      <Link href="/planos" className="block group/trial">
+        <div className="p-[clamp(0.5rem,1.5vh,0.75rem)] rounded-lg border bg-card shadow-sm group-hover/trial:bg-accent/50 transition-colors cursor-pointer">
           {/* Estado normal */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -68,7 +68,7 @@ export function SidebarTrialCard() {
           </div>
 
           {/* Hover: detalhes expandidos com animação */}
-          <div className="grid grid-rows-[0fr] group-hover:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-out">
+          <div className="grid grid-rows-[0fr] group-hover/trial:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-out">
             <div className="overflow-hidden">
               <div className="pt-2 mt-2 border-t border-border/50">
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
