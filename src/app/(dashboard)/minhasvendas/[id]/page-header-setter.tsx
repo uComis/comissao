@@ -1,19 +1,8 @@
 'use client'
 
-import { useSetPageHeader, useHeaderActions } from '@/components/layout'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Pencil } from 'lucide-react'
+import { useSetPageHeader } from '@/components/layout'
 
 export function SaleDetailHeader({ id, clientName, saleDate }: { id: string; clientName: string | null; saleDate: string }) {
-  useSetPageHeader({ title: 'Detalhes da Venda', backHref: '/minhasvendas' })
-  useHeaderActions(
-    <Button asChild>
-      <Link href={`/minhasvendas/${id}/editar`}>
-        <Pencil className="h-4 w-4 md:mr-2" />
-        <span className="hidden md:inline">Editar</span>
-      </Link>
-    </Button>
-  )
+  useSetPageHeader({ title: 'Detalhes da Venda', backHref: '/minhasvendas', contentMaxWidth: 'max-w-2xl' })
   return null
 }

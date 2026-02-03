@@ -171,7 +171,9 @@ export async function markReceivableAsReceived(
     }
 
     revalidatePath('/recebiveis')
+    revalidatePath('/faturamento')
     revalidatePath('/home')
+    revalidatePath(`/minhasvendas/${personalSaleId}`)
     return { success: true, data: undefined }
   } catch (err) {
     console.error('Error marking receivable as received:', err)
@@ -205,7 +207,9 @@ export async function undoReceivableReceived(
     if (error) throw error
 
     revalidatePath('/recebiveis')
+    revalidatePath('/faturamento')
     revalidatePath('/home')
+    revalidatePath(`/minhasvendas/${personalSaleId}`)
     return { success: true, data: undefined }
   } catch (err) {
     console.error('Error undoing receivable received:', err)
