@@ -39,6 +39,8 @@ type Props = {
   supplierId: string
   showSku?: boolean
   availableRules?: CommissionRule[]
+  onProductDeleted?: (productId: string) => void
+  onProductUpdated?: (product: Product) => void
 }
 
 function formatPrice(value: number | null): string {
@@ -49,7 +51,7 @@ function formatPrice(value: number | null): string {
   }).format(value)
 }
 
-export function ProductTable({ products, supplierId, showSku = true, availableRules }: Props) {
+export function ProductTable({ products, supplierId, showSku = true, availableRules, onProductDeleted, onProductUpdated }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -63,6 +65,7 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
       const result = await deleteProduct(deleteId)
       if (result.success) {
         toast.success('Produto excluído')
+        onProductDeleted?.(deleteId)
       } else {
         toast.error(result.error)
       }
@@ -79,6 +82,7 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
       const result = await toggleProductActive(product.id, !product.is_active)
       if (result.success) {
         toast.success(product.is_active ? 'Produto desativado' : 'Produto ativado')
+        onProductUpdated?.({ ...product, is_active: !product.is_active })
       } else {
         toast.error(result.error)
       }
@@ -168,6 +172,7 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
         showSku={showSku}
         availableRules={availableRules}
         existingProducts={products}
+        onProductUpdated={onProductUpdated}
       />
 
       {/* Dialog de confirmação de exclusão */}

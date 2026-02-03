@@ -22,6 +22,7 @@ type Props = {
   showSku?: boolean
   initialName?: string
   onProductCreated?: (product: Product) => void
+  onProductUpdated?: (product: Product) => void
   availableRules?: CommissionRule[]
   existingProducts?: Product[]
   onAddRule?: () => void
@@ -35,6 +36,7 @@ export function ProductDialog({
   showSku = true,
   initialName,
   onProductCreated,
+  onProductUpdated,
   availableRules,
   existingProducts,
   onAddRule
@@ -70,6 +72,7 @@ export function ProductDialog({
         if (result.success) {
           toast.success('Produto atualizado')
           formRef.current?.reset()
+          onProductUpdated?.(result.data)
           onOpenChange(false)
         } else {
           toast.error(result.error)

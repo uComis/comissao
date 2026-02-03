@@ -10,7 +10,7 @@ import { RuleForm, type RuleFormRef } from '@/components/rules'
 import { ProductTable, ProductDialog } from '@/components/products'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { Loader2, Plus, Package, Trash2, Edit2, Star } from 'lucide-react'
+import { Loader2, Plus, Package, Trash2, Edit2, Star, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useSetPageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
@@ -26,14 +26,14 @@ import {
 import { Badge } from '@/components/ui/badge'
 
 type Props = {
-  supplier?: PersonalSupplier & { 
-    commission_rules?: CommissionRule[] 
+  supplier?: PersonalSupplier & {
+    commission_rules?: CommissionRule[]
     commission_rule?: CommissionRule | null // Compatibilidade com tipo antigo
   }
   products?: Product[]
 }
 
-export function SupplierFormPage({ supplier, products = [] }: Props) {
+export function SupplierFormPage({ supplier, products: initialProducts = [] }: Props) {
   const router = useRouter()
   const ruleFormRef = useRef<RuleFormRef>(null)
   
@@ -48,6 +48,9 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
   const [rules, setRules] = useState<CommissionRule[]>(existingRules)
   const [defaultRuleId, setDefaultRuleId] = useState<string | null>(supplier?.commission_rule_id || (existingRules[0]?.id) || null)
 
+  // Produtos (estado local para atualização imediata)
+  const [products, setProducts] = useState<Product[]>(initialProducts)
+
   // Estados de controle
   const [loading, setLoading] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
@@ -55,6 +58,58 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
 
   const isEditing = !!supplier
+
+  // Edição inline dos dados do fornecedor (apenas no modo edição)
+  const [isEditingSupplierData, setIsEditingSupplierData] = useState(!isEditing)
+  const [originalName] = useState(supplier?.name || '')
+  const [originalCnpj] = useState(formatCnpj(supplier?.cnpj || ''))
+
+  function handleCancelSupplierEdit() {
+    setName(originalName)
+    setCnpj(originalCnpj)
+    setIsEditingSupplierData(false)
+  }
+
+  async function handleSaveSupplierData() {
+    if (!name.trim()) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+
+    if (!supplier) return
+
+    setLoading(true)
+    try {
+      const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
+      const result = await updatePersonalSupplierWithRules(supplier.id, {
+        name,
+        cnpj: cleanCnpj,
+        default_rule_id: defaultRuleId!,
+        default_commission_rate: Number(defaultCommission) || 0,
+        default_tax_rate: Number(defaultTax) || 0,
+        rules: rules.map(r => ({
+          id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
+          name: r.name,
+          type: r.type,
+          target: r.target || 'commission',
+          percentage: r.percentage,
+          tiers: r.tiers,
+          is_default: r.id === defaultRuleId
+        }))
+      })
+
+      if (result.success) {
+        toast.success('Dados atualizados')
+        setIsEditingSupplierData(false)
+      } else {
+        toast.error(result.error)
+      }
+    } catch {
+      toast.error('Erro ao salvar')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useSetPageHeader({
     title: isEditing ? 'Editar Pasta' : 'Nova Pasta',
@@ -131,6 +186,20 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
     if (defaultRuleId === ruleId) {
       setDefaultRuleId(null) // Usuario terá que escolher outra
     }
+  }
+
+  // --- Gestão de Produtos ---
+
+  function handleProductCreated(product: Product) {
+    setProducts(prev => [...prev, product])
+  }
+
+  function handleProductUpdated(product: Product) {
+    setProducts(prev => prev.map(p => p.id === product.id ? product : p))
+  }
+
+  function handleProductDeleted(productId: string) {
+    setProducts(prev => prev.filter(p => p.id !== productId))
   }
 
   // --- Submit Principal ---
@@ -233,20 +302,37 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Dados do Fornecedor</CardTitle>
-                <CardDescription>
-                  Informações da empresa/fábrica que você representa
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Dados do Fornecedor</CardTitle>
+                    <CardDescription>
+                      Informações da empresa/fábrica que você representa
+                    </CardDescription>
+                  </div>
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsEditingSupplierData(true)}
+                      className={`h-8 w-8 transition-all duration-200 ${isEditingSupplierData ? 'opacity-0 scale-75 pointer-events-none' : 'opacity-100 scale-100'}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome da Empresa/Fábrica *</Label>
+                  <Label htmlFor="name">Nome da Empresa/Fábrica {isEditingSupplierData && '*'}</Label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: Tintas Coral"
                     required
+                    disabled={!isEditingSupplierData}
+                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
                   />
                 </div>
 
@@ -257,9 +343,38 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
                     value={cnpj}
                     onChange={(e) => handleCnpjChange(e.target.value)}
                     placeholder="00.000.000/0000-00"
+                    disabled={!isEditingSupplierData}
+                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
                   />
                 </div>
 
+                {/* Botões de ação inline */}
+                <div
+                  className={`flex justify-end gap-2 pt-2 overflow-hidden transition-all duration-200 ease-out ${
+                    isEditingSupplierData && isEditing
+                      ? 'max-h-12 opacity-100'
+                      : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelSupplierEdit}
+                    disabled={loading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveSupplierData}
+                    disabled={loading}
+                  >
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -421,6 +536,8 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
                       supplierId={supplier.id}
                       showSku={false}
                       availableRules={rules}
+                      onProductDeleted={handleProductDeleted}
+                      onProductUpdated={handleProductUpdated}
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center py-12 text-center h-full">
@@ -449,15 +566,18 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 pt-4 border-t">
-          <Button type="button" variant="outline" asChild disabled={loading}>
-            <Link href="/fornecedores">Cancelar</Link>
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Salvar Alterações' : 'Criar Fornecedor'}
-          </Button>
-        </div>
+        {/* Botões do rodapé apenas no modo criação */}
+        {!isEditing && (
+          <div className="flex justify-end gap-4 pt-4 border-t">
+            <Button type="button" variant="outline" asChild disabled={loading}>
+              <Link href="/fornecedores">Cancelar</Link>
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar Fornecedor
+            </Button>
+          </div>
+        )}
       </form>
 
       {/* Dialog de Nova/Editar Regra */}
@@ -494,6 +614,7 @@ export function SupplierFormPage({ supplier, products = [] }: Props) {
           showSku={false}
           availableRules={rules}
           onAddRule={handleAddRule}
+          onProductCreated={handleProductCreated}
         />
       )}
     </div>
