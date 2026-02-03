@@ -646,6 +646,235 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 
 ---
 
+## Padrão FilterBar
+
+Sistema de filtros compacto para páginas de listagem. Usa componentes atômicos que podem ser combinados conforme necessidade da página.
+
+### Estrutura Visual
+
+```
+Desktop (md+):
+┌────────────────────────────────────────────────────────────────────────┐
+│ 🔍 │ ⚙ Filtros (2) │                              │ [+ Nova Venda]   │
+└────────────────────────────────────────────────────────────────────────┘
+
+                        ◀  Janeiro de 2025  ▶              ← NavigationPicker
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ Tabela de dados                                                       │
+└──────────────────────────────────────────────────────────────────────┘
+
+                     ◀ 1 2 3 ... 10 ▶  │ 15 por página     ← DataTablePagination
+
+
+Mobile:
+┌────────────────────────────────────────┐
+│ ⚙ Filtros (2)           │             │  ← Card compacto
+└────────────────────────────────────────┘
+
+          ◀  Janeiro de 2025  ▶              ← NavigationPicker centralizado
+
+[FAB no canto inferior direito]              ← Fab para ação principal
+```
+
+### Componentes Disponíveis
+
+| Componente | Arquivo | Uso |
+|------------|---------|-----|
+| `ExpandableSearch` | `src/components/ui/expandable-search.tsx` | Input que expande ao clicar no ícone |
+| `FilterPopover` | `src/components/ui/filter-popover.tsx` | Botão + Popover para filtros |
+| `FilterPopoverField` | `src/components/ui/filter-popover.tsx` | Campo dentro do popover |
+| `NavigationPicker` | `src/components/ui/navigation-picker.tsx` | Wrapper para MonthPicker/OptionPicker |
+| `Fab` | `src/components/ui/fab.tsx` | Botão flutuante mobile |
+
+---
+
+## ExpandableSearch
+
+Input de busca que inicia colapsado (só ícone) e expande ao clicar.
+
+**Arquivo:** `src/components/ui/expandable-search.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|:-----------:|-----------|
+| `value` | `string` | Sim | Valor do input |
+| `onChange` | `(value: string) => void` | Sim | Callback ao digitar |
+| `placeholder` | `string` | Não | Placeholder (default: "Buscar...") |
+| `alwaysExpanded` | `boolean` | Não | Mantém sempre expandido (para drawers) |
+| `className` | `string` | Não | Classes extras |
+
+### Comportamento
+
+1. **Estado colapsado**: Mostra apenas ícone 🔍
+2. **Clique**: Expande para input com foco automático
+3. **Com valor**: Mostra botão X para limpar
+4. **Blur sem valor**: Colapsa (exceto se `alwaysExpanded`)
+
+### Uso
+
+```tsx
+import { ExpandableSearch } from '@/components/ui/expandable-search'
+
+// Desktop (colapsa quando vazio)
+<ExpandableSearch
+  value={search}
+  onChange={setSearch}
+  placeholder="Buscar cliente..."
+/>
+
+// Drawer mobile (sempre expandido)
+<ExpandableSearch
+  value={search}
+  onChange={setSearch}
+  placeholder="Buscar cliente..."
+  alwaysExpanded
+/>
+```
+
+---
+
+## FilterPopover
+
+Botão "Filtros" com badge de contagem que abre Popover com campos de filtro.
+
+**Arquivo:** `src/components/ui/filter-popover.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|:-----------:|-----------|
+| `children` | `ReactNode` | Sim | Conteúdo do popover (campos de filtro) |
+| `activeCount` | `number` | Não | Quantidade de filtros ativos (mostra badge) |
+| `onClear` | `() => void` | Não | Callback para limpar filtros |
+| `align` | `'start' \| 'center' \| 'end'` | Não | Alinhamento do popover (default: "start") |
+
+### Uso
+
+```tsx
+import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
+
+<FilterPopover
+  activeCount={filterCount}
+  onClear={clearFilters}
+>
+  <FilterPopoverField label="Pasta">
+    <Select ... />
+  </FilterPopoverField>
+  <FilterPopoverField label="Cliente">
+    <Select ... />
+  </FilterPopoverField>
+</FilterPopover>
+```
+
+---
+
+## NavigationPicker
+
+Wrapper visual para componentes de navegação temporal (MonthPicker) ou de status (OptionPicker). Centraliza entre o card de filtros e a tabela.
+
+**Arquivo:** `src/components/ui/navigation-picker.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|:-----------:|-----------|
+| `children` | `ReactNode` | Sim | MonthPicker ou OptionPicker |
+| `className` | `string` | Não | Classes extras |
+
+### Uso
+
+```tsx
+import { NavigationPicker } from '@/components/ui/navigation-picker'
+import { MonthPicker } from '@/components/dashboard/month-picker'
+
+<NavigationPicker>
+  <MonthPicker value={month} onChange={setMonth} />
+</NavigationPicker>
+```
+
+### Por que NavigationPicker existe?
+
+Separa **filtros** (refinam dados) de **navegação** (mudam o conjunto de dados):
+
+| Tipo | O que faz | Exemplos |
+|------|-----------|----------|
+| **Filtro** | Refina dentro do conjunto | Busca, Pasta, Cliente |
+| **Navegação** | Muda o conjunto inteiro | Mês, Paginação |
+
+---
+
+## Exemplos por Tipo de Página
+
+### Página com filtros completos (Minhas Vendas)
+
+```tsx
+// Desktop
+<Card className="p-3 hidden md:block">
+  <div className="flex items-center gap-2">
+    <ExpandableSearch value={search} onChange={setSearch} />
+    <FilterPopover activeCount={count} onClear={clear}>
+      <FilterPopoverField label="Pasta">{supplierSelect}</FilterPopoverField>
+      <FilterPopoverField label="Cliente">{clientSelect}</FilterPopoverField>
+    </FilterPopover>
+    <div className="flex-1" />
+    <Button asChild>
+      <Link href="/minhasvendas/nova">+ Nova Venda</Link>
+    </Button>
+  </div>
+</Card>
+
+// Mobile
+<Card className="p-3 md:hidden">
+  <Button variant="outline" onClick={openDrawer}>
+    <Filter /> {count > 0 && <Badge>{count}</Badge>}
+  </Button>
+</Card>
+
+// Navegação (ambos)
+<NavigationPicker>
+  <MonthPicker value={month} onChange={setMonth} />
+</NavigationPicker>
+
+// FAB mobile
+<Fab href="/minhasvendas/nova" label="Nova Venda" />
+```
+
+### Página simples (Clientes)
+
+```tsx
+// Desktop
+<Card className="p-3 hidden md:block">
+  <div className="flex items-center gap-2">
+    <ExpandableSearch value={search} onChange={setSearch} />
+    <div className="flex-1" />
+    <Button onClick={handleNew}>+ Novo Cliente</Button>
+  </div>
+</Card>
+
+// Mobile
+<Card className="p-3 md:hidden">
+  <Button variant="outline" onClick={openDrawer}>
+    <Filter /> {hasFilter && <Badge>1</Badge>}
+  </Button>
+</Card>
+
+// FAB mobile
+<Fab onClick={handleNew} label="Novo Cliente" />
+```
+
+### Regras
+
+1. **CTA sempre no card de filtros** — não no header
+2. **Mobile usa FAB** — botão flutuante no canto inferior direito
+3. **NavigationPicker entre card e tabela** — separar filtros de navegação
+4. **Drawer para filtros mobile** — não popover (thumb zone)
+5. **ExpandableSearch colapsa no desktop** — economiza espaço
+6. **ExpandableSearch `alwaysExpanded` no drawer** — melhor UX mobile
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)

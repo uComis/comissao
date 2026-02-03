@@ -4,13 +4,14 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
-import { Plus, Building2, Search, X, Filter, TrendingUp, Target, Percent } from 'lucide-react'
+import { Plus, Building2, Filter, TrendingUp, Target, Percent } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { StatCard } from '@/components/dashboard/stat-card'
+import { ExpandableSearch } from '@/components/ui/expandable-search'
+import { Fab } from '@/components/ui/fab'
 import {
   Drawer,
   DrawerContent,
@@ -18,8 +19,6 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer'
-import { Fab } from '@/components/ui/fab'
-import { useHeaderActions } from '@/components/layout'
 import { formatCurrency } from '@/lib/utils'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 
@@ -37,13 +36,6 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [mobileVisible, setMobileVisible] = useState(10)
-
-  useHeaderActions(
-    <Button size="sm" onClick={() => setDialogOpen(true)} className="hidden md:inline-flex">
-      <Plus className="h-4 w-4 mr-2" />
-      <span>Adicionar</span>
-    </Button>
-  )
 
   function handleSupplierCreated(newSupplier: PersonalSupplierWithRules) {
     setSuppliers(prev => [...prev, newSupplier])
@@ -79,26 +71,6 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   const hasFilter = search.length > 0
   const hasSuppliers = suppliers.length > 0
 
-  const searchInput = (
-    <div className="relative flex-1 min-w-0">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input
-        placeholder="Buscar pasta..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="pl-8 pr-7 h-8 text-sm"
-      />
-      {search && (
-        <button
-          onClick={() => setSearch('')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  )
-
   if (!hasSuppliers) {
     return (
       <div className="mx-auto max-w-4xl">
@@ -127,6 +99,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
+      {/* FAB Mobile */}
       <Fab onClick={() => setDialogOpen(true)} label="Nova Pasta" />
 
       {/* Stats */}
@@ -140,7 +113,16 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
       {/* Desktop Filter */}
       <Card className="p-3 hidden md:block">
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0 max-w-[250px]">{searchInput}</div>
+          <ExpandableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar pasta..."
+          />
+          <div className="flex-1" />
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Pasta
+          </Button>
         </div>
       </Card>
 
@@ -160,6 +142,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
               </span>
             )}
           </Button>
+          <div className="flex-1" />
         </div>
       </Card>
 
@@ -173,8 +156,22 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
             <div className="px-4 pb-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Busca</label>
-                {searchInput}
+                <ExpandableSearch
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Buscar pasta..."
+                  alwaysExpanded
+                />
               </div>
+              {hasFilter && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => setSearch('')}
+                >
+                  Limpar filtro
+                </Button>
+              )}
             </div>
           </div>
         </DrawerContent>

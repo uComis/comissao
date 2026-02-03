@@ -2,14 +2,15 @@
 
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Plus, Search, X, Filter, Users, TrendingUp, Target, DollarSign } from 'lucide-react'
+import { Plus, Filter, Users, TrendingUp, Target, DollarSign } from 'lucide-react'
 import { ClientTable } from '@/components/clients/client-table'
 import { ClientDialog } from '@/components/clients/client-dialog'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { StatCard } from '@/components/dashboard/stat-card'
+import { ExpandableSearch } from '@/components/ui/expandable-search'
+import { Fab } from '@/components/ui/fab'
 import {
   Drawer,
   DrawerContent,
@@ -17,8 +18,6 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer'
-import { Fab } from '@/components/ui/fab'
-import { useHeaderActions } from '@/components/layout'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { formatCurrency } from '@/lib/utils'
 import type { PersonalClient } from '@/types'
@@ -39,13 +38,6 @@ export function ClientesClient({ initialClients }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT)
   const [mobileVisible, setMobileVisible] = useState(PAGE_SIZE_DEFAULT)
-
-  useHeaderActions(
-    <Button onClick={handleNewClient} className="hidden md:inline-flex">
-      <Plus className="h-4 w-4 mr-2" />
-      <span>Novo Cliente</span>
-    </Button>
-  )
 
   function handleNewClient() {
     setEditingClient(null)
@@ -96,20 +88,9 @@ export function ClientesClient({ initialClients }: Props) {
   const hasFilter = search.length > 0
   const hasMoreMobile = mobileVisible < filtered.length
 
-  const searchInput = (
-    <div className="relative flex-1 min-w-0">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 pr-7 h-8 text-sm" />
-      {search && (
-        <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  )
-
   return (
     <div className="mx-auto max-w-4xl space-y-4">
+      {/* FAB Mobile */}
       <Fab onClick={handleNewClient} label="Novo Cliente" />
 
       {/* Stats */}
@@ -123,14 +104,28 @@ export function ClientesClient({ initialClients }: Props) {
       {/* Desktop Filter */}
       <Card className="p-3 hidden md:block">
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0 max-w-[250px]">{searchInput}</div>
+          <ExpandableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar cliente..."
+          />
+          <div className="flex-1" />
+          <Button onClick={handleNewClient}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Cliente
+          </Button>
         </div>
       </Card>
 
       {/* Mobile Filter */}
       <Card className="p-3 md:hidden">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0 relative"
+            onClick={() => setDrawerOpen(true)}
+          >
             <Filter className="h-3.5 w-3.5" />
             {hasFilter && (
               <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
@@ -138,6 +133,7 @@ export function ClientesClient({ initialClients }: Props) {
               </span>
             )}
           </Button>
+          <div className="flex-1" />
         </div>
       </Card>
 
@@ -151,8 +147,22 @@ export function ClientesClient({ initialClients }: Props) {
             <div className="px-4 pb-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Busca</label>
-                {searchInput}
+                <ExpandableSearch
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Buscar cliente..."
+                  alwaysExpanded
+                />
               </div>
+              {hasFilter && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={() => setSearch('')}
+                >
+                  Limpar filtro
+                </Button>
+              )}
             </div>
           </div>
         </DrawerContent>

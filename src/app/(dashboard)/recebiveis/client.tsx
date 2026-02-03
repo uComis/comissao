@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -19,8 +18,11 @@ import {
   DrawerDescription,
 } from '@/components/ui/drawer'
 import { Card } from '@/components/ui/card'
-import { Search, Filter, CalendarCheck, X, Wallet } from 'lucide-react'
+import { CalendarCheck, X, Wallet, Filter } from 'lucide-react'
 import { OptionPicker, type OptionPickerItem } from '@/components/dashboard/option-picker'
+import { ExpandableSearch } from '@/components/ui/expandable-search'
+import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
+import { NavigationPicker } from '@/components/ui/navigation-picker'
 import {
   ReceivableStats,
   ReceivableList,
@@ -229,7 +231,12 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
     router.replace(newUrl, { scroll: false })
   }
 
-  const clearFilters = () => {
+  const clearSelectFilters = () => {
+    setSupplierId('all')
+    setClientId('all')
+  }
+
+  const clearAllFilters = () => {
     setFilterStatus('all')
     setSearchTerm('')
     setSupplierId('all')
@@ -263,50 +270,35 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
   // --- Filter UI elements ---
 
-  const searchInput = (
-    <div className="relative flex-1 min-w-0">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input placeholder="Buscar..." value={searchTerm} onChange={(e) => handleSearchChange(e.target.value)} className="pl-8 pr-7 h-8 text-sm" />
-      {searchTerm && (
-        <button onClick={() => handleSearchChange('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  )
+  const selectFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
+  const drawerFilterCount = selectFilterCount + (searchTerm ? 1 : 0)
 
   const supplierSelect = (
-    <div className="relative">
-      <Select value={supplierId} onValueChange={setSupplierId}>
-        <SelectTrigger className="h-8 text-sm w-full"><SelectValue placeholder="Pasta" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as pastas</SelectItem>
-          {suppliers.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
-        </SelectContent>
-      </Select>
-      {supplierId !== 'all' && (
-        <button onClick={() => setSupplierId('all')} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
+    <Select value={supplierId} onValueChange={setSupplierId}>
+      <SelectTrigger className="h-8 text-sm w-full">
+        <SelectValue placeholder="Pasta" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Todas as pastas</SelectItem>
+        {suppliers.map((s) => (
+          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 
   const clientSelect = (
-    <div className="relative">
-      <Select value={clientId} onValueChange={setClientId}>
-        <SelectTrigger className="h-8 text-sm w-full"><SelectValue placeholder="Cliente" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os clientes</SelectItem>
-          {clients.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-        </SelectContent>
-      </Select>
-      {clientId !== 'all' && (
-        <button onClick={() => setClientId('all')} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
+    <Select value={clientId} onValueChange={setClientId}>
+      <SelectTrigger className="h-8 text-sm w-full">
+        <SelectValue placeholder="Cliente" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Todos os clientes</SelectItem>
+        {clients.map((c) => (
+          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 
   // --- Empty State ---
@@ -325,8 +317,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
     )
   }
 
-  const selectFilterCount = (searchTerm ? 1 : 0) + (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
-
   return (
     <div className={selectedIds.length > 0 ? 'pb-28' : ''}>
       <div className="space-y-4 max-w-4xl mx-auto">
@@ -336,32 +326,53 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
           formatCurrency={formatCurrency}
         />
 
-        {/* Desktop Filters (lg+) */}
-        <Card className="p-3 hidden lg:block">
+        {/* Desktop Filters */}
+        <Card className="p-3 hidden md:block">
           <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0 max-w-[200px]">{searchInput}</div>
-            <div className="flex-1 min-w-0 max-w-[180px]">{supplierSelect}</div>
-            <div className="flex-1 min-w-0 max-w-[180px]">{clientSelect}</div>
+            <ExpandableSearch
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Buscar..."
+            />
+            <FilterPopover
+              activeCount={selectFilterCount}
+              onClear={clearSelectFilters}
+            >
+              <FilterPopoverField label="Pasta">
+                {supplierSelect}
+              </FilterPopoverField>
+              <FilterPopoverField label="Cliente">
+                {clientSelect}
+              </FilterPopoverField>
+            </FilterPopover>
             <div className="flex-1" />
-            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
 
         {/* Mobile/Tablet Filters */}
-        <Card className="p-3 lg:hidden">
+        <Card className="p-3 md:hidden">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 shrink-0 relative"
+              onClick={() => setDrawerOpen(true)}
+            >
               <Filter className="h-3.5 w-3.5" />
-              {selectFilterCount > 0 && (
+              {drawerFilterCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                  {selectFilterCount}
+                  {drawerFilterCount}
                 </span>
               )}
             </Button>
             <div className="flex-1" />
-            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
+
+        {/* Status Navigation */}
+        <NavigationPicker>
+          <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
+        </NavigationPicker>
 
         <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
           <DrawerContent>
@@ -373,7 +384,12 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               <div className="px-4 pb-6 space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Busca</label>
-                  {searchInput}
+                  <ExpandableSearch
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    placeholder="Buscar..."
+                    alwaysExpanded
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Pasta</label>
@@ -383,6 +399,15 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                   <label className="text-sm font-medium">Cliente</label>
                   {clientSelect}
                 </div>
+                {drawerFilterCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    className="w-full text-muted-foreground"
+                    onClick={clearAllFilters}
+                  >
+                    Limpar filtros
+                  </Button>
+                )}
               </div>
             </div>
           </DrawerContent>

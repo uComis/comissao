@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { MonthPicker } from '@/components/dashboard/month-picker'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { PersonalSaleTable } from '@/components/sales'
-import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,7 +23,11 @@ import {
 } from '@/components/ui/drawer'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
-import { Search, ShoppingBag, TrendingUp, Target, DollarSign, X, Filter } from 'lucide-react'
+import { ExpandableSearch } from '@/components/ui/expandable-search'
+import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
+import { NavigationPicker } from '@/components/ui/navigation-picker'
+import { Fab } from '@/components/ui/fab'
+import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import type { PersonalSale } from '@/types'
@@ -48,7 +52,8 @@ export function MinhasVendasClient({ sales }: Props) {
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT)
   const [mobileVisible, setMobileVisible] = useState(PAGE_SIZE_DEFAULT)
 
-  const activeFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0) + (search ? 1 : 0)
+  const selectFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
+  const drawerFilterCount = selectFilterCount + (search ? 1 : 0)
 
   const suppliers = useMemo(() => {
     const map = new Map<string, string>()
@@ -100,56 +105,51 @@ export function MinhasVendasClient({ sales }: Props) {
     return { count, faturado, comissao, ticket }
   }, [filtered])
 
-  const searchInput = (
-    <div className="relative flex-1 min-w-0">
-      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-      <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 pr-7 h-8 text-sm" />
-      {search && (
-        <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  )
+  function clearFilters() {
+    setSupplierId('all')
+    setClientId('all')
+  }
+
+  function clearAllFilters() {
+    setSearch('')
+    clearFilters()
+  }
 
   const supplierSelect = (
-    <div className="relative">
-      <Select value={supplierId} onValueChange={setSupplierId}>
-        <SelectTrigger className="h-8 text-sm w-full"><SelectValue placeholder="Pasta" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as pastas</SelectItem>
-          {suppliers.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
-        </SelectContent>
-      </Select>
-      {supplierId !== 'all' && (
-        <button onClick={() => setSupplierId('all')} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
+    <Select value={supplierId} onValueChange={setSupplierId}>
+      <SelectTrigger className="h-8 text-sm w-full">
+        <SelectValue placeholder="Pasta" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Todas as pastas</SelectItem>
+        {suppliers.map((s) => (
+          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 
   const clientSelect = (
-    <div className="relative">
-      <Select value={clientId} onValueChange={setClientId}>
-        <SelectTrigger className="h-8 text-sm w-full"><SelectValue placeholder="Cliente" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os clientes</SelectItem>
-          {clients.map((c) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
-        </SelectContent>
-      </Select>
-      {clientId !== 'all' && (
-        <button onClick={() => setClientId('all')} className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10">
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
+    <Select value={clientId} onValueChange={setClientId}>
+      <SelectTrigger className="h-8 text-sm w-full">
+        <SelectValue placeholder="Cliente" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Todos os clientes</SelectItem>
+        {clients.map((c) => (
+          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 
   const hasMoreMobile = mobileVisible < filtered.length
 
   return (
     <div className="space-y-4">
+      {/* FAB Mobile */}
+      <Fab href="/minhasvendas/nova" label="Nova Venda" />
+
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <StatCard label="Vendas" value={String(stats.count)} icon={ShoppingBag} subtitle="no mês" />
@@ -158,32 +158,59 @@ export function MinhasVendasClient({ sales }: Props) {
         <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} />
       </div>
 
-      {/* Desktop Filters (lg+) */}
-      <Card className="p-3 hidden lg:block">
+      {/* Desktop Filters */}
+      <Card className="p-3 hidden md:block">
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0 max-w-[200px]">{searchInput}</div>
-          <div className="flex-1 min-w-0 max-w-[180px]">{supplierSelect}</div>
-          <div className="flex-1 min-w-0 max-w-[180px]">{clientSelect}</div>
+          <ExpandableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar cliente..."
+          />
+          <FilterPopover
+            activeCount={selectFilterCount}
+            onClear={clearFilters}
+          >
+            <FilterPopoverField label="Pasta">
+              {supplierSelect}
+            </FilterPopoverField>
+            <FilterPopoverField label="Cliente">
+              {clientSelect}
+            </FilterPopoverField>
+          </FilterPopover>
           <div className="flex-1" />
-          <MonthPicker value={month} onChange={setMonth} />
+          <Button asChild>
+            <Link href="/minhasvendas/nova">
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Venda
+            </Link>
+          </Button>
         </div>
       </Card>
 
       {/* Mobile/Tablet Filters */}
-      <Card className="p-3 lg:hidden">
+      <Card className="p-3 md:hidden">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0 relative"
+            onClick={() => setDrawerOpen(true)}
+          >
             <Filter className="h-3.5 w-3.5" />
-            {activeFilterCount > 0 && (
+            {drawerFilterCount > 0 && (
               <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                {activeFilterCount}
+                {drawerFilterCount}
               </span>
             )}
           </Button>
           <div className="flex-1" />
-          <MonthPicker value={month} onChange={setMonth} />
         </div>
       </Card>
+
+      {/* Month Navigation */}
+      <NavigationPicker>
+        <MonthPicker value={month} onChange={setMonth} />
+      </NavigationPicker>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent>
@@ -195,7 +222,12 @@ export function MinhasVendasClient({ sales }: Props) {
             <div className="px-4 pb-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Busca</label>
-                {searchInput}
+                <ExpandableSearch
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Buscar cliente..."
+                  alwaysExpanded
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Pasta</label>
@@ -205,6 +237,15 @@ export function MinhasVendasClient({ sales }: Props) {
                 <label className="text-sm font-medium">Cliente</label>
                 {clientSelect}
               </div>
+              {drawerFilterCount > 0 && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                  onClick={clearAllFilters}
+                >
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           </div>
         </DrawerContent>
