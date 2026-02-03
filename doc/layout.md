@@ -500,6 +500,100 @@ import { Plus } from 'lucide-react'
 
 ---
 
+## MonthPicker
+
+Seletor inline de mês com navegação por chevrons. Usado em listagens que filtram por mês.
+
+**Localização:** `src/components/dashboard/month-picker.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|-------------|-----------|
+| `value` | `Date` | Sim | Mês selecionado (dia 1 do mês) |
+| `onChange` | `(date: Date) => void` | Sim | Callback ao mudar mês |
+
+### Padrão Visual
+
+```
+◀  Janeiro 2025  ▶
+```
+
+- Chevron direito desabilitado quando no mês atual
+- Label em português capitalizado (ex: "Fevereiro 2025")
+- `min-w-[130px]` no label para evitar layout shift
+
+### Uso
+
+```tsx
+import { MonthPicker } from '@/components/dashboard/month-picker'
+
+const [month, setMonth] = useState(() => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), 1)
+})
+
+<MonthPicker value={month} onChange={setMonth} />
+```
+
+### Onde é usado
+
+- `/minhasvendas` — filtro de mês (desktop Card + mobile Card, sempre visível)
+
+---
+
+## OptionPicker
+
+Seletor inline de opções com navegação por chevrons. Mesmo padrão visual do MonthPicker, mas para listas de opções estáticas.
+
+**Localização:** `src/components/dashboard/option-picker.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|-------------|-----------|
+| `options` | `OptionPickerItem<T>[]` | Sim | Lista de opções `{ value, label }` |
+| `value` | `T` | Sim | Valor selecionado |
+| `onChange` | `(value: T) => void` | Sim | Callback ao mudar opção |
+
+```ts
+type OptionPickerItem<T extends string> = {
+  value: T
+  label: string
+}
+```
+
+### Padrão Visual
+
+```
+◀  A receber  ▶
+```
+
+- Chevron esquerdo desabilitado na primeira opção
+- Chevron direito desabilitado na última opção
+- `min-w-[100px]` no label para evitar layout shift
+
+### Uso
+
+```tsx
+import { OptionPicker, type OptionPickerItem } from '@/components/dashboard/option-picker'
+
+const STATUS_OPTIONS: OptionPickerItem<FilterStatus>[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'pending', label: 'A receber' },
+  { value: 'overdue', label: 'Atrasados' },
+  { value: 'received', label: 'Recebidos' },
+]
+
+<OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
+```
+
+### Onde é usado
+
+- `/recebiveis` — filtro de status (desktop Card + mobile Card, sempre visível)
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/drawer'
 import { Card } from '@/components/ui/card'
 import { Search, Filter, CalendarCheck, X, Wallet } from 'lucide-react'
+import { OptionPicker, type OptionPickerItem } from '@/components/dashboard/option-picker'
 import {
   ReceivableStats,
   ReceivableList,
@@ -39,6 +40,13 @@ type Props = {
 }
 
 type FilterStatus = 'all' | 'pending' | 'overdue' | 'received'
+
+const STATUS_OPTIONS: OptionPickerItem<FilterStatus>[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'pending', label: 'A receber' },
+  { value: 'overdue', label: 'Atrasados' },
+  { value: 'received', label: 'Recebidos' },
+]
 
 // --- Helpers ---
 
@@ -317,7 +325,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
     )
   }
 
-  const selectFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
+  const selectFilterCount = (searchTerm ? 1 : 0) + (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
 
   return (
     <div className={selectedIds.length > 0 ? 'pb-28' : ''}>
@@ -325,8 +333,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
         {/* Stats */}
         <ReceivableStats
           stats={stats}
-          filterStatus={filterStatus}
-          onFilterChange={setFilterStatus}
           formatCurrency={formatCurrency}
         />
 
@@ -336,13 +342,14 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
             <div className="w-[200px] shrink-0">{searchInput}</div>
             <div className="w-[150px] shrink-0">{supplierSelect}</div>
             <div className="w-[150px] shrink-0">{clientSelect}</div>
+            <div className="flex-1" />
+            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
 
         {/* Mobile Filters */}
         <Card className="p-3 md:hidden">
           <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0">{searchInput}</div>
             <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
               <Filter className="h-3.5 w-3.5" />
               {selectFilterCount > 0 && (
@@ -351,6 +358,8 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                 </span>
               )}
             </Button>
+            <div className="flex-1" />
+            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
 
@@ -362,6 +371,10 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
                 <DrawerDescription className="sr-only">Filtrar recebíveis</DrawerDescription>
               </DrawerHeader>
               <div className="px-4 pb-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Busca</label>
+                  {searchInput}
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Pasta</label>
                   {supplierSelect}
