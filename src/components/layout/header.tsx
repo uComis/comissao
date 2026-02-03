@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, Sparkles } from 'lucide-react'
+import { ArrowLeft, Sparkles, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
 import { useAiChat } from '@/components/ai-assistant'
@@ -18,7 +18,7 @@ import { useAiChat } from '@/components/ai-assistant'
  * - Task mode (nova venda, editar): just back + title
  */
 export function Header() {
-  const { resolvedTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const { title, backHref, taskMode } = usePageHeader()
@@ -42,7 +42,7 @@ export function Header() {
     )
   }
 
-  // Task mode: minimal header — just back + title
+  // Task mode: minimal header — back + title + theme toggle
   if (taskMode) {
     return (
       <header className="flex md:hidden h-14 shrink-0 items-center gap-2 bg-background px-4 border-b">
@@ -54,8 +54,14 @@ export function Header() {
           </Button>
         )}
         {title && (
-          <h1 className="text-base font-semibold tracking-tight truncate">{title}</h1>
+          <h1 className="text-base font-semibold tracking-tight truncate flex-1">{title}</h1>
         )}
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setTheme(isDark ? 'light' : 'dark')}>
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={toggleAiChat}>
+          <Sparkles className="h-4 w-4" />
+        </Button>
       </header>
     )
   }
@@ -92,8 +98,11 @@ export function Header() {
       {/* Spacer — only needed on home where logo doesn't flex-1 */}
       {isHome && <div className="flex-1" />}
 
-      {/* Right side: AI + actions + avatar */}
+      {/* Right side: theme + AI + actions + avatar */}
       <div className="flex items-center gap-2 shrink-0">
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setTheme(isDark ? 'light' : 'dark')}>
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleAiChat}>
           <Sparkles className="h-4 w-4" />
         </Button>

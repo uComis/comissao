@@ -1,9 +1,8 @@
 'use client'
 
-import { TrendingUp, Receipt, Plus, Wallet, FolderOpen, Users, Building2, Moon, Sun } from 'lucide-react'
+import { TrendingUp, Receipt, Plus, Wallet, FolderOpen, Users, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -23,7 +22,6 @@ export function BottomNav() {
   const [gestaoOpen, setGestaoOpen] = useState(false)
   const { taskMode } = usePageHeader()
   const actions = usePageHeaderActions()
-  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   // Animation state machine
@@ -74,7 +72,6 @@ export function BottomNav() {
 
   const isPathActive = useCallback((url: string) => pathname === url || pathname.startsWith(`${url}/`), [pathname])
   const isGestaoActive = gestaoItems.some(item => isPathActive(item.url))
-  const isDark = mounted && resolvedTheme === 'dark'
 
   const translateClass = (phase === 'visible' || phase === 'showing')
     ? 'translate-y-0'
@@ -174,26 +171,6 @@ export function BottomNav() {
                     </Link>
                   )
                 })}
-
-                {/* Separador */}
-                <div className="mx-2 my-1 border-t border-border/40" />
-
-                {/* Toggle tema */}
-                {mounted && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTheme(isDark ? 'light' : 'dark')
-                      setGestaoOpen(false)
-                    }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted"
-                  >
-                    {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    <span className="text-sm font-medium">
-                      {isDark ? 'Modo claro' : 'Modo escuro'}
-                    </span>
-                  </button>
-                )}
               </div>
             </PopoverContent>
           </Popover>
