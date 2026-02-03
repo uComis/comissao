@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,12 +28,14 @@ type Props = {
 
 export function FornecedoresClient({ initialSuppliers }: Props) {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [suppliers, setSuppliers] = useState(initialSuppliers)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [mobileVisible, setMobileVisible] = useState(10)
 
   useHeaderActions(
     <Button size="sm" onClick={() => setDialogOpen(true)} className="hidden md:inline-flex">
@@ -54,13 +57,14 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
   }, [suppliers, search])
 
   // Reset page when filter changes
-  useMemo(() => { setPage(1) }, [search])
+  useMemo(() => { setPage(1); setMobileVisible(10) }, [search])
 
   // Paginate
   const paginated = useMemo(() => {
+    if (isMobile) return filtered.slice(0, mobileVisible)
     const start = (page - 1) * pageSize
     return filtered.slice(start, start + pageSize)
-  }, [filtered, page, pageSize])
+  }, [filtered, page, pageSize, isMobile, mobileVisible])
 
   // Stats
   const stats = useMemo(() => {
@@ -175,21 +179,37 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
         </DrawerContent>
       </Drawer>
 
-      {/* Table + Pagination */}
-      <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+      {/* Desktop: fixed height table + pagination */}
+      <div className="hidden md:block">
+        <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+          <SupplierTable
+            suppliers={paginated}
+            onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))}
+          />
+        </div>
+        <DataTablePagination
+          page={page}
+          pageSize={pageSize}
+          total={filtered.length}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      </div>
+
+      {/* Mobile: load more */}
+      <div className="md:hidden">
         <SupplierTable
           suppliers={paginated}
           onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))}
         />
+        {mobileVisible < filtered.length && (
+          <div className="pt-4 pb-2">
+            <Button variant="outline" className="w-full" onClick={() => setMobileVisible((v) => v + 10)}>
+              Carregar mais ({filtered.length - mobileVisible} restantes)
+            </Button>
+          </div>
+        )}
       </div>
-
-      <DataTablePagination
-        page={page}
-        pageSize={pageSize}
-        total={filtered.length}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-      />
 
       <SupplierDialog
         open={dialogOpen}
