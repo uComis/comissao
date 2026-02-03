@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Rocket, PlusCircle } from 'lucide-react'
 import { getPersonalSales } from '@/app/actions/personal-sales'
-import { PersonalSaleTable } from '@/components/sales'
 import { MinhasVendasActions } from './page-header-setter'
+import { MinhasVendasClient } from './minhas-vendas-client'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function SalesContent() {
@@ -19,7 +19,7 @@ async function SalesContent() {
         <div className="text-center space-y-2 max-w-md">
           <h1 className="text-3xl font-bold tracking-tight">Seu Painel de Performance</h1>
           <p className="text-muted-foreground">
-            Sua jornada para o topo começa aqui. Assim que você cadastrar suas primeiras vendas, 
+            Sua jornada para o topo começa aqui. Assim que você cadastrar suas primeiras vendas,
             esta tela se transformará em uma central de inteligência para o seu negócio.
           </p>
         </div>
@@ -34,23 +34,22 @@ async function SalesContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <MinhasVendasActions />
-      <PersonalSaleTable sales={sales} />
+      <MinhasVendasClient sales={sales} />
     </div>
   )
 }
 
 function SalesLoading() {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-[200px]" />
-          <Skeleton className="h-4 w-[300px]" />
-        </div>
-        <Skeleton className="h-10 w-[120px]" />
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
+        ))}
       </div>
+      <Skeleton className="h-10 w-full" />
       <Skeleton className="h-[400px] w-full" />
     </div>
   )

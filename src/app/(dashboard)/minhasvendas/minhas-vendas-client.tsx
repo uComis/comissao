@@ -1,0 +1,259 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import { MonthPicker } from '@/components/dashboard/month-picker'
+import { StatCard } from '@/components/dashboard/stat-card'
+import { PersonalSaleTable } from '@/components/sales'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
+import { Search, ShoppingBag, TrendingUp, Target, DollarSign, X, Filter } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import type { PersonalSale } from '@/types'
+
+type Props = {
+  sales: PersonalSale[]
+}
+
+export function MinhasVendasClient({ sales }: Props) {
+  const [month, setMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+  const [search, setSearch] = useState('')
+  const [supplierId, setSupplierId] = useState<string>('all')
+  const [clientId, setClientId] = useState<string>('all')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const activeFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0) + (search ? 1 : 0)
+
+  // Unique suppliers and clients from all sales
+  const suppliers = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of sales) {
+      if (s.supplier?.id && s.supplier?.name) {
+        map.set(s.supplier.id, s.supplier.name)
+      }
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+  }, [sales])
+
+  const clients = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const s of sales) {
+      if (s.client?.id && s.client?.name) {
+        map.set(s.client.id, s.client.name)
+      } else if (s.client_name) {
+        map.set(s.client_name, s.client_name)
+      }
+    }
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+  }, [sales])
+
+  // Filter sales
+  const filtered = useMemo(() => {
+    return sales.filter((sale) => {
+      if (sale.sale_date) {
+        const d = new Date(sale.sale_date + 'T00:00:00')
+        if (d.getFullYear() !== month.getFullYear() || d.getMonth() !== month.getMonth()) {
+          return false
+        }
+      }
+
+      if (search) {
+        const q = search.toLowerCase()
+        const matchClient = sale.client_name?.toLowerCase().includes(q)
+        const matchSupplier = sale.supplier?.name?.toLowerCase().includes(q)
+        if (!matchClient && !matchSupplier) return false
+      }
+
+      if (supplierId !== 'all' && sale.supplier?.id !== supplierId) return false
+
+      if (clientId !== 'all') {
+        const match = sale.client?.id === clientId || sale.client_name === clientId
+        if (!match) return false
+      }
+
+      return true
+    })
+  }, [sales, month, search, supplierId, clientId])
+
+  // Summary stats
+  const stats = useMemo(() => {
+    const count = filtered.length
+    const faturado = filtered.reduce((sum, s) => sum + (s.gross_value || 0), 0)
+    const comissao = filtered.reduce((sum, s) => sum + (s.commission_value || 0), 0)
+    const ticket = count > 0 ? faturado / count : 0
+    return { count, faturado, comissao, ticket }
+  }, [filtered])
+
+  // Shared filter controls (used in both desktop inline and mobile drawer)
+  const searchInput = (
+    <div className="relative flex-1 min-w-0">
+      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+      <Input
+        placeholder="Buscar..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="pl-8 pr-7 h-8 text-sm"
+      />
+      {search && (
+        <button
+          onClick={() => setSearch('')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
+
+  const supplierSelect = (
+    <div className="relative">
+      <Select value={supplierId} onValueChange={setSupplierId}>
+        <SelectTrigger className="h-8 text-sm w-full">
+          <SelectValue placeholder="Pasta" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas as pastas</SelectItem>
+          {suppliers.map((s) => (
+            <SelectItem key={s.id} value={s.id}>
+              {s.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {supplierId !== 'all' && (
+        <button
+          onClick={() => setSupplierId('all')}
+          className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
+
+  const clientSelect = (
+    <div className="relative">
+      <Select value={clientId} onValueChange={setClientId}>
+        <SelectTrigger className="h-8 text-sm w-full">
+          <SelectValue placeholder="Cliente" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todos os clientes</SelectItem>
+          {clients.map((c) => (
+            <SelectItem key={c.id} value={c.id}>
+              {c.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {clientId !== 'all' && (
+        <button
+          onClick={() => setClientId('all')}
+          className="absolute right-7 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground z-10"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  )
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        <StatCard label="Vendas" value={String(stats.count)} icon={ShoppingBag} subtitle="no mês" />
+        <StatCard label="Faturado" value={formatCurrency(stats.faturado)} icon={TrendingUp} />
+        <StatCard label="Comissão" value={formatCurrency(stats.comissao)} icon={Target} valueClassName="text-[#409eff]" />
+        <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} />
+      </div>
+
+      {/* Desktop Filters - hidden on mobile */}
+      <Card className="p-3 hidden md:block">
+        <div className="flex items-center gap-2">
+          <div className="w-[160px] shrink-0">{searchInput}</div>
+          <div className="w-[150px] shrink-0">{supplierSelect}</div>
+          <div className="w-[150px] shrink-0">{clientSelect}</div>
+          <div className="flex-1" />
+          <MonthPicker value={month} onChange={setMonth} />
+        </div>
+      </Card>
+
+      {/* Mobile Filters - visible only on mobile */}
+      <Card className="p-3 md:hidden">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 relative"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          <div className="flex-1" />
+          <MonthPicker value={month} onChange={setMonth} />
+        </div>
+      </Card>
+
+      {/* Mobile Filter Drawer */}
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-lg">
+            <DrawerHeader>
+              <DrawerTitle>Filtros</DrawerTitle>
+              <DrawerDescription className="sr-only">Filtrar vendas</DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Busca</label>
+                {searchInput}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Pasta</label>
+                {supplierSelect}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Cliente</label>
+                {clientSelect}
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          Nenhuma venda encontrada neste período.
+        </div>
+      ) : (
+        <PersonalSaleTable sales={filtered} />
+      )}
+    </div>
+  )
+}
