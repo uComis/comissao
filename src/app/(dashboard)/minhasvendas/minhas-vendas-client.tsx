@@ -21,6 +21,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from '@/components/ui/drawer'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { Search, ShoppingBag, TrendingUp, Target, DollarSign, X, Filter } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { PersonalSale } from '@/types'
@@ -38,6 +39,8 @@ export function MinhasVendasClient({ sales }: Props) {
   const [supplierId, setSupplierId] = useState<string>('all')
   const [clientId, setClientId] = useState<string>('all')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
   const activeFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0) + (search ? 1 : 0)
 
@@ -95,6 +98,15 @@ export function MinhasVendasClient({ sales }: Props) {
       return true
     })
   }, [sales, month, search, supplierId, clientId])
+
+  // Reset page when filters change
+  useMemo(() => { setPage(1) }, [search, supplierId, clientId, month])
+
+  // Paginate
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
 
   // Summary stats
   const stats = useMemo(() => {
@@ -246,13 +258,24 @@ export function MinhasVendasClient({ sales }: Props) {
         </DrawerContent>
       </Drawer>
 
-      {/* Table */}
+      {/* Table + Pagination */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           Nenhuma venda encontrada neste período.
         </div>
       ) : (
-        <PersonalSaleTable sales={filtered} />
+        <>
+          <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+            <PersonalSaleTable sales={paginated} />
+          </div>
+          <DataTablePagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </>
       )}
     </div>
   )

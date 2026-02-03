@@ -10,19 +10,13 @@ async function ClientesContent() {
 
 function ClientesLoading() {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-[200px]" />
-          <Skeleton className="h-4 w-[300px]" />
-        </div>
-        <Skeleton className="h-10 w-[140px]" />
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
+        ))}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
+      <Skeleton className="h-10 w-full rounded-lg" />
       <Skeleton className="h-[400px] w-full" />
     </div>
   )
