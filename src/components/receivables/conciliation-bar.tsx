@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSidebar } from '@/components/ui/sidebar'
 
 type Props = {
   selectedCount: number
@@ -14,12 +15,16 @@ type Props = {
 }
 
 export function ConciliationBar({ selectedCount, totalCount, selectedTotal, onClear, onConfirm, formatCurrency }: Props) {
+  const { state, isMobile } = useSidebar()
   const isVisible = selectedCount > 0
+  const isCollapsed = state === 'collapsed'
 
   return (
     <div
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-40 transition-transform duration-300 ease-out',
+        'fixed bottom-0 left-0 right-0 z-40 transition-all duration-300 ease-out',
+        !isMobile && 'md:left-[--sidebar-width]',
+        !isMobile && isCollapsed && 'md:left-[--sidebar-width-icon]',
         isVisible ? 'translate-y-0' : 'translate-y-full'
       )}
     >
