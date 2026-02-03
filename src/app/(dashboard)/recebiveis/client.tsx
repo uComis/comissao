@@ -241,7 +241,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
 
   // --- Header ---
 
-  useSetPageHeader({ title: isHome ? 'Faturamento' : 'Recebíveis' })
+  useSetPageHeader({ title: isHome ? 'Faturamento' : 'Recebíveis', contentMaxWidth: 'max-w-4xl' })
 
   useHeaderActions(
     !isEditMode ? (

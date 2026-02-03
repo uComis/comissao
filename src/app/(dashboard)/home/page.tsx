@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
   const rankings = data?.rankings
 
   return (
-    <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
+    <div className="space-y-8">
 
       <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />

@@ -16,7 +16,7 @@ export function RoutePageHeader() {
   useEffect(() => {
     const config = routeConfigs[pathname]
     if (config) {
-      set(config)
+      set({ backHref: undefined, taskMode: false, contentMaxWidth: undefined, ...config })
     }
   }, [pathname, set])
 

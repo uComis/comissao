@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
 import { SidebarOpenTrigger } from './sidebar-open-trigger'
 import { useAiChat } from '@/components/ai-assistant'
@@ -12,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
-  const { title, backHref } = usePageHeader()
+  const { title, backHref, contentMaxWidth } = usePageHeader()
   const actions = usePageHeaderActions()
   const { toggle: toggleAiChat } = useAiChat()
   const { resolvedTheme, setTheme } = useTheme()
@@ -22,9 +23,13 @@ export function LayoutPageHeader() {
 
   return (
     <div className="bg-background border-b h-20 flex items-center">
-      <div className="flex items-center justify-between gap-4 max-w-[1500px] mx-auto px-6 w-full">
-        <div className="flex items-center gap-1 min-w-0">
-          <div className="hidden md:block -ml-2 shrink-0">
+      <div className="max-w-[1500px] mx-auto px-6 w-full">
+        <div className={cn(
+          "flex items-center justify-between gap-4 w-full",
+          contentMaxWidth && `${contentMaxWidth} mx-auto`
+        )}>
+        <div className="flex items-center gap-3 min-w-0 relative">
+          <div className="hidden md:block absolute right-full mr-1">
             <SidebarOpenTrigger />
           </div>
           {backHref && (
@@ -52,6 +57,7 @@ export function LayoutPageHeader() {
           </Button>
           {actions && <div className="ml-2 flex items-center gap-2">{actions}</div>}
         </div>
+      </div>
       </div>
     </div>
   )

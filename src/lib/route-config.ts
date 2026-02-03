@@ -1,17 +1,18 @@
 type RouteConfig = {
   title: string
   backHref?: string
+  contentMaxWidth?: string
 }
 
 export const routeConfigs: Record<string, RouteConfig> = {
   '/': { title: 'Dashboard' },
   '/dashboard': { title: 'Dashboard' },
   '/home': { title: 'Dashboard' },
-  '/recebiveis': { title: 'Faturamento' },
-  '/clientes': { title: 'Meus Clientes' },
-  '/minhasvendas': { title: 'Minhas Vendas' },
+  '/recebiveis': { title: 'Faturamento', contentMaxWidth: 'max-w-4xl' },
+  '/clientes': { title: 'Meus Clientes', contentMaxWidth: 'max-w-4xl' },
+  '/minhasvendas': { title: 'Minhas Vendas', contentMaxWidth: 'max-w-4xl' },
   '/minhasvendas/nova': { title: 'Registro de venda', backHref: '/minhasvendas' },
-  '/fornecedores': { title: 'Minhas Pastas' },
+  '/fornecedores': { title: 'Minhas Pastas', contentMaxWidth: 'max-w-4xl' },
   '/fornecedores/novo': { title: 'Nova Pasta', backHref: '/fornecedores' },
   '/vendedores': { title: 'Vendedores' },
   '/vendas': { title: 'Vendas' },
