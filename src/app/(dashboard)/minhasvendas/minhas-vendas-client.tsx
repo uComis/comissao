@@ -178,7 +178,7 @@ export function MinhasVendasClient({ sales }: Props) {
           </FilterPopover>
           <div className="flex-1" />
           <MonthPicker value={month} onChange={setMonth} />
-          <Button asChild variant="outline" size="sm">
+          <Button asChild variant="outline" size="sm" className="border-[#409eff] text-[#409eff] hover:bg-[#409eff]/10">
             <Link href="/minhasvendas/nova">
               <Plus className="h-4 w-4 mr-1.5" />
               Nova Venda

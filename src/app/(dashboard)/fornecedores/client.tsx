@@ -119,7 +119,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
             placeholder="Buscar pasta..."
           />
           <div className="flex-1" />
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)}>
+          <Button variant="outline" size="sm" className="border-[#409eff] text-[#409eff] hover:bg-[#409eff]/10" onClick={() => setDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Nova Pasta
           </Button>
