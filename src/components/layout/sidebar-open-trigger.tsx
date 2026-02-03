@@ -24,7 +24,7 @@ export function SidebarOpenTrigger() {
   return (
     <button
       onClick={toggleSidebar}
-      className={`p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 shrink-0 ${
+      className={`fixed left-4 top-[44px] z-50 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 ${
         visible
           ? 'opacity-100 translate-x-0'
           : 'opacity-0 -translate-x-3'

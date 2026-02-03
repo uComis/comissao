@@ -29,7 +29,7 @@ export function LayoutPageHeader() {
           contentMaxWidth && `${contentMaxWidth} mx-auto`
         )}>
         <div className="flex items-center gap-3 min-w-0 relative">
-          <div className="hidden md:block absolute right-full mr-1">
+          <div className="hidden md:block">
             <SidebarOpenTrigger />
           </div>
           {backHref && (
