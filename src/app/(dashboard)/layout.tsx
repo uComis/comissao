@@ -8,6 +8,7 @@ import { CurrentUserProvider } from '@/contexts/current-user-context'
 import { getCurrentUser } from '@/app/actions/user'
 import { PageHeaderProvider, LayoutPageHeader } from '@/components/layout'
 import { RoutePageHeader } from './route-page-header'
+import { PageTransition } from '@/components/layout/page-transition'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Task 3: Chamada única no servidor
@@ -33,7 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </div>
               <main className="flex-1 pb-32 md:pb-6">
                 <div className="max-w-[1500px] mx-auto px-6 pt-6">
-                  {children}
+                  <PageTransition>
+                    {children}
+                  </PageTransition>
                 </div>
               </main>
               <BottomNav />

@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getReceivables, getReceivablesStats } from '@/app/actions/receivables'
 import { ReceivablesClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function ReceivablesContent() {
   const [receivables, stats] = await Promise.all([
@@ -9,7 +10,7 @@ async function ReceivablesContent() {
     getReceivablesStats(),
   ])
 
-  return <ReceivablesClient receivables={receivables} stats={stats} />
+  return <FadeIn><ReceivablesClient receivables={receivables} stats={stats} /></FadeIn>
 }
 
 function ReceivablesLoading() {

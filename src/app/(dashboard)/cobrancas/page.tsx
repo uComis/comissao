@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getInvoicesAction } from '@/app/actions/billing'
 import { CobrancasClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 export const metadata = {
   title: 'Minhas Cobranças | uComis',
@@ -13,7 +14,7 @@ export default async function CobrancasPage() {
   return (
     <div className="space-y-6">
       <Suspense fallback={<CobrancasSkeleton />}>
-        <CobrancasClient initialInvoices={invoices} />
+        <FadeIn><CobrancasClient initialInvoices={invoices} /></FadeIn>
       </Suspense>
     </div>
   )

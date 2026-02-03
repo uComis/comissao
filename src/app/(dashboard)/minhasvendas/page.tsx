@@ -6,13 +6,14 @@ import { getPersonalSales } from '@/app/actions/personal-sales'
 import { MinhasVendasActions } from './page-header-setter'
 import { MinhasVendasClient } from './minhas-vendas-client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function SalesContent() {
   const sales = await getPersonalSales()
 
   if (sales.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+      <FadeIn className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <div className="rounded-full bg-primary/10 p-8">
           <Rocket className="h-16 w-16 text-primary animate-bounce" />
         </div>
@@ -29,15 +30,15 @@ async function SalesContent() {
             Lançar Minha Primeira Venda
           </Link>
         </Button>
-      </div>
+      </FadeIn>
     )
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <FadeIn className="mx-auto max-w-4xl space-y-6">
       <MinhasVendasActions />
       <MinhasVendasClient sales={sales} />
-    </div>
+    </FadeIn>
   )
 }
 

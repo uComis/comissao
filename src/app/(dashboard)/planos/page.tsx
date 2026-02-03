@@ -2,10 +2,11 @@ import { Suspense } from 'react'
 import { PlanosPageClient } from './planos-client'
 import { getPlans } from '@/app/actions/billing'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function PlanosContent() {
   const plans = await getPlans()
-  return <PlanosPageClient initialPlans={plans} />
+  return <FadeIn><PlanosPageClient initialPlans={plans} /></FadeIn>
 }
 
 function PlanosLoading() {

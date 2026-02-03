@@ -2,10 +2,11 @@ import { Suspense } from 'react'
 import { getPersonalClients } from '@/app/actions/personal-clients'
 import { ClientesClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function ClientesContent() {
   const clients = await getPersonalClients()
-  return <ClientesClient initialClients={clients} />
+  return <FadeIn><ClientesClient initialClients={clients} /></FadeIn>
 }
 
 function ClientesLoading() {

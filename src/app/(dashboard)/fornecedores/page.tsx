@@ -2,10 +2,11 @@ import { Suspense } from 'react'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { FornecedoresClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function FornecedoresContent() {
   const suppliers = await getPersonalSuppliers()
-  return <FornecedoresClient initialSuppliers={suppliers} />
+  return <FadeIn><FornecedoresClient initialSuppliers={suppliers} /></FadeIn>
 }
 
 function FornecedoresLoading() {

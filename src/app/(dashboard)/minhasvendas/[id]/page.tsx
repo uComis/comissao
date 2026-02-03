@@ -8,6 +8,7 @@ import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getReceivables } from '@/app/actions/receivables'
 import { SaleDetailHeader } from './page-header-setter'
 import { SaleDetailReceivables } from './sale-detail-receivables'
+import { FadeIn } from '@/components/ui/fade-in'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -126,7 +127,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
   const hasReceivableStatus = saleReceivables.length > 0
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <FadeIn className="mx-auto max-w-2xl">
       <SaleDetailHeader id={id} clientName={sale.client_name} saleDate={formatDate(sale.sale_date)} />
 
       <div className="mt-5 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both delay-150">
@@ -263,7 +264,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </FadeIn>
   )
 }
 

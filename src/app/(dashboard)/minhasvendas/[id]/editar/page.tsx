@@ -4,6 +4,7 @@ import { getPersonalSaleById } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 import { EditarVendaShell } from './shell'
 
 type Props = {
@@ -27,12 +28,14 @@ async function EditarVendaContent({ id }: { id: string }) {
   }
 
   return (
-    <EditarVendaShell
-      suppliers={suppliers}
-      productsBySupplier={productsBySupplier}
-      sale={sale}
-      backHref={`/minhasvendas/${id}`}
-    />
+    <FadeIn>
+      <EditarVendaShell
+        suppliers={suppliers}
+        productsBySupplier={productsBySupplier}
+        sale={sale}
+        backHref={`/minhasvendas/${id}`}
+      />
+    </FadeIn>
   )
 }
 

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { UsersClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 
 export const metadata: Metadata = {
   title: 'Usuários | Admin',
@@ -29,7 +30,7 @@ async function AdminUsersContent() {
     redirect('/home')
   }
 
-  return <UsersClient />
+  return <FadeIn><UsersClient /></FadeIn>
 }
 
 function AdminUsersLoading() {

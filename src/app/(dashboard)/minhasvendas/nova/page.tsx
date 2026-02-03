@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FadeIn } from '@/components/ui/fade-in'
 import { NovaVendaShell } from './shell'
 
 async function NovaVendaContent() {
@@ -15,10 +16,12 @@ async function NovaVendaContent() {
   }
 
   return (
-    <NovaVendaShell
-      suppliers={suppliers}
-      productsBySupplier={productsBySupplier}
-    />
+    <FadeIn>
+      <NovaVendaShell
+        suppliers={suppliers}
+        productsBySupplier={productsBySupplier}
+      />
+    </FadeIn>
   )
 }
 

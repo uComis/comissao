@@ -174,7 +174,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-page-in">
 
       {/* Gráfico de evolução multi-série */}
       <EvolutionChart data={history?.periods ?? []} loading={historyLoading} />

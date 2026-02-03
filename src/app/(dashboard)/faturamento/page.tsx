@@ -3,6 +3,7 @@ import { getReceivables, getReceivablesStats } from '@/app/actions/receivables'
 import { ReceivablesClient } from '../recebiveis/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card } from '@/components/ui/card'
+import { FadeIn } from '@/components/ui/fade-in'
 
 async function FaturamentoContent() {
   const [receivables, stats] = await Promise.all([
@@ -10,7 +11,7 @@ async function FaturamentoContent() {
     getReceivablesStats(),
   ])
 
-  return <ReceivablesClient receivables={receivables} stats={stats} isHome />
+  return <FadeIn><ReceivablesClient receivables={receivables} stats={stats} isHome /></FadeIn>
 }
 
 function FaturamentoLoading() {
