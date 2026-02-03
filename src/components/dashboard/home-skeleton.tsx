@@ -79,9 +79,8 @@ function ChartCardSkeleton() {
 export function HomeSkeleton() {
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
-      {/* Header: Title + MonthPicker placeholder */}
-      <div className="flex items-center justify-between max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
-        <Skeleton className="h-8 w-36" />
+      {/* Header: MonthPicker placeholder */}
+      <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         <Skeleton className="h-8 w-40" />
       </div>
 

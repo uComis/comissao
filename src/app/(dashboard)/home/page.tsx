@@ -65,8 +65,7 @@ export default function AnalyticsPage() {
   if (isEmpty) {
     return (
       <>
-        <div className="flex items-center justify-between max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8 max-w-[1500px] md:px-0">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8 max-w-[1500px] md:px-0">
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
         </div>
         <HomeEmptyState />
@@ -80,8 +79,7 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-8 max-w-[1500px] mx-auto md:px-0">
 
-      <div className="flex items-center justify-between max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+      <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
         <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 

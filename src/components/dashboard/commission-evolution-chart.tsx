@@ -30,6 +30,17 @@ const COLORS = [
 ]
 
 export function CommissionEvolutionChart({ title, description, data, names }: CommissionEvolutionChartProps) {
+  // Fill missing values with 0 so lines rise from baseline instead of appearing "cut"
+  const normalizedData = data.map((entry) => {
+    const normalized = { ...entry }
+    for (const name of names) {
+      if (normalized[name] === undefined || normalized[name] === null) {
+        normalized[name] = 0
+      }
+    }
+    return normalized
+  })
+
   // Build chart config dynamically
   const chartConfig = names.reduce((acc, name, index) => {
     acc[name] = {
@@ -52,7 +63,7 @@ export function CommissionEvolutionChart({ title, description, data, names }: Co
       </CardHeader>
       <CardContent className="flex-1 pt-0 mt-4">
         <ChartContainer config={chartConfig} className="h-full w-full min-h-[250px]">
-          <AreaChart data={data} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+          <AreaChart data={normalizedData} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
             <defs>
               {names.map((name, index) => (
                 <linearGradient key={name} id={`color-${index}`} x1="0" y1="0" x2="0" y2="1">
@@ -96,7 +107,6 @@ export function CommissionEvolutionChart({ title, description, data, names }: Co
                 strokeWidth={2}
                 dot={{ r: 0 }}
                 activeDot={{ r: 4, strokeWidth: 0 }}
-                connectNulls
               />
             ))}
           </AreaChart>
