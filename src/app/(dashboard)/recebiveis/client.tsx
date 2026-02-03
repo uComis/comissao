@@ -22,7 +22,6 @@ import { CalendarCheck, X, Wallet, Filter } from 'lucide-react'
 import { OptionPicker, type OptionPickerItem } from '@/components/dashboard/option-picker'
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
-import { NavigationPicker } from '@/components/ui/navigation-picker'
 import {
   ReceivableStats,
   ReceivableList,
@@ -346,6 +345,7 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               </FilterPopoverField>
             </FilterPopover>
             <div className="flex-1" />
+            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
 
@@ -366,13 +366,9 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
               )}
             </Button>
             <div className="flex-1" />
+            <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
-
-        {/* Status Navigation */}
-        <NavigationPicker>
-          <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
-        </NavigationPicker>
 
         <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
           <DrawerContent>

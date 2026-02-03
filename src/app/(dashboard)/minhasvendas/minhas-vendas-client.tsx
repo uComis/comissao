@@ -25,7 +25,6 @@ import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
-import { NavigationPicker } from '@/components/ui/navigation-picker'
 import { Fab } from '@/components/ui/fab'
 import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -178,9 +177,10 @@ export function MinhasVendasClient({ sales }: Props) {
             </FilterPopoverField>
           </FilterPopover>
           <div className="flex-1" />
-          <Button asChild>
+          <MonthPicker value={month} onChange={setMonth} />
+          <Button asChild variant="outline" size="sm">
             <Link href="/minhasvendas/nova">
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-1.5" />
               Nova Venda
             </Link>
           </Button>
@@ -204,13 +204,9 @@ export function MinhasVendasClient({ sales }: Props) {
             )}
           </Button>
           <div className="flex-1" />
+          <MonthPicker value={month} onChange={setMonth} />
         </div>
       </Card>
-
-      {/* Month Navigation */}
-      <NavigationPicker>
-        <MonthPicker value={month} onChange={setMonth} />
-      </NavigationPicker>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent>

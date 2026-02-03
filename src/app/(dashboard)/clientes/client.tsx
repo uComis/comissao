@@ -110,8 +110,8 @@ export function ClientesClient({ initialClients }: Props) {
             placeholder="Buscar cliente..."
           />
           <div className="flex-1" />
-          <Button onClick={handleNewClient}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={handleNewClient}>
+            <Plus className="h-4 w-4 mr-1.5" />
             Novo Cliente
           </Button>
         </div>
