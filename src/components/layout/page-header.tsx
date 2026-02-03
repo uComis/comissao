@@ -21,12 +21,12 @@ export function LayoutPageHeader() {
   const isDark = mounted && resolvedTheme === 'dark'
 
   return (
-    <div className="bg-background border-b h-20 flex items-center relative">
-      <div className="hidden md:block absolute left-2 top-1/2 -translate-y-1/2">
-        <SidebarOpenTrigger />
-      </div>
+    <div className="bg-background border-b h-20 flex items-center">
       <div className="flex items-center justify-between gap-4 max-w-[1500px] mx-auto px-6 w-full">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-1 min-w-0">
+          <div className="hidden md:block -ml-2 shrink-0">
+            <SidebarOpenTrigger />
+          </div>
           {backHref && (
             <Button variant="ghost" size="icon" asChild className="shrink-0">
               <Link href={backHref}>
