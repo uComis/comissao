@@ -140,7 +140,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
       {/* Desktop Filter */}
       <Card className="p-3 hidden md:block">
         <div className="flex items-center gap-2">
-          <div className="w-[200px] shrink-0">{searchInput}</div>
+          <div className="flex-1 min-w-0 max-w-[250px]">{searchInput}</div>
         </div>
       </Card>
 
@@ -150,7 +150,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 relative"
+            className="h-8 w-8 shrink-0 relative"
             onClick={() => setDrawerOpen(true)}
           >
             <Filter className="h-3.5 w-3.5" />

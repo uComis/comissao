@@ -336,19 +336,19 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
           formatCurrency={formatCurrency}
         />
 
-        {/* Desktop Filters */}
-        <Card className="p-3 hidden md:block">
+        {/* Desktop Filters (lg+) */}
+        <Card className="p-3 hidden lg:block">
           <div className="flex items-center gap-2">
-            <div className="w-[200px] shrink-0">{searchInput}</div>
-            <div className="w-[150px] shrink-0">{supplierSelect}</div>
-            <div className="w-[150px] shrink-0">{clientSelect}</div>
+            <div className="flex-1 min-w-0 max-w-[200px]">{searchInput}</div>
+            <div className="flex-1 min-w-0 max-w-[180px]">{supplierSelect}</div>
+            <div className="flex-1 min-w-0 max-w-[180px]">{clientSelect}</div>
             <div className="flex-1" />
             <OptionPicker options={STATUS_OPTIONS} value={filterStatus} onChange={setFilterStatus} />
           </div>
         </Card>
 
-        {/* Mobile Filters */}
-        <Card className="p-3 md:hidden">
+        {/* Mobile/Tablet Filters */}
+        <Card className="p-3 lg:hidden">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
               <Filter className="h-3.5 w-3.5" />

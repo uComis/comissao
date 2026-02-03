@@ -158,21 +158,21 @@ export function MinhasVendasClient({ sales }: Props) {
         <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} />
       </div>
 
-      {/* Desktop Filters */}
-      <Card className="p-3 hidden md:block">
+      {/* Desktop Filters (lg+) */}
+      <Card className="p-3 hidden lg:block">
         <div className="flex items-center gap-2">
-          <div className="w-[160px] shrink-0">{searchInput}</div>
-          <div className="w-[150px] shrink-0">{supplierSelect}</div>
-          <div className="w-[150px] shrink-0">{clientSelect}</div>
+          <div className="flex-1 min-w-0 max-w-[200px]">{searchInput}</div>
+          <div className="flex-1 min-w-0 max-w-[180px]">{supplierSelect}</div>
+          <div className="flex-1 min-w-0 max-w-[180px]">{clientSelect}</div>
           <div className="flex-1" />
           <MonthPicker value={month} onChange={setMonth} />
         </div>
       </Card>
 
-      {/* Mobile Filters */}
-      <Card className="p-3 md:hidden">
+      {/* Mobile/Tablet Filters */}
+      <Card className="p-3 lg:hidden">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8 relative" onClick={() => setDrawerOpen(true)}>
+          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0 relative" onClick={() => setDrawerOpen(true)}>
             <Filter className="h-3.5 w-3.5" />
             {activeFilterCount > 0 && (
               <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
