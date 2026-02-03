@@ -8,6 +8,7 @@ import { Plus, Search, X, Filter, Users, TrendingUp, Target, DollarSign } from '
 import { ClientTable } from '@/components/clients/client-table'
 import { ClientDialog } from '@/components/clients/client-dialog'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { StatCard } from '@/components/dashboard/stat-card'
 import {
   Drawer,
@@ -157,11 +158,11 @@ export function ClientesClient({ initialClients }: Props) {
         </DrawerContent>
       </Drawer>
 
-      {/* Desktop: fixed height table + pagination */}
+      {/* Desktop: table + pagination */}
       <div className="hidden md:block">
-        <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+        <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
           <ClientTable clients={paginated} onEdit={handleEdit} onDeleted={handleDeleted} />
-        </div>
+        </AnimatedTableContainer>
         <DataTablePagination
           page={page}
           pageSize={pageSize}

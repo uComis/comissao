@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Building2, Search, X, Filter, TrendingUp, Target, Percent } from 'lucide-react'
 import { SupplierTable, SupplierDialog } from '@/components/suppliers'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { StatCard } from '@/components/dashboard/stat-card'
 import {
   Drawer,
@@ -179,14 +180,14 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
         </DrawerContent>
       </Drawer>
 
-      {/* Desktop: fixed height table + pagination */}
+      {/* Desktop: table + pagination */}
       <div className="hidden md:block">
-        <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+        <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
           <SupplierTable
             suppliers={paginated}
             onDelete={(id) => setSuppliers(prev => prev.filter(s => s.id !== id))}
           />
-        </div>
+        </AnimatedTableContainer>
         <DataTablePagination
           page={page}
           pageSize={pageSize}

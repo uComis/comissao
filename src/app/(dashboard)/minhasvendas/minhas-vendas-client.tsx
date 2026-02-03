@@ -22,6 +22,7 @@ import {
   DrawerDescription,
 } from '@/components/ui/drawer'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
+import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { Search, ShoppingBag, TrendingUp, Target, DollarSign, X, Filter } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -216,11 +217,11 @@ export function MinhasVendasClient({ sales }: Props) {
         </div>
       ) : (
         <>
-          {/* Desktop: fixed height table + pagination */}
+          {/* Desktop: table + pagination */}
           <div className="hidden md:block">
-            <div className="overflow-hidden" style={{ height: pageSize * 57 + 41 }}>
+            <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
               <PersonalSaleTable sales={paginated} />
-            </div>
+            </AnimatedTableContainer>
             <DataTablePagination
               page={page}
               pageSize={pageSize}

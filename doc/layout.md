@@ -594,6 +594,58 @@ const STATUS_OPTIONS: OptionPickerItem<FilterStatus>[] = [
 
 ---
 
+## AnimatedTableContainer
+
+Container animado para tabelas paginadas no desktop. Aplica **fade out/in** ao trocar de página e **animação de height** quando a tabela muda de tamanho (última página com menos registros).
+
+**Arquivo:** `src/components/ui/animated-table-container.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Descrição |
+|------|------|:-----------:|-----------|
+| `transitionKey` | `string \| number` | Sim | Chave que dispara a transição (normalmente o número da página) |
+| `minHeight` | `number` | Não | Altura mínima para manter a paginação fixa (ex: `pageSize * 57 + 41`) |
+| `children` | `ReactNode` | Sim | Conteúdo da tabela |
+
+### Padrão visual
+
+```
+Troca de página:
+  [Tabela atual] → fade out (150ms) → fade in (150ms) → [Nova tabela]
+
+Mudança de altura (ex: última página com menos linhas):
+  height anima suavemente (200ms, easeInOut)
+
+Com minHeight: última página com menos itens mantém espaço vazio,
+  paginação fica fixa no lugar (não "dança")
+```
+
+### Uso
+
+```tsx
+import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
+import { DataTablePagination } from '@/components/ui/data-table-pagination'
+
+{/* Desktop: table + pagination */}
+<div className="hidden md:block">
+  <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
+    <MyTable data={paginated} />
+  </AnimatedTableContainer>
+  <DataTablePagination ... />
+</div>
+```
+
+> **Regra:** Toda tabela paginada no desktop DEVE usar `AnimatedTableContainer`. Mobile usa "Carregar mais" e não precisa deste wrapper.
+
+### Onde é usado
+
+- `/minhasvendas` — tabela de vendas paginada
+- `/clientes` — tabela de clientes paginada
+- `/fornecedores` — tabela de fornecedores paginada
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)
