@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Banknote, Calendar, CalendarCheck, ChevronRight, Hash, PencilIcon, X } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -103,11 +103,49 @@ function PaymentFormContent({
 }: PaymentConditionSectionProps & { onClose: () => void }) {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isInputFocused, setIsInputFocused] = useState(false)
+  const [fadeState, setFadeState] = useState<'visible' | 'fading-out' | 'fading-in'>('visible')
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto')
 
   const safeInst = getSafeNumber(installments, 1)
   const safeInterval = getSafeNumber(interval, 30)
   const safeFirstDays = getSafeNumber(firstInstallmentDays, 0)
   const isVista = safeInst === 1
+
+  // Measure content height after render
+  useEffect(() => {
+    if (contentRef.current && fadeState === 'visible') {
+      setContentHeight(contentRef.current.scrollHeight)
+    }
+  }, [isVista, fadeState, irregularPatternWarning, quickCondition])
+
+  const switchTab = useCallback((toVista: boolean) => {
+    if (toVista === isVista) return
+    // Start fade out
+    setFadeState('fading-out')
+    setTimeout(() => {
+      // Apply the actual change
+      if (toVista) {
+        onInstallmentsChange(1)
+        onIntervalChange(0)
+      } else {
+        onInstallmentsChange(2)
+        onIntervalChange(30)
+        if (safeFirstDays <= 0) onFirstInstallmentDaysChange(30)
+      }
+      // Start fade in
+      setFadeState('fading-in')
+      // Measure new height after state update
+      requestAnimationFrame(() => {
+        if (contentRef.current) {
+          setContentHeight(contentRef.current.scrollHeight)
+        }
+      })
+      setTimeout(() => {
+        setFadeState('visible')
+      }, 200)
+    }, 150)
+  }, [isVista, safeFirstDays, onInstallmentsChange, onIntervalChange, onFirstInstallmentDaysChange])
 
   return (
     <div className="space-y-5">
@@ -115,12 +153,7 @@ function PaymentFormContent({
       <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
         <button
           type="button"
-          onClick={() => {
-            if (!isVista) {
-              onInstallmentsChange(1)
-              onIntervalChange(0)
-            }
-          }}
+          onClick={() => switchTab(true)}
           className={cn(
             'py-2.5 text-sm font-medium rounded-md transition-all',
             isVista
@@ -132,13 +165,7 @@ function PaymentFormContent({
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (isVista) {
-              onInstallmentsChange(2)
-              onIntervalChange(30)
-              if (safeFirstDays <= 0) onFirstInstallmentDaysChange(30)
-            }
-          }}
+          onClick={() => switchTab(false)}
           className={cn(
             'py-2.5 text-sm font-medium rounded-md transition-all',
             !isVista
@@ -150,119 +177,135 @@ function PaymentFormContent({
         </button>
       </div>
 
-      {/* Datas */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label className="text-xs font-bold text-muted-foreground ml-1">Data da Compra</Label>
-          <DatePicker
-            date={saleDate ? new Date(saleDate + 'T12:00:00') : new Date()}
-            onDateChange={(date) => onSaleDateChange(date ? date.toISOString().split('T')[0] : '')}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-bold text-muted-foreground ml-1">{isVista ? 'Vencimento' : '1ª Parcela'}</Label>
-          <DatePicker
-            date={new Date((firstInstallmentDate || calculateDateFromDays(safeFirstDays, saleDate)) + 'T12:00:00')}
-            onDateChange={(date) => {
-              if (date) onFirstInstallmentDateChange(date.toISOString().split('T')[0])
-            }}
-          />
-        </div>
-      </div>
-
-      {/* À vista: prazo em dias */}
-      {isVista && (
-        <div className="space-y-2">
-          <Label className="text-xs font-bold text-muted-foreground ml-1">Prazo (dias após venda)</Label>
-          <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} />
-        </div>
-      )}
-
-      {/* Cronograma input - only for parcelado */}
-      {!isVista && (
-        <div className="space-y-2">
-          <Label className="text-xs font-bold text-muted-foreground ml-1">Cronograma</Label>
-          <div className="relative">
-            <Input
-              placeholder="Ex: 30/60/90"
-              value={isInputFocused ? quickCondition : summarizeSchedule(quickCondition)}
-              onChange={(e) => onQuickConditionChange(e.target.value)}
-              onBlur={() => {
-                setTimeout(() => {
-                  setShowSuggestions(false)
-                  onQuickConditionBlur()
-                }, 200)
-              }}
-              onFocus={() => {
-                setShowSuggestions(true)
-                setIsInputFocused(true)
-              }}
-              className="h-12 text-base font-medium rounded-xl border-2 focus-visible:ring-0 focus-visible:border-primary/50 transition-all pr-10"
-            />
-            {quickCondition && (
-              <button
-                type="button"
-                onClick={onClearCondition}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-            {showSuggestions && isInputFocused && (
-              <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
-                {suggestions
-                  .filter(s => s.value !== '0')
-                  .filter(s => s.value.startsWith(quickCondition) || s.label.toLowerCase().includes(quickCondition.toLowerCase()))
-                  .map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        onSelectSuggestion(s.value)
-                        setShowSuggestions(false)
-                        setIsInputFocused(false)
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
-                    >
-                      <span className="font-medium text-sm">{s.label}</span>
-                      {s.description && <span className="text-[10px] text-muted-foreground">{s.description}</span>}
-                    </button>
-                  ))}
-              </div>
-            )}
+      {/* Animated content area */}
+      <div
+        className="overflow-hidden transition-[height] duration-300 ease-in-out"
+        style={{ height: contentHeight === 'auto' ? 'auto' : contentHeight }}
+      >
+        <div
+          ref={contentRef}
+          className={cn(
+            'transition-opacity duration-150 ease-in-out space-y-5',
+            fadeState === 'fading-out' && 'opacity-0',
+            fadeState === 'fading-in' && 'opacity-0 animate-[fadeIn_200ms_ease-in-out_forwards]',
+            fadeState === 'visible' && 'opacity-100',
+          )}
+        >
+          {/* Datas */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground ml-1">Data da Compra</Label>
+              <DatePicker
+                date={saleDate ? new Date(saleDate + 'T12:00:00') : new Date()}
+                onDateChange={(date) => onSaleDateChange(date ? date.toISOString().split('T')[0] : '')}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground ml-1">{isVista ? 'Vencimento' : '1ª Parcela'}</Label>
+              <DatePicker
+                date={new Date((firstInstallmentDate || calculateDateFromDays(safeFirstDays, saleDate)) + 'T12:00:00')}
+                onDateChange={(date) => {
+                  if (date) onFirstInstallmentDateChange(date.toISOString().split('T')[0])
+                }}
+              />
+            </div>
           </div>
 
-          {irregularPatternWarning && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
-              <div className="h-5 w-5 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-amber-600 font-bold text-xs">!</span>
-              </div>
-              <p className="text-xs text-amber-800 leading-relaxed">{irregularPatternWarning}</p>
+          {/* À vista: prazo em dias */}
+          {isVista && (
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground ml-1">Prazo (dias após venda)</Label>
+              <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} zeroLabel="Mesmo dia" />
             </div>
           )}
 
-          <FormulaSeparator />
-
-          {/* Card resultado */}
-          <div className="bg-muted/30 rounded-xl border border-border/50 p-4 space-y-4">
+          {/* Cronograma input - only for parcelado */}
+          {!isVista && (
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-muted-foreground ml-1">1ª parcela (dias após venda)</Label>
-              <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-muted-foreground ml-1">Nº Parcelas</Label>
-                <NumberStepper value={safeInst} onChange={onInstallmentsChange} min={1} max={36} />
+              <Label className="text-xs font-bold text-muted-foreground ml-1">Cronograma</Label>
+              <div className="relative">
+                <Input
+                  placeholder="Ex: 30/60/90"
+                  value={isInputFocused ? quickCondition : summarizeSchedule(quickCondition)}
+                  onChange={(e) => onQuickConditionChange(e.target.value)}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setShowSuggestions(false)
+                      onQuickConditionBlur()
+                    }, 200)
+                  }}
+                  onFocus={() => {
+                    setShowSuggestions(true)
+                    setIsInputFocused(true)
+                  }}
+                  className="h-12 text-base font-medium rounded-xl border-2 focus-visible:ring-0 focus-visible:border-primary/50 transition-all pr-10"
+                />
+                {quickCondition && (
+                  <button
+                    type="button"
+                    onClick={onClearCondition}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+                {showSuggestions && isInputFocused && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-64 overflow-auto">
+                    {suggestions
+                      .filter(s => s.value !== '0')
+                      .filter(s => s.value.startsWith(quickCondition) || s.label.toLowerCase().includes(quickCondition.toLowerCase()))
+                      .map((s, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            onSelectSuggestion(s.value)
+                            setShowSuggestions(false)
+                            setIsInputFocused(false)
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-muted flex items-center justify-between gap-2 transition-colors"
+                        >
+                          <span className="font-medium text-sm">{s.label}</span>
+                          {s.description && <span className="text-[10px] text-muted-foreground">{s.description}</span>}
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-muted-foreground ml-1">Intervalo (dias)</Label>
-                <NumberStepper value={safeInterval} onChange={onIntervalChange} min={0} max={180} />
+
+              {irregularPatternWarning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
+                  <div className="h-5 w-5 bg-amber-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-amber-600 font-bold text-xs">!</span>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">{irregularPatternWarning}</p>
+                </div>
+              )}
+
+              <FormulaSeparator />
+
+              {/* Card resultado */}
+              <div className="bg-muted/30 rounded-xl border border-border/50 p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground ml-1">Nº Parcelas</Label>
+                    <NumberStepper value={safeInst} onChange={onInstallmentsChange} min={1} max={36} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold text-muted-foreground ml-1">Intervalo (dias)</Label>
+                    <NumberStepper value={safeInterval} onChange={onIntervalChange} min={0} max={180} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold text-muted-foreground ml-1">1ª parcela (dias após venda)</Label>
+                  <NumberStepper value={safeFirstDays} onChange={onFirstInstallmentDaysChange} min={0} max={180} zeroLabel="Mesmo dia" />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

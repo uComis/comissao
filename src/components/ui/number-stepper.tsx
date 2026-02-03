@@ -14,6 +14,7 @@ type Props = {
   className?: string
   size?: 'sm' | 'md' | 'lg'
   decimals?: number
+  zeroLabel?: string
 }
 
 export function NumberStepper({
@@ -26,6 +27,7 @@ export function NumberStepper({
   className,
   size = 'md',
   decimals = 0,
+  zeroLabel,
 }: Props) {
   // Internal display value (formatted string)
   const [displayValue, setDisplayValue] = useState(() => formatNumber(value, decimals))
@@ -124,11 +126,12 @@ export function NumberStepper({
         <input
           type="text"
           inputMode="decimal"
-          value={displayValue}
+          value={zeroLabel && value === 0 ? zeroLabel : displayValue}
           onChange={handleInputChange}
+          onFocus={zeroLabel && value === 0 ? (e) => { setDisplayValue('0'); e.target.select() } : undefined}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className={cn('w-full h-full text-center bg-transparent outline-none', s.text)}
+          className={cn('w-full h-full text-center bg-transparent outline-none', s.text, zeroLabel && value === 0 && 'text-sm')}
         />
         {suffix && <span className="text-muted-foreground mr-2">{suffix}</span>}
       </div>
