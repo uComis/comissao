@@ -7,12 +7,22 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { createProduct, updateProduct } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product, CommissionRule } from '@/types'
+import type { Product } from '@/types'
 import { ProductForm, type ProductFormRef } from './product-form'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 type Props = {
   open: boolean
@@ -23,9 +33,6 @@ type Props = {
   initialName?: string
   onProductCreated?: (product: Product) => void
   onProductUpdated?: (product: Product) => void
-  availableRules?: CommissionRule[]
-  existingProducts?: Product[]
-  onAddRule?: () => void
 }
 
 export function ProductDialog({
@@ -37,12 +44,10 @@ export function ProductDialog({
   initialName,
   onProductCreated,
   onProductUpdated,
-  availableRules,
-  existingProducts,
-  onAddRule
 }: Props) {
   const formRef = useRef<ProductFormRef>(null)
   const [loading, setLoading] = useState(false)
+  const isMobile = useIsMobile()
 
   const isEditing = !!product
 
@@ -64,9 +69,6 @@ export function ProductDialog({
           name: formData.name,
           sku: formData.sku,
           unit_price: formData.unit_price,
-          default_commission_rate: formData.default_commission_rate,
-          default_tax_rate: formData.default_tax_rate,
-          commission_rule_id: formData.commission_rule_id,
         })
 
         if (result.success) {
@@ -83,9 +85,6 @@ export function ProductDialog({
           name: formData.name,
           sku: formData.sku ?? undefined,
           unit_price: formData.unit_price,
-          default_commission_rate: formData.default_commission_rate,
-          default_tax_rate: formData.default_tax_rate,
-          commission_rule_id: formData.commission_rule_id,
         })
 
         if (result.success) {
@@ -109,13 +108,55 @@ export function ProductDialog({
     onOpenChange(newOpen)
   }
 
+  const title = isEditing ? 'Editar Produto' : 'Novo Produto'
+  const description = isEditing ? 'Edite os dados do produto' : 'Cadastre um novo produto'
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader>
+            <DrawerTitle>{title}</DrawerTitle>
+            <DrawerDescription>{description}</DrawerDescription>
+          </DrawerHeader>
+
+          <form id="product-form-modal" onSubmit={handleSubmit} className="flex flex-col flex-1">
+            <div className="flex-1 overflow-y-auto px-4">
+              <ProductForm
+                ref={formRef}
+                product={product}
+                showSku={showSku}
+                initialName={initialName}
+              />
+            </div>
+
+            <DrawerFooter className="border-t">
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleOpenChange(false)}
+                disabled={loading}
+                className="w-full"
+              >
+                Cancelar
+              </Button>
+            </DrawerFooter>
+          </form>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent showCloseButton={false} className="top-[20%] translate-y-0 max-w-md">
         <DialogHeader className="text-center sm:text-center">
-          <DialogTitle>{isEditing ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">
-            {isEditing ? 'Edite os dados do produto' : 'Cadastre um novo produto'}
+            {description}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,12 +166,9 @@ export function ProductDialog({
             product={product}
             showSku={showSku}
             initialName={initialName}
-            availableRules={availableRules}
-            existingProducts={existingProducts}
-            onAddRule={onAddRule}
           />
 
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -142,7 +180,7 @@ export function ProductDialog({
             <Button type="submit" disabled={loading}>
               {loading ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar'}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RuleForm, type RuleFormRef } from '@/components/rules'
 import { ProductTable, ProductDialog } from '@/components/products'
+import { DashedActionButton } from '@/components/ui/dashed-action-button'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
 import { Loader2, Plus, Package, Trash2, Edit2, Star, Pencil } from 'lucide-react'
@@ -23,7 +24,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from "@/components/ui/drawer"
 import { Badge } from '@/components/ui/badge'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 type Props = {
   supplier?: PersonalSupplier & {
@@ -56,6 +66,7 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   const [productDialogOpen, setProductDialogOpen] = useState(false)
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   const isEditing = !!supplier
 
@@ -91,9 +102,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
           name: r.name,
           type: r.type,
-          target: r.target || 'commission',
-          percentage: r.percentage,
-          tiers: r.tiers,
+          commission_percentage: r.commission_percentage,
+          tax_percentage: r.tax_percentage,
+          commission_tiers: r.commission_tiers,
           is_default: r.id === defaultRuleId
         }))
       })
@@ -155,8 +166,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
         ...r,
         name: formData.name,
         type: formData.type,
-        percentage: formData.percentage,
-        tiers: formData.tiers
+        commission_percentage: formData.commission_percentage,
+        tax_percentage: formData.tax_percentage,
+        commission_tiers: formData.commission_tiers
       } : r))
     } else {
       // Adicionar nova (ID temporário se não persistido)
@@ -166,9 +178,10 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
         organization_id: null,
         name: formData.name,
         type: formData.type,
-        target: formData.target || 'commission',
-        percentage: formData.percentage,
-        tiers: formData.tiers,
+        commission_percentage: formData.commission_percentage,
+        tax_percentage: formData.tax_percentage,
+        commission_tiers: formData.commission_tiers,
+        tax_tiers: null,
         is_default: rules.length === 0, // Primeira regra vira default
         is_active: true,
         created_at: new Date().toISOString(),
@@ -243,9 +256,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
             id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
             name: r.name,
             type: r.type,
-            target: r.target || 'commission',
-            percentage: r.percentage,
-            tiers: r.tiers,
+            commission_percentage: r.commission_percentage,
+            tax_percentage: r.tax_percentage,
+            commission_tiers: r.commission_tiers,
             is_default: r.id === defaultRuleId
           }))
         })
@@ -269,9 +282,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           rule: {
             name: mainRule.name,
             type: mainRule.type,
-            target: mainRule.target || 'commission',
-            percentage: mainRule.percentage,
-            tiers: mainRule.tiers,
+            commission_percentage: mainRule.commission_percentage,
+            tax_percentage: mainRule.tax_percentage,
+            commission_tiers: mainRule.commission_tiers,
           },
           default_commission_rate: Number(defaultCommission) || 0,
           default_tax_rate: Number(defaultTax) || 0,
@@ -427,30 +440,13 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                 </div>
 
                 <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-medium">Regras por Faixa</h4>
-                    {rules.length > 0 && (
-                      <Button type="button" size="icon" variant="ghost" onClick={handleAddRule} className="h-8 w-8">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <h4 className="text-sm font-medium">Regras por Faixa</h4>
 
-                  {rules.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 px-4 border border-dashed rounded-lg space-y-4">
-                      <p className="text-muted-foreground text-sm">
-                        Nenhuma regra cadastrada. Adicione ao menos uma.
-                      </p>
-                      <Button type="button" size="sm" onClick={handleAddRule} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Nova Regra
-                      </Button>
-                    </div>
-                  ) : (
+                  {rules.length > 0 && (
                     <div className="space-y-3">
                       {rules.map((rule) => (
-                        <div 
-                          key={rule.id} 
+                        <div
+                          key={rule.id}
                           className={`flex items-center justify-between p-3 border rounded-lg ${defaultRuleId === rule.id ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}
                         >
                           <div className="space-y-1">
@@ -461,36 +457,36 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {rule.type === 'fixed' 
-                                ? `${rule.percentage}% fixo` 
-                                : `${rule.tiers?.length || 0} faixas escalonadas`
+                              {rule.type === 'fixed'
+                                ? `${rule.commission_percentage || 0}% comissão${rule.tax_percentage ? ` + ${rule.tax_percentage}% taxa` : ''}`
+                                : `${rule.commission_tiers?.length || 0} faixas escalonadas`
                               }
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
                             {defaultRuleId !== rule.id && (
-                              <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
                                 title="Definir como padrão"
                                 onClick={() => setDefaultRuleId(rule.id)}
                               >
                                 <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
                               </Button>
                             )}
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
+                            <Button
+                              type="button"
+                              variant="ghost"
                               size="icon"
                               onClick={() => handleEditRule(rule)}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
                               className="text-destructive hover:text-destructive"
                               onClick={() => handleDeleteRule(rule.id)}
                               disabled={rules.length === 1} // Não pode apagar a última
@@ -502,6 +498,14 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                       ))}
                     </div>
                   )}
+
+                  <DashedActionButton
+                    icon={<Plus className="h-4 w-4" />}
+                    prominent={rules.length === 0}
+                    onClick={handleAddRule}
+                  >
+                    {rules.length === 0 ? 'Adicionar regra' : 'Adicionar outra regra'}
+                  </DashedActionButton>
                 </div>
               </CardContent>
             </Card>
@@ -512,25 +516,13 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
             {isEditing && supplier && (
               <Card className="h-full flex flex-col">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Produtos</CardTitle>
-                      <CardDescription>
-                        Produtos que você vende desta empresa/fábrica
-                      </CardDescription>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setProductDialogOpen(true)}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar
-                    </Button>
-                  </div>
+                  <CardTitle>Produtos</CardTitle>
+                  <CardDescription>
+                    Produtos que você vende desta empresa/fábrica
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1">
-                  {products.length > 0 ? (
+                <CardContent className="flex-1 space-y-4">
+                  {products.length > 0 && (
                     <ProductTable
                       products={products}
                       supplierId={supplier.id}
@@ -539,14 +531,14 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                       onProductDeleted={handleProductDeleted}
                       onProductUpdated={handleProductUpdated}
                     />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center h-full">
-                      <Package className="mb-4 h-10 w-10 text-muted-foreground/50" />
-                      <p className="text-sm text-muted-foreground">
-                        Nenhum produto cadastrado. Clique em &quot;Adicionar&quot; para começar.
-                      </p>
-                    </div>
                   )}
+                  <DashedActionButton
+                    icon={<Plus className="h-4 w-4" />}
+                    prominent={products.length === 0}
+                    onClick={() => setProductDialogOpen(true)}
+                  >
+                    {products.length === 0 ? 'Adicionar produto' : 'Adicionar outro produto'}
+                  </DashedActionButton>
                 </CardContent>
               </Card>
             )}
@@ -580,30 +572,58 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
         )}
       </form>
 
-      {/* Dialog de Nova/Editar Regra */}
-      <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{editingRuleId ? 'Editar Regra' : 'Nova Regra'}</DialogTitle>
-                <DialogDescription>Defina as condições desta regra de comissão.</DialogDescription>
-            </DialogHeader>
-            
-            <form id="rule-form-modal" onSubmit={handleSaveRule}>
-                <RuleForm 
-                    ref={ruleFormRef}
-                    rule={editingRuleId ? rules.find(r => r.id === editingRuleId) : null}
-                    showName={true}
-                    showDefault={false} // Default é gerenciado na lista
-                    compact={true}
+      {/* Modal de Nova/Editar Regra - Drawer no mobile, Dialog no desktop */}
+      {isMobile ? (
+        <Drawer open={ruleDialogOpen} onOpenChange={setRuleDialogOpen} direction="bottom">
+          <DrawerContent className="max-h-[90vh]">
+            <DrawerHeader>
+              <DrawerTitle>{editingRuleId ? 'Editar Regra' : 'Nova Regra'}</DrawerTitle>
+              <DrawerDescription>Defina as condições desta regra de comissão.</DrawerDescription>
+            </DrawerHeader>
+
+            <form id="rule-form-modal" onSubmit={handleSaveRule} className="flex flex-col flex-1">
+              <div className="flex-1 overflow-y-auto px-4">
+                <RuleForm
+                  ref={ruleFormRef}
+                  rule={editingRuleId ? rules.find(r => r.id === editingRuleId) : null}
+                  showName={true}
+                  showDefault={false}
+                  compact={true}
                 />
+              </div>
+
+              <DrawerFooter className="border-t">
+                <Button type="submit" className="w-full">Salvar Regra</Button>
+                <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)} className="w-full">Cancelar</Button>
+              </DrawerFooter>
+            </form>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingRuleId ? 'Editar Regra' : 'Nova Regra'}</DialogTitle>
+              <DialogDescription>Defina as condições desta regra de comissão.</DialogDescription>
+            </DialogHeader>
+
+            <form id="rule-form-modal" onSubmit={handleSaveRule}>
+              <RuleForm
+                ref={ruleFormRef}
+                rule={editingRuleId ? rules.find(r => r.id === editingRuleId) : null}
+                showName={true}
+                showDefault={false}
+                compact={true}
+              />
             </form>
 
             <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit" form="rule-form-modal">Salvar Regra</Button>
+              <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)}>Cancelar</Button>
+              <Button type="submit" form="rule-form-modal">Salvar Regra</Button>
             </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Dialog de novo produto */}
       {isEditing && supplier && (
@@ -612,8 +632,6 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           onOpenChange={setProductDialogOpen}
           supplierId={supplier.id}
           showSku={false}
-          availableRules={rules}
-          onAddRule={handleAddRule}
           onProductCreated={handleProductCreated}
         />
       )}
