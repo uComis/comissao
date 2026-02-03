@@ -111,22 +111,15 @@ export function ReceivableTable({
                     className={cn(
                       'transition-colors cursor-pointer',
                       !isLast && 'border-b border-border/50',
-                      isSelected && 'bg-primary/10',
-                      isOverdue && !isSelected && 'bg-destructive/5',
+                      isSelected && 'bg-primary/5 border-l-[3px] border-l-[#409eff]',
                       isToday && !isSelected && !isOverdue && 'bg-amber-500/5',
-                      !isSelected && !isOverdue && !isToday && isEven && 'bg-muted/30',
-                      !isSelected && !isOverdue && !isToday && 'hover:bg-muted/80'
+                      !isSelected && !isToday && isEven && 'bg-muted/30',
+                      !isSelected && !isToday && 'hover:bg-muted/80'
                     )}
                   >
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'text-sm font-medium',
-                            isOverdue && 'text-destructive',
-                            isToday && !isOverdue && 'text-amber-600'
-                          )}
-                        >
+                        <span className="text-sm font-medium">
                           {formatDate(r.due_date).split('/')[0]} {formatMonthShort(r.due_date)}
                         </span>
                         {isOverdue && (

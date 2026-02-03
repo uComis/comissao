@@ -31,7 +31,7 @@ export function ReceivableCard({
       onClick={() => onToggleSelection(key)}
       className={cn(
         'rounded-xl border bg-card p-3 transition-all cursor-pointer active:scale-[0.98]',
-        isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/20',
+        isSelected && 'border-l-[3px] border-l-[#409eff] bg-primary/5',
         isOverdue && !isSelected && 'border-l-[3px] border-l-destructive',
         isToday && !isSelected && !isOverdue && 'border-l-[3px] border-l-amber-500',
       )}
