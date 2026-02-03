@@ -564,7 +564,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
           <div className="md:hidden">
             <div className="space-y-6 px-1">
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70">Identificação</h3>
                 <IdentificationSection
                   suppliers={suppliersList}
                   supplierId={supplierId}
@@ -581,7 +581,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <div ref={formBodyRef} className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70">Valores</h3>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button type="button" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
@@ -682,7 +682,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
             <CardContent className="p-0">
               <div className="divide-y divide-border/40">
                 <div className="px-6 py-4 space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70">Identificação</h3>
                   <IdentificationSection
                     suppliers={suppliersList}
                     supplierId={supplierId}
@@ -700,7 +700,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
               <div>
                 <div className="px-6 py-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Valores</h3>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70">Valores</h3>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button type="button" className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">

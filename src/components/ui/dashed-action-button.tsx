@@ -24,8 +24,8 @@ function DashedActionButton({
     <button
       type="button"
       className={cn(
-        'w-full flex items-center justify-center gap-2 h-12 border-2 border-dashed border-border/60 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors',
-        prominent && 'h-16 text-base border-border',
+        'w-full flex items-center justify-center gap-2 h-14 border-2 border-dashed border-border rounded-xl text-sm text-foreground/60 hover:text-foreground hover:border-foreground/30 transition-colors',
+        prominent && 'h-[4.5rem] text-base border-foreground/30 text-foreground/70',
         className
       )}
       {...props}

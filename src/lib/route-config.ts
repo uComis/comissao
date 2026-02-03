@@ -11,7 +11,7 @@ export const routeConfigs: Record<string, RouteConfig> = {
   '/recebiveis': { title: 'Faturamento', contentMaxWidth: 'max-w-4xl' },
   '/clientes': { title: 'Meus Clientes', contentMaxWidth: 'max-w-4xl' },
   '/minhasvendas': { title: 'Minhas Vendas', contentMaxWidth: 'max-w-4xl' },
-  '/minhasvendas/nova': { title: 'Registro de venda', backHref: '/minhasvendas' },
+  '/minhasvendas/nova': { title: 'Registro de venda', backHref: '/minhasvendas', contentMaxWidth: 'max-w-4xl' },
   '/fornecedores': { title: 'Minhas Pastas', contentMaxWidth: 'max-w-4xl' },
   '/fornecedores/novo': { title: 'Nova Pasta', backHref: '/fornecedores' },
   '/vendedores': { title: 'Vendedores' },

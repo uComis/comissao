@@ -25,7 +25,7 @@ export function NotesSection({ notes, onNotesChange }: NotesSectionProps) {
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between w-full py-1 group"
       >
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">Observações</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground/70 group-hover:text-foreground transition-colors">Observações</h3>
         {open ? (
           <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
         ) : (

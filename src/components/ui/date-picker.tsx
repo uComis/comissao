@@ -61,12 +61,10 @@ export function DatePicker({
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? (
-            formatDateDisplay(date)
-          ) : (
-            <span>{placeholder}</span>
-          )}
+          <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+          <span className="truncate">
+            {date ? formatDateDisplay(date) : placeholder}
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
