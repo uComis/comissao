@@ -4,11 +4,14 @@ import { StatCard, RankingCard, CommissionEvolutionChart } from "@/components/da
 import { MonthPicker } from "@/components/dashboard/month-picker"
 import { useHeaderActions } from "@/components/layout"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getHomeAnalyticsAction } from '@/app/actions/dashboard'
 import { HomeDashboardData } from '@/lib/services/dashboard-service'
 import { GoalDialog } from '@/components/dashboard/goal-dialog'
+import { HomeSkeleton } from '@/components/dashboard/home-skeleton'
+import { HomeEmptyState } from '@/components/dashboard/home-empty-state'
 import { formatCurrency } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import {
   Target,
   ShoppingCart,
@@ -20,19 +23,25 @@ import {
 export default function AnalyticsPage() {
   const [data, setData] = useState<HomeDashboardData | null>(null)
   const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const hasLoadedOnce = useRef(false)
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
 
   const loadData = useCallback(async () => {
-    setLoading(true)
+    if (hasLoadedOnce.current) {
+      setRefreshing(true)
+    }
     const result = await getHomeAnalyticsAction(selectedMonth.toISOString())
     if (result) {
       setData(result)
     }
-    setLoading(false)
+    hasLoadedOnce.current = true
+    setInitialLoading(false)
+    setRefreshing(false)
   }, [selectedMonth])
 
   useEffect(() => {
@@ -41,12 +50,27 @@ export default function AnalyticsPage() {
 
   useHeaderActions(null)
 
-  if (loading) {
+  // Initial loading: show skeleton
+  if (initialLoading) {
+    return <HomeSkeleton />
+  }
+
+  // Empty state: user has no data at all
+  const isEmpty = data &&
+    data.cards.sales_performed.value === 0 &&
+    data.cards.total_sales.value === 0 &&
+    data.rankings.clients.length === 0 &&
+    data.rankings.folders.length === 0
+
+  if (isEmpty) {
     return (
-      <div className="flex flex-col gap-8 items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-sm text-muted-foreground">Carregando dashboard...</p>
-      </div>
+      <>
+        <div className="flex items-center justify-between max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8 max-w-[1500px] md:px-0">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        </div>
+        <HomeEmptyState />
+      </>
     )
   }
 
@@ -61,7 +85,10 @@ export default function AnalyticsPage() {
         <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
+      <div className={cn(
+        "grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 transition-opacity duration-300",
+        refreshing && "opacity-50 pointer-events-none"
+      )}>
         {/* Grupo da Esquerda: 4 Cards em 2x2 */}
         <div className="grid grid-cols-2 gap-2 md:gap-4 lg:col-span-2">
           <StatCard
@@ -94,7 +121,7 @@ export default function AnalyticsPage() {
             value={formatCurrency(data?.cards.finance.received || 0)}
             icon={HandCoins}
             valueClassName="whitespace-nowrap"
-            remainingLabel={data?.cards.finance && (data.cards.finance.pending > 0 || data.cards.finance.overdue > 0) 
+            remainingLabel={data?.cards.finance && (data.cards.finance.pending > 0 || data.cards.finance.overdue > 0)
               ? `Pendente: ${formatCurrency(data.cards.finance.pending)}${data.cards.finance.overdue > 0 ? ` (+${formatCurrency(data.cards.finance.overdue)} atrasado)` : ''}`
               : "Tudo em dia!"}
             percentage={data?.cards.finance && data.cards.finance.overdue > 0 ? -1 : undefined}
@@ -156,14 +183,17 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Gráficos de Evolução */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10">
-        <CommissionEvolutionChart 
+      <div className={cn(
+        "grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10 transition-opacity duration-300",
+        refreshing && "opacity-50 pointer-events-none"
+      )}>
+        <CommissionEvolutionChart
           title="Comissão por Pasta (6 Meses)"
           description="Histórico das 5 pastas com maior rendimento este mês"
           data={data?.evolution_folders || []}
           names={data?.evolution_names?.folders || []}
         />
-        <CommissionEvolutionChart 
+        <CommissionEvolutionChart
           title="Comissão por Cliente (6 Meses)"
           description="Histórico dos 5 clientes com maior rendimento este mês"
           data={data?.evolution_clients || []}
@@ -171,7 +201,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
-      <GoalDialog 
+      <GoalDialog
         open={isGoalDialogOpen}
         onOpenChange={setIsGoalDialogOpen}
         currentGoal={cards?.commission.goal || 0}
