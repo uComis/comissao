@@ -32,68 +32,76 @@ function NovaVendaLoading() {
       <div className="md:hidden space-y-6 px-1">
         {/* Identificação */}
         <div className="space-y-3">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-10 w-full rounded-md" />
-          <Skeleton className="h-10 w-full rounded-md" />
-        </div>
-        {/* Valores */}
-        <div className="space-y-3">
-          <Skeleton className="h-3 w-14" />
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full rounded-md" />
-            <div className="grid grid-cols-2 gap-2">
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-3 w-28" />
+          <div className="space-y-3 mt-2">
+            {/* SupplierPicker */}
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+            {/* ClientPicker */}
+            <div className="mt-5">
+              <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
             </div>
           </div>
         </div>
-        {/* Condição de pagamento */}
+        {/* Valores */}
         <div className="space-y-3">
-          <Skeleton className="h-3 w-36" />
-          <Skeleton className="h-10 w-full rounded-md" />
-          <Skeleton className="h-10 w-full rounded-md" />
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-7 rounded-md" />
+          </div>
+          {/* DashedActionButton */}
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+        </div>
+        {/* Pagamento */}
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          {/* DashedActionButton */}
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
         </div>
         {/* Observações */}
         <div className="space-y-3">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-20 w-full rounded-md" />
+          <div className="flex items-center justify-between py-1">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-4" />
+          </div>
         </div>
       </div>
 
       {/* Desktop skeleton — Card with sections */}
-      <div className="hidden md:block rounded-xl border border-border/60 shadow-sm overflow-hidden">
-        <div className="divide-y divide-border/40">
-          {/* Identificação */}
-          <div className="px-6 py-4 space-y-3">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-10 w-full rounded-md" />
-          </div>
-          {/* Valores */}
-          <div className="px-6 py-4 space-y-3">
-            <Skeleton className="h-3 w-14" />
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full rounded-md" />
-              <div className="grid grid-cols-3 gap-2">
-                <Skeleton className="h-10 w-full rounded-md" />
-                <Skeleton className="h-10 w-full rounded-md" />
-                <Skeleton className="h-10 w-full rounded-md" />
-              </div>
+      <div className="hidden md:block rounded-xl border border-border/60 shadow-sm overflow-hidden bg-card">
+        {/* Identificação */}
+        <div className="px-6 py-5 space-y-4">
+          <Skeleton className="h-3 w-28" />
+          <div className="space-y-3 mt-2">
+            {/* SupplierPicker */}
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+            {/* Switch alinhado à direita */}
+            <div className="flex justify-end">
+              <Skeleton className="h-4 w-40" />
             </div>
+            {/* ClientPicker */}
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
           </div>
-          {/* Condição de pagamento */}
-          <div className="px-6 py-4 space-y-3">
-            <Skeleton className="h-3 w-36" />
-            <Skeleton className="h-10 w-full rounded-md" />
-            <div className="grid grid-cols-2 gap-2">
-              <Skeleton className="h-10 w-full rounded-md" />
-              <Skeleton className="h-10 w-full rounded-md" />
-            </div>
+        </div>
+        {/* Valores */}
+        <div className="px-6 py-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-6 w-6 rounded" />
           </div>
-          {/* Observações */}
-          <div className="px-6 py-4 space-y-3">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-20 w-full rounded-md" />
+          {/* DashedActionButton */}
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+        </div>
+        {/* Pagamento */}
+        <div className="px-6 py-5 space-y-4">
+          <Skeleton className="h-3 w-24" />
+          {/* DashedActionButton */}
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+        </div>
+        {/* Observações */}
+        <div className="px-6 py-5">
+          <div className="flex items-center justify-between py-1">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-4" />
           </div>
         </div>
       </div>

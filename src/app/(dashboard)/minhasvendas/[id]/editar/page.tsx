@@ -41,12 +41,115 @@ async function EditarVendaContent({ id }: { id: string }) {
 
 function EditarVendaLoading() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-[200px]" />
-        <Skeleton className="h-4 w-[300px]" />
+    <div className="mx-auto max-w-2xl mt-5">
+      {/* Mobile skeleton */}
+      <div className="md:hidden space-y-6 px-1">
+        {/* Identificação */}
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-28" />
+          <div className="space-y-3 mt-2">
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+            <div className="mt-5">
+              <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+            </div>
+          </div>
+        </div>
+        {/* Valores */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-7 w-7 rounded-md" />
+          </div>
+          {/* Item existente */}
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+          {/* Totais */}
+          <div className="pt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4 py-4 border-b border-dashed border-border/60">
+              <div className="flex flex-col items-center gap-1">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Skeleton className="h-2.5 w-28" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            </div>
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+        </div>
+        {/* Pagamento */}
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+        </div>
+        {/* Observações */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between py-1">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+        </div>
       </div>
-      <Skeleton className="h-[600px] w-full" />
+
+      {/* Desktop skeleton */}
+      <div className="hidden md:block rounded-xl border border-border/60 shadow-sm overflow-hidden bg-card">
+        {/* Identificação */}
+        <div className="px-6 py-5 space-y-4">
+          <Skeleton className="h-3 w-28" />
+          <div className="space-y-3 mt-2">
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+            <div className="flex justify-end">
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-[58px] w-full rounded-xl border-2 border-transparent" />
+          </div>
+        </div>
+        {/* Valores */}
+        <div className="px-6 py-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-6 w-6 rounded" />
+          </div>
+          {/* Item existente */}
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+          {/* Totais */}
+          <div className="pt-2 space-y-4">
+            <div className="grid grid-cols-2 gap-4 py-4 border-b border-dashed border-border/60">
+              <div className="flex flex-col items-center gap-1">
+                <Skeleton className="h-2.5 w-20" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <Skeleton className="h-2.5 w-28" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+            </div>
+            <Skeleton className="h-24 w-full rounded-2xl" />
+          </div>
+        </div>
+        {/* Pagamento */}
+        <div className="px-6 py-5 space-y-4">
+          <Skeleton className="h-3 w-24" />
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-14 w-full rounded-lg" />
+            <Skeleton className="h-14 w-full rounded-lg" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl border-2 border-dashed border-border/40" />
+        </div>
+        {/* Observações */}
+        <div className="px-6 py-5">
+          <div className="flex items-center justify-between py-1">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
