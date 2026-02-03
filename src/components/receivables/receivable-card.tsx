@@ -1,13 +1,11 @@
 'use client'
 
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import type { ReceivableRow } from '@/app/actions/receivables'
 
 type Props = {
   receivable: ReceivableRow
   today: string
-  isEditMode: boolean
   isSelected: boolean
   onToggleSelection: (key: string) => void
   formatCurrency: (value: number) => string
@@ -18,7 +16,6 @@ type Props = {
 export function ReceivableCard({
   receivable,
   today,
-  isEditMode,
   isSelected,
   onToggleSelection,
   formatCurrency,
@@ -31,26 +28,15 @@ export function ReceivableCard({
 
   return (
     <article
-      onClick={() => isEditMode && onToggleSelection(key)}
+      onClick={() => onToggleSelection(key)}
       className={cn(
-        'rounded-xl border bg-card p-3 transition-all',
-        isEditMode && 'cursor-pointer',
-        isSelected && 'border-primary bg-primary/5',
+        'rounded-xl border bg-card p-3 transition-all cursor-pointer active:scale-[0.98]',
+        isSelected && 'border-primary bg-primary/5 ring-1 ring-primary/20',
         isOverdue && !isSelected && 'border-l-[3px] border-l-destructive',
         isToday && !isSelected && !isOverdue && 'border-l-[3px] border-l-amber-500',
       )}
     >
       <div className="flex items-start gap-2.5">
-        {isEditMode && (
-          <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggleSelection(key)}
-              className="h-5 w-5 border-2"
-            />
-          </div>
-        )}
-
         <div className="flex-1 min-w-0">
           {/* Row 1: Date (left) + Status badge (right) */}
           <div className="flex items-center justify-between mb-1.5">

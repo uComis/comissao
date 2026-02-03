@@ -2,14 +2,12 @@
 
 import { useMemo } from 'react'
 import { Card } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import type { ReceivableRow } from '@/app/actions/receivables'
 
 type Props = {
   receivables: ReceivableRow[]
   today: string
-  isEditMode: boolean
   selectedIds: string[]
   onToggleSelection: (key: string) => void
   formatCurrency: (value: number) => string
@@ -34,7 +32,6 @@ type MonthGroup = {
 export function ReceivableTable({
   receivables,
   today,
-  isEditMode,
   selectedIds,
   onToggleSelection,
   formatCurrency,
@@ -83,7 +80,6 @@ export function ReceivableTable({
           <table className="w-full">
             <thead>
               <tr className="border-y bg-muted/50">
-                {isEditMode && <th className="w-11 px-3 py-2" />}
                 <th className="text-left text-xs font-medium text-foreground/70 px-4 py-2">
                   Vencimento
                 </th>
@@ -111,27 +107,17 @@ export function ReceivableTable({
                 return (
                   <tr
                     key={key}
-                    onClick={() => isEditMode && onToggleSelection(key)}
+                    onClick={() => onToggleSelection(key)}
                     className={cn(
-                      'transition-colors',
+                      'transition-colors cursor-pointer',
                       !isLast && 'border-b border-border/50',
-                      isEditMode && 'cursor-pointer',
-                      isSelected && 'bg-primary/5',
+                      isSelected && 'bg-primary/10',
                       isOverdue && !isSelected && 'bg-destructive/5',
                       isToday && !isSelected && !isOverdue && 'bg-amber-500/5',
                       !isSelected && !isOverdue && !isToday && isEven && 'bg-muted/30',
                       !isSelected && !isOverdue && !isToday && 'hover:bg-muted/80'
                     )}
                   >
-                    {isEditMode && (
-                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => onToggleSelection(key)}
-                          className="h-5 w-5 border-2"
-                        />
-                      </td>
-                    )}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span

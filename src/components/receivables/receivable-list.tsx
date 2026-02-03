@@ -7,7 +7,6 @@ import type { ReceivableRow } from '@/app/actions/receivables'
 type Props = {
   receivables: ReceivableRow[]
   today: string
-  isEditMode: boolean
   selectedIds: string[]
   onToggleSelection: (key: string) => void
   formatCurrency: (value: number) => string
@@ -25,7 +24,6 @@ function getMonthYear(dateStr: string): string {
 export function ReceivableList({
   receivables,
   today,
-  isEditMode,
   selectedIds,
   onToggleSelection,
   formatCurrency,
@@ -83,7 +81,6 @@ export function ReceivableList({
                     key={key}
                     receivable={receivable}
                     today={today}
-                    isEditMode={isEditMode}
                     isSelected={selectedIds.includes(key)}
                     onToggleSelection={onToggleSelection}
                     formatCurrency={formatCurrency}

@@ -18,7 +18,7 @@ import {
   DrawerDescription,
 } from '@/components/ui/drawer'
 import { Card } from '@/components/ui/card'
-import { CalendarCheck, X, Wallet, Filter } from 'lucide-react'
+import { Wallet, Filter } from 'lucide-react'
 import { OptionPicker, type OptionPickerItem } from '@/components/dashboard/option-picker'
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
@@ -30,7 +30,7 @@ import {
   ConfirmDialog,
   ReceivedSection,
 } from '@/components/receivables'
-import { useSetPageHeader, useHeaderActions } from '@/components/layout'
+import { useSetPageHeader } from '@/components/layout'
 import { markReceivableAsReceived, undoReceivableReceived, type ReceivableRow, type ReceivablesStats } from '@/app/actions/receivables'
 import { toast } from 'sonner'
 
@@ -91,7 +91,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Conciliation state
-  const [isEditMode, setIsEditMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [receivedAtDate, setReceivedAtDate] = useState(new Date().toISOString().split('T')[0])
@@ -195,7 +194,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
       if (successCount > 0) toast.success(`${successCount} recebimentos registrados`)
       if (errorCount > 0) toast.error(`Erro em ${errorCount} registros`)
 
-      setIsEditMode(false)
       setSelectedIds([])
       setShowConfirmDialog(false)
     } catch {
@@ -248,24 +246,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
   // --- Header ---
 
   useSetPageHeader({ title: isHome ? 'Faturamento' : 'Recebíveis', contentMaxWidth: 'max-w-4xl' })
-
-  useHeaderActions(
-    !isEditMode ? (
-      <Button onClick={() => setIsEditMode(true)} className="bg-primary hover:bg-primary/90 shadow-lg group">
-        <CalendarCheck className="h-4 w-4 transition-transform group-hover:scale-110 md:mr-2" />
-        <span className="hidden md:inline">Registrar Recebimentos</span>
-      </Button>
-    ) : (
-      <Button
-        variant="outline"
-        onClick={() => { setIsEditMode(false); setSelectedIds([]) }}
-        className="border-destructive text-destructive hover:bg-destructive/10"
-      >
-        <X className="h-4 w-4 md:mr-2" />
-        <span className="hidden md:inline">Cancelar</span>
-      </Button>
-    )
-  )
 
   // --- Filter UI elements ---
 
@@ -413,7 +393,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
         <ReceivableList
           receivables={displayPending}
           today={today}
-          isEditMode={isEditMode}
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
           formatCurrency={formatCurrency}
@@ -423,7 +402,6 @@ export function ReceivablesClient({ receivables, stats, isHome }: Props) {
         <ReceivableTable
           receivables={displayPending}
           today={today}
-          isEditMode={isEditMode}
           selectedIds={selectedIds}
           onToggleSelection={toggleSelection}
           formatCurrency={formatCurrency}
