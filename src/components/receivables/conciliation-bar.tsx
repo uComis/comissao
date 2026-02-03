@@ -23,7 +23,7 @@ export function ConciliationBar({ selectedCount, totalCount, selectedTotal, onCl
         isVisible ? 'translate-y-0' : 'translate-y-full'
       )}
     >
-      <div className="px-4 pb-4 md:pb-6">
+      <div className="px-4 pb-4 md:pb-6 max-w-4xl mx-auto">
         {/* Progress indicator - centered above */}
         <div className="text-center pb-1.5">
           <span className="text-xs font-medium text-muted-foreground">
