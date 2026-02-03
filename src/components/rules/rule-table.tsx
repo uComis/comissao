@@ -48,6 +48,13 @@ function formatTiers(tiers: Array<{ min: number; max: number | null; percentage:
     .join(' | ')
 }
 
+function formatFixedRule(commissionPct: number | null, taxPct: number | null): string {
+  const parts: string[] = []
+  if (commissionPct !== null && commissionPct > 0) parts.push(`${commissionPct}% comissão`)
+  if (taxPct !== null && taxPct > 0) parts.push(`${taxPct}% taxa`)
+  return parts.length > 0 ? parts.join(' + ') : '-'
+}
+
 export function RuleTable({ rules, organizationId, sellers, showInactive = false, onRefresh }: Props) {
   const [editingRule, setEditingRule] = useState<CommissionRuleWithSellers | null>(null)
   const [assigningRule, setAssigningRule] = useState<CommissionRuleWithSellers | null>(null)
@@ -116,8 +123,8 @@ export function RuleTable({ rules, organizationId, sellers, showInactive = false
               </TableCell>
               <TableCell className="max-w-[300px] truncate">
                 {rule.type === 'fixed'
-                  ? formatPercentage(rule.percentage)
-                  : formatTiers(rule.tiers)}
+                  ? formatFixedRule(rule.commission_percentage, rule.tax_percentage)
+                  : formatTiers(rule.commission_tiers)}
               </TableCell>
               <TableCell>
                 {rule.sellers.length > 0 ? (

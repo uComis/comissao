@@ -51,8 +51,8 @@ export const commissionService = {
         netValue: sale.net_value,
         rule: {
           type: rule.type,
-          percentage: rule.percentage,
-          tiers: rule.tiers,
+          percentage: rule.commission_percentage,
+          tiers: rule.commission_tiers,
         },
       })
 
@@ -346,8 +346,8 @@ export const commissionService = {
             netValue: sale.net_value,
             rule: {
               type: effectiveRule.type,
-              percentage: effectiveRule.percentage,
-              tiers: effectiveRule.tiers,
+              percentage: effectiveRule.commission_percentage,
+              tiers: effectiveRule.commission_tiers,
             },
           })
 

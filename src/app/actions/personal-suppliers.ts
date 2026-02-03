@@ -38,14 +38,14 @@ const ruleInputSchema = z.object({
   id: z.string().optional(), // ID opcional para edição
   name: z.string().min(1, 'Nome da regra é obrigatório'),
   type: z.enum(['fixed', 'tiered']),
-  percentage: z.number().min(0).max(100).nullable(),
-  tiers: z.array(z.object({
+  commission_percentage: z.number().min(0).max(100).nullable().optional(),
+  tax_percentage: z.number().min(0).max(100).nullable().optional(),
+  commission_tiers: z.array(z.object({
     min: z.number().min(0),
     max: z.number().min(0).nullable(),
     percentage: z.number().min(0).max(100),
-  })).nullable(),
+  })).nullable().optional(),
   is_default: z.boolean().optional(),
-  target: z.enum(['commission', 'tax']).optional().default('commission'),
 })
 
 const createSupplierWithRuleSchema = z.object({
@@ -252,9 +252,9 @@ export async function createPersonalSupplierWithRule(
           personal_supplier_id: supplier.id,
           name: rule.name,
           type: rule.type,
-          target: rule.target || 'commission',
-          percentage: rule.type === 'fixed' ? rule.percentage : null,
-          tiers: rule.type === 'tiered' ? rule.tiers : null,
+          commission_percentage: rule.type === 'fixed' ? rule.commission_percentage : null,
+          tax_percentage: rule.type === 'fixed' ? rule.tax_percentage : null,
+          commission_tiers: rule.type === 'tiered' ? rule.commission_tiers : null,
           is_default: true, // A primeira regra é sempre padrão
           is_active: true,
         })
@@ -340,9 +340,9 @@ export async function updatePersonalSupplierWithRules(
             .update({
               name: rule.name,
               type: rule.type,
-              target: rule.target || 'commission',
-              percentage: rule.type === 'fixed' ? rule.percentage : null,
-              tiers: rule.type === 'tiered' ? rule.tiers : null,
+              commission_percentage: rule.type === 'fixed' ? rule.commission_percentage : null,
+              tax_percentage: rule.type === 'fixed' ? rule.tax_percentage : null,
+              commission_tiers: rule.type === 'tiered' ? rule.commission_tiers : null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', rule.id)
@@ -357,9 +357,9 @@ export async function updatePersonalSupplierWithRules(
               personal_supplier_id: id,
               name: rule.name,
               type: rule.type,
-              target: rule.target || 'commission',
-              percentage: rule.type === 'fixed' ? rule.percentage : null,
-              tiers: rule.type === 'tiered' ? rule.tiers : null,
+              commission_percentage: rule.type === 'fixed' ? rule.commission_percentage : null,
+              tax_percentage: rule.type === 'fixed' ? rule.tax_percentage : null,
+              commission_tiers: rule.type === 'tiered' ? rule.commission_tiers : null,
               is_default: !!rule.is_default,
               is_active: true,
             })
@@ -399,9 +399,9 @@ export async function addCommissionRule(
         personal_supplier_id: supplierId,
         name: parsed.data.name,
         type: parsed.data.type,
-        target: parsed.data.target || 'commission',
-        percentage: parsed.data.type === 'fixed' ? parsed.data.percentage : null,
-        tiers: parsed.data.type === 'tiered' ? parsed.data.tiers : null,
+        commission_percentage: parsed.data.type === 'fixed' ? parsed.data.commission_percentage : null,
+        tax_percentage: parsed.data.type === 'fixed' ? parsed.data.tax_percentage : null,
+        commission_tiers: parsed.data.type === 'tiered' ? parsed.data.commission_tiers : null,
         is_default: !!parsed.data.is_default,
         is_active: true,
       })

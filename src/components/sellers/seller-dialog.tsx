@@ -209,7 +209,7 @@ export function SellerDialog({ open, onOpenChange, organizationId, seller }: Pro
                 <SelectItem value="__default__">Usar regra padrão</SelectItem>
                 {rules.map((rule) => (
                   <SelectItem key={rule.id} value={rule.id}>
-                    {rule.name} {rule.is_default && '(padrão)'} - {rule.type === 'fixed' ? `${rule.percentage}%` : 'Escalonada'}
+                    {rule.name} {rule.is_default && '(padrão)'} - {rule.type === 'fixed' ? `${rule.commission_percentage || 0}%` : 'Escalonada'}
                   </SelectItem>
                 ))}
               </SelectContent>

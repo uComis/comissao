@@ -16,16 +16,20 @@ const createRuleSchema = z.object({
   organization_id: z.string().uuid(),
   name: z.string().min(1, 'Nome é obrigatório'),
   type: z.enum(['fixed', 'tiered']),
-  percentage: z.number().min(0).max(100).optional(),
-  tiers: z.array(tierSchema).optional(),
+  commission_percentage: z.number().min(0).max(100).optional(),
+  tax_percentage: z.number().min(0).max(100).optional(),
+  commission_tiers: z.array(tierSchema).optional(),
+  tax_tiers: z.array(tierSchema).optional(),
   is_default: z.boolean().optional(),
 })
 
 const updateRuleSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
   type: z.enum(['fixed', 'tiered']).optional(),
-  percentage: z.number().min(0).max(100).nullable().optional(),
-  tiers: z.array(tierSchema).nullable().optional(),
+  commission_percentage: z.number().min(0).max(100).nullable().optional(),
+  tax_percentage: z.number().min(0).max(100).nullable().optional(),
+  commission_tiers: z.array(tierSchema).nullable().optional(),
+  tax_tiers: z.array(tierSchema).nullable().optional(),
   is_default: z.boolean().optional(),
   is_active: z.boolean().optional(),
 })
@@ -98,20 +102,21 @@ export async function createCommissionRule(
     return { success: false, error: parsed.error.issues[0].message }
   }
 
-  const { type, percentage, tiers } = parsed.data
+  const { type, commission_percentage, tax_percentage, commission_tiers } = parsed.data
 
   // Validações específicas por tipo
   if (type === 'fixed') {
-    if (percentage === undefined || percentage === null) {
-      return { success: false, error: 'Percentual é obrigatório para regra fixa' }
+    if ((commission_percentage === undefined || commission_percentage === null) &&
+        (tax_percentage === undefined || tax_percentage === null)) {
+      return { success: false, error: 'Informe ao menos um percentual (comissão ou taxa)' }
     }
   }
 
   if (type === 'tiered') {
-    if (!tiers || tiers.length === 0) {
+    if (!commission_tiers || commission_tiers.length === 0) {
       return { success: false, error: 'Faixas são obrigatórias para regra escalonada' }
     }
-    const tiersError = validateTiers(tiers)
+    const tiersError = validateTiers(commission_tiers)
     if (tiersError) {
       return { success: false, error: tiersError }
     }
@@ -122,8 +127,9 @@ export async function createCommissionRule(
       organization_id: parsed.data.organization_id,
       name: parsed.data.name,
       type: parsed.data.type,
-      percentage: type === 'fixed' ? percentage : undefined,
-      tiers: type === 'tiered' ? tiers : undefined,
+      commission_percentage: type === 'fixed' ? commission_percentage : undefined,
+      tax_percentage: type === 'fixed' ? tax_percentage : undefined,
+      commission_tiers: type === 'tiered' ? commission_tiers : undefined,
       is_default: parsed.data.is_default,
     })
 
@@ -152,21 +158,23 @@ export async function updateCommissionRule(
   }
 
   const type = parsed.data.type ?? currentRule.type
-  const percentage = parsed.data.percentage !== undefined ? parsed.data.percentage : currentRule.percentage
-  const tiers = parsed.data.tiers !== undefined ? parsed.data.tiers : currentRule.tiers
+  const commission_percentage = parsed.data.commission_percentage !== undefined ? parsed.data.commission_percentage : currentRule.commission_percentage
+  const tax_percentage = parsed.data.tax_percentage !== undefined ? parsed.data.tax_percentage : currentRule.tax_percentage
+  const commission_tiers = parsed.data.commission_tiers !== undefined ? parsed.data.commission_tiers : currentRule.commission_tiers
 
   // Validações específicas por tipo
   if (type === 'fixed') {
-    if (percentage === undefined || percentage === null) {
-      return { success: false, error: 'Percentual é obrigatório para regra fixa' }
+    if ((commission_percentage === undefined || commission_percentage === null) &&
+        (tax_percentage === undefined || tax_percentage === null)) {
+      return { success: false, error: 'Informe ao menos um percentual (comissão ou taxa)' }
     }
   }
 
   if (type === 'tiered') {
-    if (!tiers || tiers.length === 0) {
+    if (!commission_tiers || commission_tiers.length === 0) {
       return { success: false, error: 'Faixas são obrigatórias para regra escalonada' }
     }
-    const tiersError = validateTiers(tiers)
+    const tiersError = validateTiers(commission_tiers)
     if (tiersError) {
       return { success: false, error: tiersError }
     }
@@ -177,8 +185,10 @@ export async function updateCommissionRule(
 
     if (parsed.data.name !== undefined) updateData.name = parsed.data.name
     if (parsed.data.type !== undefined) updateData.type = parsed.data.type
-    if (parsed.data.percentage !== undefined) updateData.percentage = parsed.data.percentage
-    if (parsed.data.tiers !== undefined) updateData.tiers = parsed.data.tiers
+    if (parsed.data.commission_percentage !== undefined) updateData.commission_percentage = parsed.data.commission_percentage
+    if (parsed.data.tax_percentage !== undefined) updateData.tax_percentage = parsed.data.tax_percentage
+    if (parsed.data.commission_tiers !== undefined) updateData.commission_tiers = parsed.data.commission_tiers
+    if (parsed.data.tax_tiers !== undefined) updateData.tax_tiers = parsed.data.tax_tiers
     if (parsed.data.is_default !== undefined) updateData.is_default = parsed.data.is_default
     if (parsed.data.is_active !== undefined) updateData.is_active = parsed.data.is_active
 

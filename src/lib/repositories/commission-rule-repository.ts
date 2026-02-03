@@ -116,8 +116,10 @@ export const commissionRuleRepository = {
         organization_id: input.organization_id,
         name: input.name,
         type: input.type,
-        percentage: input.percentage ?? null,
-        tiers: input.tiers ?? null,
+        commission_percentage: input.commission_percentage ?? null,
+        tax_percentage: input.tax_percentage ?? null,
+        commission_tiers: input.commission_tiers ?? null,
+        tax_tiers: input.tax_tiers ?? null,
         is_default: input.is_default ?? false,
         is_active: true,
       })

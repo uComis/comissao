@@ -2,3 +2,4 @@ export { ProductForm, type ProductFormRef, type ProductFormData } from './produc
 export { ProductDialog } from './product-dialog'
 export { ProductTable } from './product-table'
 export { ProductPicker } from './product-picker'
+export { ProductRuleDialog } from './product-rule-dialog'

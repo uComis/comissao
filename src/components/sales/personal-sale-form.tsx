@@ -194,14 +194,16 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     return suppliersList.find((s) => s.id === supplierId)
   }, [suppliersList, supplierId])
 
-  const calculateTieredRate = (rule: CommissionRule, value: number) => {
-    if (!rule.tiers || rule.tiers.length === 0) return rule.percentage || 0
-    const tier = rule.tiers.find((t) => {
+  const calculateTieredRate = (rule: CommissionRule, value: number, type: 'commission' | 'tax' = 'commission') => {
+    const tiers = rule.commission_tiers
+    const pct = type === 'commission' ? rule.commission_percentage : rule.tax_percentage
+    if (!tiers || tiers.length === 0) return pct || 0
+    const tier = tiers.find((t) => {
       const minMatches = value >= t.min
       const maxMatches = t.max === null || value <= t.max
       return minMatches && maxMatches
     })
-    return tier ? tier.percentage : rule.tiers[rule.tiers.length - 1].percentage || 0
+    return tier ? tier.percentage : tiers[tiers.length - 1].percentage || 0
   }
 
   const getEffectiveRate = (
@@ -221,8 +223,10 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       if (product) {
         if (product.commission_rule_id) {
           const rule = selectedSupplier?.commission_rules.find((r) => r.id === product.commission_rule_id)
-          if (rule && rule.target === target && rule.type === 'tiered') {
-            return calculateTieredRate(rule, gross)
+          if (rule && rule.type === 'tiered') {
+            return calculateTieredRate(rule, gross, target)
+          } else if (rule && rule.type === 'fixed') {
+            return (target === 'commission' ? rule.commission_percentage : rule.tax_percentage) || 0
           }
         }
         const fixed = target === 'commission' ? product.default_commission_rate : product.default_tax_rate
@@ -231,9 +235,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     }
 
     if (selectedSupplier) {
-      const supplierRule = selectedSupplier.commission_rules.find((r) => r.target === target && r.type === 'tiered' && r.is_default)
+      const supplierRule = selectedSupplier.commission_rules.find((r) => r.type === 'tiered' && r.is_default)
       if (supplierRule) {
-        return calculateTieredRate(supplierRule, gross)
+        return calculateTieredRate(supplierRule, gross, target)
       }
       const fixed = target === 'commission' ? selectedSupplier.default_commission_rate : selectedSupplier.default_tax_rate
       return fixed || 0
@@ -302,10 +306,9 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (selectedSupplier) {
       const supplierTax = selectedSupplier.default_tax_rate || 0
       const supplierComm = selectedSupplier.default_commission_rate || 0
-      const tieredTax = selectedSupplier.commission_rules.find((r) => r.target === 'tax' && r.type === 'tiered' && r.is_default)
-      const tieredComm = selectedSupplier.commission_rules.find((r) => r.target === 'commission' && r.type === 'tiered' && r.is_default)
-      if (tieredTax || supplierTax) defaultTaxRate = String(tieredTax ? 0 : supplierTax)
-      if (tieredComm || supplierComm) defaultCommissionRate = String(tieredComm ? 0 : supplierComm)
+      const tieredRule = selectedSupplier.commission_rules.find((r) => r.type === 'tiered' && r.is_default)
+      if (tieredRule || supplierTax) defaultTaxRate = String(tieredRule ? 0 : supplierTax)
+      if (tieredRule || supplierComm) defaultCommissionRate = String(tieredRule ? 0 : supplierComm)
     }
 
     if (!defaultTaxRate && !defaultCommissionRate) {

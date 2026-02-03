@@ -33,6 +33,7 @@ import { deleteProduct, toggleProductActive } from '@/app/actions/products'
 import { toast } from 'sonner'
 import type { Product, CommissionRule } from '@/types'
 import { ProductDialog } from './product-dialog'
+import { ProductRuleDialog } from './product-rule-dialog'
 
 type Props = {
   products: Product[]
@@ -51,10 +52,11 @@ function formatPrice(value: number | null): string {
   }).format(value)
 }
 
-export function ProductTable({ products, supplierId, showSku = true, availableRules, onProductDeleted, onProductUpdated }: Props) {
+export function ProductTable({ products, supplierId, showSku = true, availableRules = [], onProductDeleted, onProductUpdated }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [ruleProduct, setRuleProduct] = useState<Product | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
 
   async function handleDelete() {
@@ -91,6 +93,12 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
     }
   }
 
+  function getRuleName(product: Product): string {
+    if (!product.commission_rule_id) return 'Usa padrão'
+    const rule = availableRules.find(r => r.id === product.commission_rule_id)
+    return rule?.name || 'Usa padrão'
+  }
+
   if (products.length === 0) {
     return null
   }
@@ -103,6 +111,7 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
               <TableHead>Nome</TableHead>
               {showSku && <TableHead>SKU</TableHead>}
               <TableHead>Preço</TableHead>
+              <TableHead>Regra</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
@@ -117,6 +126,15 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
                   </TableCell>
                 )}
                 <TableCell>{formatPrice(product.unit_price)}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={product.commission_rule_id ? 'default' : 'outline'}
+                    className="cursor-pointer hover:bg-primary/80 transition-colors"
+                    onClick={() => setRuleProduct(product)}
+                  >
+                    {getRuleName(product)}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <Badge variant={product.is_active ? 'default' : 'secondary'}>
                     {product.is_active ? 'Ativo' : 'Inativo'}
@@ -170,8 +188,15 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
         supplierId={supplierId}
         product={editingProduct}
         showSku={showSku}
+        onProductUpdated={onProductUpdated}
+      />
+
+      {/* Dialog de regra do produto */}
+      <ProductRuleDialog
+        open={!!ruleProduct}
+        onOpenChange={(open) => !open && setRuleProduct(null)}
+        product={ruleProduct}
         availableRules={availableRules}
-        existingProducts={products}
         onProductUpdated={onProductUpdated}
       />
 
