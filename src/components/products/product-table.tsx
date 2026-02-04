@@ -31,7 +31,7 @@ import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Pencil, Trash2, Power, PowerOff } from 'lucide-react'
 import { deleteProduct, toggleProductActive } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product, CommissionRule } from '@/types'
+import type { Product } from '@/types'
 import { ProductDialog } from './product-dialog'
 import { ProductRuleDialog } from './product-rule-dialog'
 
@@ -39,7 +39,8 @@ type Props = {
   products: Product[]
   supplierId: string
   showSku?: boolean
-  availableRules?: CommissionRule[]
+  supplierCommission?: number | null
+  supplierTax?: number | null
   onProductDeleted?: (productId: string) => void
   onProductUpdated?: (product: Product) => void
 }
@@ -52,7 +53,7 @@ function formatPrice(value: number | null): string {
   }).format(value)
 }
 
-export function ProductTable({ products, supplierId, showSku = true, availableRules = [], onProductDeleted, onProductUpdated }: Props) {
+export function ProductTable({ products, supplierId, showSku = true, supplierCommission, supplierTax, onProductDeleted, onProductUpdated }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -93,10 +94,17 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
     }
   }
 
-  function getRuleName(product: Product): string {
-    if (!product.commission_rule_id) return 'Usa padrão'
-    const rule = availableRules.find(r => r.id === product.commission_rule_id)
-    return rule?.name || 'Usa padrão'
+  function getCommissionDisplay(product: Product): { text: string; hasOverride: boolean } {
+    // Se tem override no produto
+    if (product.default_commission_rate !== null && product.default_commission_rate !== undefined) {
+      const comm = product.default_commission_rate
+      const tax = product.default_tax_rate ?? 0
+      if (tax > 0) {
+        return { text: `${comm}% / ${tax}%`, hasOverride: true }
+      }
+      return { text: `${comm}%`, hasOverride: true }
+    }
+    return { text: 'Padrão', hasOverride: false }
   }
 
   if (products.length === 0) {
@@ -127,13 +135,18 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
                 )}
                 <TableCell>{formatPrice(product.unit_price)}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={product.commission_rule_id ? 'default' : 'outline'}
-                    className="cursor-pointer hover:bg-primary/80 transition-colors"
-                    onClick={() => setRuleProduct(product)}
-                  >
-                    {getRuleName(product)}
-                  </Badge>
+                  {(() => {
+                    const { text, hasOverride } = getCommissionDisplay(product)
+                    return (
+                      <Badge
+                        variant={hasOverride ? 'default' : 'outline'}
+                        className="cursor-pointer hover:bg-primary/80 transition-colors"
+                        onClick={() => setRuleProduct(product)}
+                      >
+                        {text}
+                      </Badge>
+                    )
+                  })()}
                 </TableCell>
                 <TableCell>
                   <Badge variant={product.is_active ? 'default' : 'secondary'}>
@@ -196,7 +209,8 @@ export function ProductTable({ products, supplierId, showSku = true, availableRu
         open={!!ruleProduct}
         onOpenChange={(open) => !open && setRuleProduct(null)}
         product={ruleProduct}
-        availableRules={availableRules}
+        supplierCommission={supplierCommission}
+        supplierTax={supplierTax}
         onProductUpdated={onProductUpdated}
       />
 

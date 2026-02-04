@@ -1,44 +1,28 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RuleForm, type RuleFormRef } from '@/components/rules'
+import { RuleForm, type RuleFormRef, type RuleFormData } from '@/components/rules'
 import { ProductTable, ProductDialog } from '@/components/products'
 import { DashedActionButton } from '@/components/ui/dashed-action-button'
+import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { Loader2, Plus, Package, Trash2, Edit2, Star, Pencil } from 'lucide-react'
+import { Loader2, Plus, Package, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { useSetPageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
-import type { Product, CommissionRule } from '@/types'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-} from "@/components/ui/drawer"
-import { Badge } from '@/components/ui/badge'
-import { useIsMobile } from '@/hooks/use-mobile'
+import type { Product, CommissionRule, CommissionTier } from '@/types'
+import { cn } from '@/lib/utils'
 
 type Props = {
   supplier?: PersonalSupplier & {
     commission_rules?: CommissionRule[]
-    commission_rule?: CommissionRule | null // Compatibilidade com tipo antigo
+    commission_rule?: CommissionRule | null
   }
   products?: Product[]
 }
@@ -46,17 +30,33 @@ type Props = {
 export function SupplierFormPage({ supplier, products: initialProducts = [] }: Props) {
   const router = useRouter()
   const ruleFormRef = useRef<RuleFormRef>(null)
-  
+
+  // Determinar regra padrão existente
+  const existingDefaultRule = supplier?.commission_rules?.find(r => r.is_default) || supplier?.commission_rule
+
   // Dados do fornecedor
   const [name, setName] = useState(supplier?.name || '')
   const [cnpj, setCnpj] = useState(formatCnpj(supplier?.cnpj || ''))
-  const [defaultCommission, setDefaultCommission] = useState<string | number>(supplier?.default_commission_rate ?? 0)
-  const [defaultTax, setDefaultTax] = useState<string | number>(supplier?.default_tax_rate ?? 0)
-  
-  // Regras
-  const existingRules = supplier?.commission_rules || (supplier?.commission_rule ? [supplier.commission_rule] : [])
-  const [rules, setRules] = useState<CommissionRule[]>(existingRules)
-  const [defaultRuleId, setDefaultRuleId] = useState<string | null>(supplier?.commission_rule_id || (existingRules[0]?.id) || null)
+
+  // Tipo de regra padrão: 'fixed' ou 'tiered'
+  const [ruleType, setRuleType] = useState<'fixed' | 'tiered'>(existingDefaultRule?.type || 'fixed')
+
+  // Valores para regra fixa
+  const [defaultCommission, setDefaultCommission] = useState<number>(
+    existingDefaultRule?.type === 'fixed'
+      ? (existingDefaultRule.commission_percentage ?? supplier?.default_commission_rate ?? 0)
+      : (supplier?.default_commission_rate ?? 0)
+  )
+  const [defaultTax, setDefaultTax] = useState<number>(
+    existingDefaultRule?.type === 'fixed'
+      ? (existingDefaultRule.tax_percentage ?? supplier?.default_tax_rate ?? 0)
+      : (supplier?.default_tax_rate ?? 0)
+  )
+
+  // Faixas para regra por faixa
+  const [commissionTiers, setCommissionTiers] = useState<CommissionTier[]>(
+    existingDefaultRule?.commission_tiers || [{ min: 0, max: null, percentage: 0 }]
+  )
 
   // Produtos (estado local para atualização imediata)
   const [products, setProducts] = useState<Product[]>(initialProducts)
@@ -64,9 +64,16 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   // Estados de controle
   const [loading, setLoading] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
-  const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
-  const isMobile = useIsMobile()
+
+  // Verificar se já tem comissão configurada
+  const hasExistingCommission = !!(
+    existingDefaultRule ||
+    (supplier?.default_commission_rate && supplier.default_commission_rate > 0) ||
+    (supplier?.default_tax_rate && supplier.default_tax_rate > 0)
+  )
+
+  // Seção de comissão: expandida se já existe, oculta para novas pastas
+  const [showCommissionSection, setShowCommissionSection] = useState(hasExistingCommission)
 
   const isEditing = !!supplier
 
@@ -92,21 +99,25 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     setLoading(true)
     try {
       const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
+
+      // Montar regra padrão
+      const defaultRule = {
+        id: existingDefaultRule?.id,
+        name: 'Regra Padrão',
+        type: ruleType,
+        commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
+        tax_percentage: ruleType === 'fixed' ? defaultTax : null,
+        commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
+        is_default: true,
+      }
+
       const result = await updatePersonalSupplierWithRules(supplier.id, {
         name,
         cnpj: cleanCnpj,
-        default_rule_id: defaultRuleId!,
-        default_commission_rate: Number(defaultCommission) || 0,
-        default_tax_rate: Number(defaultTax) || 0,
-        rules: rules.map(r => ({
-          id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
-          name: r.name,
-          type: r.type,
-          commission_percentage: r.commission_percentage,
-          tax_percentage: r.tax_percentage,
-          commission_tiers: r.commission_tiers,
-          is_default: r.id === defaultRuleId
-        }))
+        default_rule_id: existingDefaultRule?.id || undefined,
+        default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
+        default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
+        rules: [defaultRule],
       })
 
       if (result.success) {
@@ -120,6 +131,32 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     } finally {
       setLoading(false)
     }
+  }
+
+  // Funções para gerenciar faixas
+  function addTier() {
+    const lastTier = commissionTiers[commissionTiers.length - 1]
+    const newMin = lastTier.max ?? 0
+    setCommissionTiers([
+      ...commissionTiers.slice(0, -1),
+      { ...lastTier, max: newMin },
+      { min: newMin, max: null, percentage: 0 },
+    ])
+  }
+
+  function removeTier(index: number) {
+    if (commissionTiers.length <= 1) return
+    const newTiers = commissionTiers.filter((_, i) => i !== index)
+    if (newTiers.length > 0) {
+      newTiers[newTiers.length - 1].max = null
+    }
+    setCommissionTiers(newTiers)
+  }
+
+  function updateTier(index: number, field: keyof CommissionTier, value: number | null) {
+    const newTiers = [...commissionTiers]
+    newTiers[index] = { ...newTiers[index], [field]: value }
+    setCommissionTiers(newTiers)
   }
 
   useSetPageHeader({
@@ -138,67 +175,6 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
 
   function handleCnpjChange(value: string) {
     setCnpj(formatCnpj(value))
-  }
-
-  // --- Gestão de Regras ---
-
-  function handleAddRule() {
-    setEditingRuleId(null)
-    setRuleDialogOpen(true)
-    // Pequeno delay para garantir que o ref esteja montado/resetado
-    setTimeout(() => ruleFormRef.current?.reset(), 0)
-  }
-
-  function handleEditRule(rule: CommissionRule) {
-    setEditingRuleId(rule.id)
-    setRuleDialogOpen(true)
-  }
-
-  function handleSaveRule(e: React.FormEvent) {
-    e.preventDefault()
-    if (!ruleFormRef.current?.validate()) return
-
-    const formData = ruleFormRef.current.getData()
-    
-    if (editingRuleId) {
-      // Editar existente
-      setRules(prev => prev.map(r => r.id === editingRuleId ? {
-        ...r,
-        name: formData.name,
-        type: formData.type,
-        commission_percentage: formData.commission_percentage,
-        tax_percentage: formData.tax_percentage,
-        commission_tiers: formData.commission_tiers
-      } : r))
-    } else {
-      // Adicionar nova (ID temporário se não persistido)
-      const newRule: CommissionRule = {
-        id: crypto.randomUUID(), // ID temporário
-        personal_supplier_id: supplier?.id || '',
-        organization_id: null,
-        name: formData.name,
-        type: formData.type,
-        commission_percentage: formData.commission_percentage,
-        tax_percentage: formData.tax_percentage,
-        commission_tiers: formData.commission_tiers,
-        tax_tiers: null,
-        is_default: rules.length === 0, // Primeira regra vira default
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      setRules(prev => [...prev, newRule])
-      if (rules.length === 0) setDefaultRuleId(newRule.id)
-    }
-    
-    setRuleDialogOpen(false)
-  }
-
-  function handleDeleteRule(ruleId: string) {
-    setRules(prev => prev.filter(r => r.id !== ruleId))
-    if (defaultRuleId === ruleId) {
-      setDefaultRuleId(null) // Usuario terá que escolher outra
-    }
   }
 
   // --- Gestão de Produtos ---
@@ -225,42 +201,36 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
       return
     }
 
-    if (rules.length === 0) {
-      toast.error('Adicione pelo menos uma regra de comissão')
+    // Validar faixas se for regra por faixa
+    if (ruleType === 'tiered' && commissionTiers.length === 0) {
+      toast.error('Adicione pelo menos uma faixa de comissão')
       return
     }
-
-    if (!defaultRuleId && rules.length > 0) {
-       toast.error('Selecione uma regra padrão')
-       return
-    }
-
-    // Se estiver criando novo, usa a lógica antiga (uma regra inicial)
-    // Se estiver editando, usa a nova lógica (multiplas regras)
-    // TODO: Unificar create para suportar N regras de cara se necessário, 
-    // mas por enquanto mantemos create simples e update robusto.
 
     setLoading(true)
 
     try {
       const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
 
+      // Montar regra padrão
+      const defaultRule = {
+        id: existingDefaultRule?.id,
+        name: 'Regra Padrão',
+        type: ruleType,
+        commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
+        tax_percentage: ruleType === 'fixed' ? defaultTax : null,
+        commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
+        is_default: true,
+      }
+
       if (isEditing && supplier) {
         const result = await updatePersonalSupplierWithRules(supplier.id, {
           name,
           cnpj: cleanCnpj,
-          default_rule_id: defaultRuleId!,
-          default_commission_rate: Number(defaultCommission) || 0,
-          default_tax_rate: Number(defaultTax) || 0,
-          rules: rules.map(r => ({
-            id: existingRules.find(ex => ex.id === r.id) ? r.id : undefined,
-            name: r.name,
-            type: r.type,
-            commission_percentage: r.commission_percentage,
-            tax_percentage: r.tax_percentage,
-            commission_tiers: r.commission_tiers,
-            is_default: r.id === defaultRuleId
-          }))
+          default_rule_id: existingDefaultRule?.id || undefined,
+          default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
+          default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
+          rules: [defaultRule],
         })
 
         if (result.success) {
@@ -271,23 +241,18 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           toast.error(result.error)
         }
       } else {
-        // Create - Modo Simplificado (apenas a primeira regra, que será default)
-        // O usuário pode adicionar mais regras depois de criar.
-        // Ou adaptamos o create para aceitar array. Mantendo simples por enquanto.
-        const mainRule = rules.find(r => r.id === defaultRuleId) || rules[0]
-        
         const result = await createPersonalSupplierWithRule({
           name,
           cnpj: cleanCnpj,
           rule: {
-            name: mainRule.name,
-            type: mainRule.type,
-            commission_percentage: mainRule.commission_percentage,
-            tax_percentage: mainRule.tax_percentage,
-            commission_tiers: mainRule.commission_tiers,
+            name: 'Regra Padrão',
+            type: ruleType,
+            commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
+            tax_percentage: ruleType === 'fixed' ? defaultTax : null,
+            commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
           },
-          default_commission_rate: Number(defaultCommission) || 0,
-          default_tax_rate: Number(defaultTax) || 0,
+          default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
+          default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
         })
 
         if (result.success) {
@@ -299,8 +264,8 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
         }
       }
     } catch (error) {
-        toast.error('Erro inesperado ao salvar')
-        console.error(error)
+      toast.error('Erro inesperado ao salvar')
+      console.error(error)
     } finally {
       setLoading(false)
     }
@@ -311,7 +276,7 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grid 2 colunas no desktop */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Coluna 1: Dados Básicos */}
+          {/* Coluna 1: Dados Básicos + Regra Padrão */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -335,33 +300,195 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome da Empresa/Fábrica {isEditingSupplierData && '*'}</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Tintas Coral"
-                    required
-                    disabled={!isEditingSupplierData}
-                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
-                  />
+              <CardContent className="space-y-6">
+                {/* Dados básicos */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome da Empresa/Fábrica {isEditingSupplierData && '*'}</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Tintas Coral"
+                      required
+                      disabled={!isEditingSupplierData}
+                      className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cnpj">CNPJ</Label>
+                    <Input
+                      id="cnpj"
+                      value={cnpj}
+                      onChange={(e) => handleCnpjChange(e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                      disabled={!isEditingSupplierData}
+                      className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ</Label>
-                  <Input
-                    id="cnpj"
-                    value={cnpj}
-                    onChange={(e) => handleCnpjChange(e.target.value)}
-                    placeholder="00.000.000/0000-00"
-                    disabled={!isEditingSupplierData}
-                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
-                  />
-                </div>
+                {/* Comissão Padrão */}
+                {!showCommissionSection ? (
+                  <DashedActionButton
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={() => setShowCommissionSection(true)}
+                  >
+                    Comissão padrão
+                  </DashedActionButton>
+                ) : (
+                  <>
+                    <div className="border-t" />
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-base font-medium">Comissão Padrão</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Aplicada a todos os produtos, exceto os que têm override
+                        </p>
+                      </div>
 
-                {/* Botões de ação inline */}
+                      {/* Toggle tipo de regra */}
+                      <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
+                        <button
+                          type="button"
+                          onClick={() => setRuleType('fixed')}
+                          className={cn(
+                            'py-2.5 text-sm font-medium rounded-md transition-all',
+                            ruleType === 'fixed'
+                              ? 'bg-background shadow-sm text-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          Percentual Fixo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRuleType('tiered')}
+                          className={cn(
+                            'py-2.5 text-sm font-medium rounded-md transition-all',
+                            ruleType === 'tiered'
+                              ? 'bg-background shadow-sm text-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          Por Faixa de Valor
+                        </button>
+                      </div>
+
+                      {/* Campos para percentual fixo */}
+                      {ruleType === 'fixed' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Comissão (%)</Label>
+                            <CompactNumberInput
+                              value={defaultCommission}
+                              onChange={setDefaultCommission}
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              decimals={2}
+                              suffix="%"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Taxa/Imposto (%)</Label>
+                            <CompactNumberInput
+                              value={defaultTax}
+                              onChange={setDefaultTax}
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              decimals={2}
+                              suffix="%"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                  {/* Campos para faixas */}
+                  {ruleType === 'tiered' && (
+                    <div className="space-y-3">
+                      {commissionTiers.map((tier, index) => (
+                        <div key={index} className="p-3 border rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              Faixa {index + 1}
+                            </span>
+                            {commissionTiers.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-destructive hover:text-destructive"
+                                onClick={() => removeTier(index)}
+                              >
+                                Remover
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Mínimo (R$)</Label>
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={tier.min}
+                                onChange={(e) => updateTier(index, 'min', parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">
+                                {index === commissionTiers.length - 1 ? 'Máximo' : 'Máximo (R$)'}
+                              </Label>
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.01"
+                                value={tier.max ?? ''}
+                                onChange={(e) =>
+                                  updateTier(index, 'max', e.target.value ? parseFloat(e.target.value) : null)
+                                }
+                                disabled={index === commissionTiers.length - 1}
+                                placeholder={index === commissionTiers.length - 1 ? '∞' : ''}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Comissão (%)</Label>
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                value={tier.percentage}
+                                onChange={(e) => updateTier(index, 'percentage', parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      <DashedActionButton
+                        icon={<Plus className="h-4 w-4" />}
+                        onClick={addTier}
+                      >
+                        Adicionar faixa
+                      </DashedActionButton>
+
+                      <p className="text-xs text-muted-foreground">
+                        A última faixa sempre terá valor máximo ilimitado
+                      </p>
+                    </div>
+                  )}
+                </div>
+                  </>
+                )}
+
+                {/* Botões de ação inline (modo edição) */}
                 <div
                   className={`flex justify-end gap-2 pt-2 overflow-hidden transition-all duration-200 ease-out ${
                     isEditingSupplierData && isEditing
@@ -390,128 +517,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                 </div>
               </CardContent>
             </Card>
-
-            {/* Lista de Regras */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Regras de Comissão</CardTitle>
-                <CardDescription>
-                  Gerencie as diferentes regras para este fornecedor
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultCommission">Comissão Padrão (%)</Label>
-                    <Input
-                      id="defaultCommission"
-                      type="number"
-                      step="0.01"
-                      value={defaultCommission}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        if (val !== '' && parseFloat(val) < 0) {
-                          setDefaultCommission('')
-                        } else {
-                          setDefaultCommission(val)
-                        }
-                      }}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultTax">Taxa Padrão (%)</Label>
-                    <Input
-                      id="defaultTax"
-                      type="number"
-                      step="0.01"
-                      value={defaultTax}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        if (val !== '' && parseFloat(val) < 0) {
-                          setDefaultTax('')
-                        } else {
-                          setDefaultTax(val)
-                        }
-                      }}
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-2">
-                  <h4 className="text-sm font-medium">Regras por Faixa</h4>
-
-                  {rules.length > 0 && (
-                    <div className="space-y-3">
-                      {rules.map((rule) => (
-                        <div
-                          key={rule.id}
-                          className={`flex items-center justify-between p-3 border rounded-lg ${defaultRuleId === rule.id ? 'bg-primary/5 border-primary/20' : 'bg-card'}`}
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{rule.name}</span>
-                              {defaultRuleId === rule.id && (
-                                <Badge variant="secondary" className="text-xs h-5">Padrão</Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {rule.type === 'fixed'
-                                ? `${rule.commission_percentage || 0}% comissão${rule.tax_percentage ? ` + ${rule.tax_percentage}% taxa` : ''}`
-                                : `${rule.commission_tiers?.length || 0} faixas escalonadas`
-                              }
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {defaultRuleId !== rule.id && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                title="Definir como padrão"
-                                onClick={() => setDefaultRuleId(rule.id)}
-                              >
-                                <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditRule(rule)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteRule(rule.id)}
-                              disabled={rules.length === 1} // Não pode apagar a última
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <DashedActionButton
-                    icon={<Plus className="h-4 w-4" />}
-                    prominent={rules.length === 0}
-                    onClick={handleAddRule}
-                  >
-                    {rules.length === 0 ? 'Adicionar regra' : 'Adicionar outra regra'}
-                  </DashedActionButton>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Coluna 2: Produtos (apenas edição) */}
+          {/* Coluna 2: Produtos */}
           <div className="space-y-6">
             {isEditing && supplier && (
               <Card className="h-full flex flex-col">
@@ -527,7 +535,8 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                       products={products}
                       supplierId={supplier.id}
                       showSku={false}
-                      availableRules={rules}
+                      supplierCommission={ruleType === 'fixed' ? defaultCommission : null}
+                      supplierTax={ruleType === 'fixed' ? defaultTax : null}
                       onProductDeleted={handleProductDeleted}
                       onProductUpdated={handleProductUpdated}
                     />
@@ -543,17 +552,17 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
               </Card>
             )}
 
-            {/* Placeholder para create mode - explicar fluxo */}
+            {/* Placeholder para create mode */}
             {!isEditing && (
-                 <Card className="bg-muted/30 border-dashed">
-                    <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <Package className="mb-4 h-10 w-10 text-muted-foreground/50" />
-                        <h3 className="font-medium">Cadastro de Produtos</h3>
-                        <p className="text-sm text-muted-foreground mt-2 px-8">
-                            Após salvar o fornecedor e sua regra de comissão, você poderá cadastrar os produtos.
-                        </p>
-                    </CardContent>
-                 </Card>
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="mb-4 h-10 w-10 text-muted-foreground/50" />
+                  <h3 className="font-medium">Cadastro de Produtos</h3>
+                  <p className="text-sm text-muted-foreground mt-2 px-8">
+                    Após salvar o fornecedor, você poderá cadastrar os produtos.
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
@@ -571,59 +580,6 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           </div>
         )}
       </form>
-
-      {/* Modal de Nova/Editar Regra - Drawer no mobile, Dialog no desktop */}
-      {isMobile ? (
-        <Drawer open={ruleDialogOpen} onOpenChange={setRuleDialogOpen} direction="bottom">
-          <DrawerContent className="max-h-[90vh]">
-            <DrawerHeader>
-              <DrawerTitle>{editingRuleId ? 'Editar Regra' : 'Nova Regra'}</DrawerTitle>
-              <DrawerDescription>Defina as condições desta regra de comissão.</DrawerDescription>
-            </DrawerHeader>
-
-            <form id="rule-form-modal" onSubmit={handleSaveRule} className="flex flex-col flex-1">
-              <div className="flex-1 overflow-y-auto px-4">
-                <RuleForm
-                  ref={ruleFormRef}
-                  rule={editingRuleId ? rules.find(r => r.id === editingRuleId) : null}
-                  showName={true}
-                  showDefault={false}
-                  compact={true}
-                />
-              </div>
-
-              <DrawerFooter className="border-t">
-                <Button type="submit" className="w-full">Salvar Regra</Button>
-                <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)} className="w-full">Cancelar</Button>
-              </DrawerFooter>
-            </form>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingRuleId ? 'Editar Regra' : 'Nova Regra'}</DialogTitle>
-              <DialogDescription>Defina as condições desta regra de comissão.</DialogDescription>
-            </DialogHeader>
-
-            <form id="rule-form-modal" onSubmit={handleSaveRule}>
-              <RuleForm
-                ref={ruleFormRef}
-                rule={editingRuleId ? rules.find(r => r.id === editingRuleId) : null}
-                showName={true}
-                showDefault={false}
-                compact={true}
-              />
-            </form>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setRuleDialogOpen(false)}>Cancelar</Button>
-              <Button type="submit" form="rule-form-modal">Salvar Regra</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Dialog de novo produto */}
       {isEditing && supplier && (

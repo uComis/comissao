@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,22 +11,18 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { updateProduct } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product, CommissionRule } from '@/types'
+import type { Product } from '@/types'
+import { cn } from '@/lib/utils'
 
 type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   product: Product | null
-  availableRules: CommissionRule[]
+  supplierCommission?: number | null
+  supplierTax?: number | null
   onProductUpdated?: (product: Product) => void
 }
 
@@ -34,16 +30,24 @@ export function ProductRuleDialog({
   open,
   onOpenChange,
   product,
-  availableRules,
+  supplierCommission,
+  supplierTax,
   onProductUpdated,
 }: Props) {
-  const [ruleId, setRuleId] = useState<string>(product?.commission_rule_id || 'default')
+  const [useDefault, setUseDefault] = useState(true)
+  const [commission, setCommission] = useState(0)
+  const [tax, setTax] = useState(0)
   const [loading, setLoading] = useState(false)
 
   // Reset quando abre com produto diferente
-  if (product && ruleId !== (product.commission_rule_id || 'default')) {
-    setRuleId(product.commission_rule_id || 'default')
-  }
+  useEffect(() => {
+    if (product) {
+      const hasOverride = product.default_commission_rate !== null && product.default_commission_rate !== undefined
+      setUseDefault(!hasOverride)
+      setCommission(product.default_commission_rate ?? supplierCommission ?? 0)
+      setTax(product.default_tax_rate ?? supplierTax ?? 0)
+    }
+  }, [product, supplierCommission, supplierTax])
 
   async function handleSave() {
     if (!product) return
@@ -51,11 +55,13 @@ export function ProductRuleDialog({
     setLoading(true)
     try {
       const result = await updateProduct(product.id, {
-        commission_rule_id: ruleId === 'default' ? null : ruleId,
+        default_commission_rate: useDefault ? null : commission,
+        default_tax_rate: useDefault ? null : tax,
+        commission_rule_id: null, // Limpa regra antiga se existia
       })
 
       if (result.success) {
-        toast.success('Regra atualizada')
+        toast.success('Comissão atualizada')
         onProductUpdated?.(result.data)
         onOpenChange(false)
       } else {
@@ -66,58 +72,80 @@ export function ProductRuleDialog({
     }
   }
 
-  const currentRule = availableRules.find(r => r.id === product?.commission_rule_id)
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Regra do Produto</DialogTitle>
+          <DialogTitle>Comissão do Produto</DialogTitle>
           <DialogDescription>
-            Defina qual regra de comissão será aplicada a <strong>{product?.name}</strong>
+            Defina a comissão para <strong>{product?.name}</strong>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="product-rule">Regra de Comissão</Label>
-            <Select value={ruleId} onValueChange={setRuleId}>
-              <SelectTrigger id="product-rule">
-                <SelectValue placeholder="Selecione uma regra" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">
-                  Usar padrão da pasta
-                </SelectItem>
-                {availableRules.map(rule => (
-                  <SelectItem key={rule.id} value={rule.id}>
-                    {rule.name}
-                    {rule.type === 'fixed'
-                      ? ` (${rule.commission_percentage || 0}% comissão)`
-                      : ` (${rule.commission_tiers?.length || 0} faixas)`
-                    }
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Toggle usar padrão vs override */}
+          <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setUseDefault(true)}
+              className={cn(
+                'py-2.5 text-sm font-medium rounded-md transition-all',
+                useDefault
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Usar Padrão
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseDefault(false)}
+              className={cn(
+                'py-2.5 text-sm font-medium rounded-md transition-all',
+                !useDefault
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Personalizar
+            </button>
           </div>
 
-          {currentRule && ruleId !== 'default' && (
+          {useDefault ? (
             <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-              <p className="font-medium">{currentRule.name}</p>
-              <p>
-                {currentRule.type === 'fixed'
-                  ? `${currentRule.commission_percentage || 0}% comissão${currentRule.tax_percentage ? ` + ${currentRule.tax_percentage}% taxa` : ''}`
-                  : `Por faixa (${currentRule.commission_tiers?.length || 0} faixas)`
-                }
+              <p>Este produto usará a comissão padrão da pasta:</p>
+              <p className="font-medium mt-1">
+                {supplierCommission ?? 0}% comissão
+                {(supplierTax ?? 0) > 0 && ` + ${supplierTax}% taxa`}
               </p>
             </div>
-          )}
-
-          {ruleId === 'default' && (
-            <p className="text-sm text-muted-foreground">
-              O produto usará a comissão padrão definida na pasta.
-            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Comissão (%)</Label>
+                <CompactNumberInput
+                  value={commission}
+                  onChange={setCommission}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  decimals={2}
+                  suffix="%"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Taxa/Imposto (%)</Label>
+                <CompactNumberInput
+                  value={tax}
+                  onChange={setTax}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  decimals={2}
+                  suffix="%"
+                />
+              </div>
+            </div>
           )}
         </div>
 
