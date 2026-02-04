@@ -190,3 +190,177 @@ export async function deleteProduct(id: string): Promise<ActionResult<void>> {
 export async function toggleProductActive(id: string, isActive: boolean): Promise<ActionResult<Product>> {
   return updateProduct(id, { is_active: isActive })
 }
+
+// Schema para comissão do produto (fixo ou por faixa)
+const tierSchema = z.object({
+  min: z.number().min(0),
+  max: z.number().positive().nullable(),
+  percentage: z.number().min(0).max(100),
+})
+
+const updateProductCommissionSchema = z.object({
+  type: z.enum(['default', 'fixed', 'tiered']),
+  commission: z.number().min(0).max(100).optional(),
+  tax: z.number().min(0).max(100).optional(),
+  tiers: z.array(tierSchema).optional(),
+})
+
+export async function updateProductCommission(
+  productId: string,
+  input: z.infer<typeof updateProductCommissionSchema>
+): Promise<ActionResult<Product>> {
+  const parsed = updateProductCommissionSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  const { type, commission, tax, tiers } = parsed.data
+
+  try {
+    const supabase = await createClient()
+
+    // Buscar produto atual
+    const { data: product, error: fetchError } = await supabase
+      .from('products')
+      .select('*, personal_suppliers!inner(user_id)')
+      .eq('id', productId)
+      .single()
+
+    if (fetchError || !product) {
+      return { success: false, error: 'Produto não encontrado' }
+    }
+
+    // Se tipo = default, limpa override
+    if (type === 'default') {
+      // Se tinha regra por faixa, deleta
+      if (product.commission_rule_id) {
+        await supabase
+          .from('commission_rules')
+          .delete()
+          .eq('id', product.commission_rule_id)
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .update({
+          default_commission_rate: null,
+          default_tax_rate: null,
+          commission_rule_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId)
+        .select()
+        .single()
+
+      if (error) throw error
+      revalidatePath('/fornecedores')
+      return { success: true, data }
+    }
+
+    // Se tipo = fixed, salva nos campos do produto
+    if (type === 'fixed') {
+      // Se tinha regra por faixa, deleta
+      if (product.commission_rule_id) {
+        await supabase
+          .from('commission_rules')
+          .delete()
+          .eq('id', product.commission_rule_id)
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .update({
+          default_commission_rate: commission ?? 0,
+          default_tax_rate: tax ?? 0,
+          commission_rule_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId)
+        .select()
+        .single()
+
+      if (error) throw error
+      revalidatePath('/fornecedores')
+      return { success: true, data }
+    }
+
+    // Se tipo = tiered, cria/atualiza regra
+    if (type === 'tiered') {
+      if (!tiers || tiers.length === 0) {
+        return { success: false, error: 'Adicione pelo menos uma faixa' }
+      }
+
+      const userId = product.personal_suppliers.user_id
+
+      // Cria ou atualiza regra
+      if (product.commission_rule_id) {
+        // Atualiza regra existente
+        const { error: ruleError } = await supabase
+          .from('commission_rules')
+          .update({
+            type: 'tiered',
+            percentage: null,
+            tiers: tiers,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', product.commission_rule_id)
+
+        if (ruleError) throw ruleError
+      } else {
+        // Cria nova regra
+        const { data: newRule, error: ruleError } = await supabase
+          .from('commission_rules')
+          .insert({
+            user_id: userId,
+            name: `Regra ${product.name}`,
+            type: 'tiered',
+            tiers: tiers,
+            is_default: false,
+            is_active: true,
+          })
+          .select()
+          .single()
+
+        if (ruleError) throw ruleError
+
+        // Atualiza produto com a nova regra
+        const { data, error } = await supabase
+          .from('products')
+          .update({
+            commission_rule_id: newRule.id,
+            default_commission_rate: null,
+            default_tax_rate: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', productId)
+          .select()
+          .single()
+
+        if (error) throw error
+        revalidatePath('/fornecedores')
+        return { success: true, data }
+      }
+
+      // Limpa campos fixos se existiam
+      const { data, error } = await supabase
+        .from('products')
+        .update({
+          default_commission_rate: null,
+          default_tax_rate: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', productId)
+        .select()
+        .single()
+
+      if (error) throw error
+      revalidatePath('/fornecedores')
+      return { success: true, data }
+    }
+
+    return { success: false, error: 'Tipo inválido' }
+  } catch (err) {
+    console.error('Error updating product commission:', err)
+    return { success: false, error: 'Erro ao atualizar comissão do produto' }
+  }
+}

@@ -11,11 +11,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
-import { updateProduct } from '@/app/actions/products'
+import { DashedActionButton } from '@/components/ui/dashed-action-button'
+import { updateProductCommission } from '@/app/actions/products'
 import { toast } from 'sonner'
-import type { Product } from '@/types'
+import type { Product, CommissionTier } from '@/types'
 import { cn } from '@/lib/utils'
+import { Plus } from 'lucide-react'
 
 type Props = {
   open: boolean
@@ -26,6 +29,8 @@ type Props = {
   onProductUpdated?: (product: Product) => void
 }
 
+type RuleType = 'default' | 'fixed' | 'tiered'
+
 export function ProductRuleDialog({
   open,
   onOpenChange,
@@ -34,30 +39,71 @@ export function ProductRuleDialog({
   supplierTax,
   onProductUpdated,
 }: Props) {
-  const [useDefault, setUseDefault] = useState(true)
+  const [ruleType, setRuleType] = useState<RuleType>('default')
   const [commission, setCommission] = useState(0)
   const [tax, setTax] = useState(0)
+  const [tiers, setTiers] = useState<CommissionTier[]>([{ min: 0, max: null, percentage: 0 }])
   const [loading, setLoading] = useState(false)
 
   // Reset quando abre com produto diferente
   useEffect(() => {
     if (product) {
-      const hasOverride = product.default_commission_rate !== null && product.default_commission_rate !== undefined
-      setUseDefault(!hasOverride)
-      setCommission(product.default_commission_rate ?? supplierCommission ?? 0)
-      setTax(product.default_tax_rate ?? supplierTax ?? 0)
+      // Determinar tipo atual
+      if (product.commission_rule_id) {
+        // Tem regra por faixa
+        setRuleType('tiered')
+        // TODO: carregar tiers da regra se necessário
+        setTiers([{ min: 0, max: null, percentage: 0 }])
+      } else if (product.default_commission_rate !== null && product.default_commission_rate !== undefined) {
+        // Tem override fixo
+        setRuleType('fixed')
+        setCommission(product.default_commission_rate)
+        setTax(product.default_tax_rate ?? 0)
+      } else {
+        // Usa padrão
+        setRuleType('default')
+        setCommission(supplierCommission ?? 0)
+        setTax(supplierTax ?? 0)
+      }
     }
   }, [product, supplierCommission, supplierTax])
+
+  // Funções para gerenciar faixas
+  function addTier() {
+    const lastTier = tiers[tiers.length - 1]
+    const newMin = lastTier.max ?? 0
+    setTiers([
+      ...tiers.slice(0, -1),
+      { ...lastTier, max: newMin },
+      { min: newMin, max: null, percentage: 0 },
+    ])
+  }
+
+  function removeTier(index: number) {
+    if (tiers.length <= 1) return
+    const newTiers = tiers.filter((_, i) => i !== index)
+    if (newTiers.length > 0) {
+      newTiers[newTiers.length - 1].max = null
+    }
+    setTiers(newTiers)
+  }
+
+  function updateTier(index: number, field: keyof CommissionTier, value: number | null) {
+    const newTiers = [...tiers]
+    newTiers[index] = { ...newTiers[index], [field]: value }
+    setTiers(newTiers)
+  }
 
   async function handleSave() {
     if (!product) return
 
     setLoading(true)
     try {
-      const result = await updateProduct(product.id, {
-        default_commission_rate: useDefault ? null : commission,
-        default_tax_rate: useDefault ? null : tax,
-        commission_rule_id: null, // Limpa regra antiga se existia
+      const result = await updateProductCommission(product.id, {
+        type: ruleType,
+        commission: ruleType === 'fixed' ? commission : undefined,
+        tax: ruleType === 'fixed' ? tax : undefined,
+        tiers: ruleType === 'tiered' ? tiers : undefined,
       })
 
       if (result.success) {
@@ -74,7 +120,7 @@ export function ProductRuleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Comissão do Produto</DialogTitle>
           <DialogDescription>
@@ -83,35 +129,48 @@ export function ProductRuleDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Toggle usar padrão vs override */}
-          <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
+          {/* Toggle tipo de comissão */}
+          <div className="grid grid-cols-3 gap-1 p-1 bg-muted/50 rounded-lg">
             <button
               type="button"
-              onClick={() => setUseDefault(true)}
+              onClick={() => setRuleType('default')}
               className={cn(
                 'py-2.5 text-sm font-medium rounded-md transition-all',
-                useDefault
+                ruleType === 'default'
                   ? 'bg-background shadow-sm text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Usar Padrão
+              Padrão
             </button>
             <button
               type="button"
-              onClick={() => setUseDefault(false)}
+              onClick={() => setRuleType('fixed')}
               className={cn(
                 'py-2.5 text-sm font-medium rounded-md transition-all',
-                !useDefault
+                ruleType === 'fixed'
                   ? 'bg-background shadow-sm text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Personalizar
+              Fixo
+            </button>
+            <button
+              type="button"
+              onClick={() => setRuleType('tiered')}
+              className={cn(
+                'py-2.5 text-sm font-medium rounded-md transition-all',
+                ruleType === 'tiered'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Por Faixa
             </button>
           </div>
 
-          {useDefault ? (
+          {/* Conteúdo baseado no tipo */}
+          {ruleType === 'default' && (
             <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
               <p>Este produto usará a comissão padrão da pasta:</p>
               <p className="font-medium mt-1">
@@ -119,7 +178,9 @@ export function ProductRuleDialog({
                 {(supplierTax ?? 0) > 0 && ` + ${supplierTax}% taxa`}
               </p>
             </div>
-          ) : (
+          )}
+
+          {ruleType === 'fixed' && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Comissão (%)</Label>
@@ -145,6 +206,86 @@ export function ProductRuleDialog({
                   suffix="%"
                 />
               </div>
+            </div>
+          )}
+
+          {ruleType === 'tiered' && (
+            <div className="space-y-3">
+              <Label>Faixas de Comissão</Label>
+
+              {tiers.map((tier, index) => (
+                <div key={index} className="p-3 border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Faixa {index + 1}
+                    </span>
+                    {tiers.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-destructive hover:text-destructive"
+                        onClick={() => removeTier(index)}
+                      >
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Mínimo (R$)</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={tier.min}
+                        onChange={(e) => updateTier(index, 'min', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">
+                        {index === tiers.length - 1 ? 'Máximo' : 'Máximo (R$)'}
+                      </Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={tier.max ?? ''}
+                        onChange={(e) =>
+                          updateTier(index, 'max', e.target.value ? parseFloat(e.target.value) : null)
+                        }
+                        disabled={index === tiers.length - 1}
+                        placeholder={index === tiers.length - 1 ? '∞' : ''}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Comissão (%)</Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={tier.percentage}
+                        onChange={(e) => updateTier(index, 'percentage', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <DashedActionButton
+                icon={<Plus className="h-4 w-4" />}
+                onClick={addTier}
+              >
+                Adicionar faixa
+              </DashedActionButton>
+
+              <p className="text-xs text-muted-foreground">
+                A última faixa sempre terá valor máximo ilimitado
+              </p>
             </div>
           )}
         </div>

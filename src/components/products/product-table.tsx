@@ -95,7 +95,11 @@ export function ProductTable({ products, supplierId, showSku = true, supplierCom
   }
 
   function getCommissionDisplay(product: Product): { text: string; hasOverride: boolean } {
-    // Se tem override no produto
+    // Se tem regra por faixa
+    if (product.commission_rule_id) {
+      return { text: 'Por Faixa', hasOverride: true }
+    }
+    // Se tem override fixo
     if (product.default_commission_rate !== null && product.default_commission_rate !== undefined) {
       const comm = product.default_commission_rate
       const tax = product.default_tax_rate ?? 0
