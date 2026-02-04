@@ -28,63 +28,66 @@ export function Header() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+      setScrolled(scrollTop > 20);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.body.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.body.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // Site sempre usa logo preto (light mode fixo)
-  const logoSrc = '/images/logo/uComis_black.png';
+  const logoSrc = '/images/logo/uComis_black.svg';
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full bg-white transition-all duration-300">
       <div className="container mx-auto px-6 max-w-[1200px]">
-        <div className={`flex items-center justify-between transition-all duration-300 ${scrolled ? 'h-12' : 'h-20'}`}>
-          {/* Logo e Menu agrupados - próximos da logo */}
-          <div className="flex items-center gap-24">
-            {/* Logo - reserva espaço mesmo quando não carregada, anima mais devagar */}
-            <Link
-              href="/site"
-              className="flex items-center transition-all duration-300 hover:opacity-80"
-            >
-              <div className={`${scrolled ? 'h-5 w-[120px]' : 'h-6 w-[120px]'} flex items-center`}>
-                {mounted && (
-                  <Image
-                    src={logoSrc}
-                    alt="uComis"
-                    width={120}
-                    height={24}
-                    priority
-                    className={`transition-all duration-300 animate-in fade-in duration-700 ${scrolled ? 'h-5 w-auto' : 'h-6 w-auto'}`}
-                  />
-                )}
-              </div>
-            </Link>
+        <div className={`relative flex items-center justify-between transition-all duration-500 ease-out ${scrolled ? 'h-14' : 'h-24'}`}>
+          {/* Logo à esquerda */}
+          <Link
+            href="/site"
+            className="flex items-center transition-all duration-500 ease-out hover:opacity-80"
+          >
+            <div className={`${scrolled ? 'h-6 w-[120px]' : 'h-9 w-[160px]'} flex items-center transition-all duration-500 ease-out`}>
+              {mounted && (
+                <Image
+                  src={logoSrc}
+                  alt="uComis"
+                  width={160}
+                  height={36}
+                  priority
+                  className={`transition-all duration-500 ease-out animate-in fade-in duration-700 ${scrolled ? 'h-6 w-auto' : 'h-9 w-auto'}`}
+                />
+              )}
+            </div>
+          </Link>
 
-            {/* Menu Desktop - aparece todos juntos */}
-            <nav className="hidden md:flex items-center gap-8">
-            {MENU_ITEMS.map((item) => {
-              const animationDuration = 400;
-              const animationDelay = 200; // Todos aparecem ao mesmo tempo
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-base font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                  style={mounted ? { 
-                    opacity: 0,
-                    animation: `fadeIn ${animationDuration}ms ease-out forwards`,
-                    animationDelay: `${animationDelay}ms`
-                  } : { opacity: 0 }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-            </nav>
-          </div>
+          {/* Menu Desktop - centralizado */}
+          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+          {MENU_ITEMS.map((item) => {
+            const animationDuration = 400;
+            const animationDelay = 200; // Todos aparecem ao mesmo tempo
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-base font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                style={mounted ? {
+                  opacity: 0,
+                  animation: `fadeIn ${animationDuration}ms ease-out forwards`,
+                  animationDelay: `${animationDelay}ms`
+                } : { opacity: 0 }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          </nav>
 
           {/* CTA Desktop e Menu Mobile */}
           <div className="flex items-center gap-3">

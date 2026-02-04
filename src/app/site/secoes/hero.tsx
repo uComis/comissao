@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useEffect, useState } from 'react'
 
-const palavras = ['certo', 'rápido', 'simples', 'preciso', 'seguro']
+const palavras = ['certa', 'rápida', 'simples', 'precisa', 'segura']
 
 export function Hero() {
   const [palavraAtual, setPalavraAtual] = useState(0)
@@ -29,8 +29,8 @@ export function Hero() {
         <div className="flex flex-col lg:grid lg:grid-cols-5 gap-8 lg:gap-12 items-center">
           {/* Texto à esquerda */}
           <div className="space-y-6 lg:space-y-8 text-center lg:text-left lg:col-span-3 w-full">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-wide w-full">
-              O jeito{' '}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-wide w-full">
+              A forma{' '}
               <span
                 className={`inline-block w-[160px] sm:w-[200px] lg:w-[280px] text-left transition-all duration-[400ms] ease ${isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
                   }`}
@@ -40,7 +40,7 @@ export function Hero() {
                 </span>
               </span>
               <br />
-              de calcular suas comissoes
+              de calcular suas comissões
             </h1>
 
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 leading-relaxed">

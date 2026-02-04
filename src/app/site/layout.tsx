@@ -54,7 +54,7 @@ export default function SiteLayout({
   }, [])
 
   return (
-    <div className="light" data-theme="light" style={{ colorScheme: 'light' }}>
+    <div className="light" data-theme="light" style={{ colorScheme: 'light', fontFamily: 'var(--font-google-sans)' }}>
       {children}
     </div>
   )
