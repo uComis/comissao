@@ -151,7 +151,8 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
             return (
               <Card
                 key={client.id}
-                className="p-4"
+                className="p-4 cursor-pointer active:scale-[0.98] transition-transform"
+                onClick={() => onEdit(client)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0 space-y-1.5">
@@ -224,7 +225,7 @@ export function ClientTable({ clients, onEdit, onDeleted }: Props) {
             const lastDate = formatDateShort(client.last_sale_date)
 
             return (
-              <TableRow key={client.id}>
+              <TableRow key={client.id} className="cursor-pointer" onClick={() => onEdit(client)}>
                 <TableCell className="py-3">
                   <div className="font-medium">{client.name}</div>
                   {lastDate && (

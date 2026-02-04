@@ -169,7 +169,7 @@ export function SupplierTable({ suppliers, onDelete }: Props) {
             return (
               <Card
                 key={supplier.id}
-                className={`p-4 ${blocked ? 'opacity-60' : 'active:scale-[0.98] transition-transform'}`}
+                className={`p-4 ${blocked ? 'opacity-60' : 'cursor-pointer active:scale-[0.98] transition-transform'}`}
                 onClick={() => !blocked && handleEdit(supplier.id)}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -252,7 +252,7 @@ export function SupplierTable({ suppliers, onDelete }: Props) {
             const lastDate = formatDateShort(supplier.last_sale_date)
 
             return (
-              <TableRow key={supplier.id} className={blocked ? 'opacity-60' : ''}>
+              <TableRow key={supplier.id} className={blocked ? 'opacity-60' : 'cursor-pointer'} onClick={() => !blocked && handleEdit(supplier.id)}>
                 <TableCell className="py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{supplier.name}</span>
