@@ -49,6 +49,7 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
   const isMobile = useIsMobile()
 
   const today = new Date().toISOString().split('T')[0]
+  const isSinglePayment = receivables.length === 1
 
   const handleMarkAsReceived = async (receivable: ReceivableRow) => {
     setLoading(receivable.installment_number)
@@ -109,6 +110,71 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
     )
   }
 
+  // Visualização para pagamento à vista
+  if (isSinglePayment) {
+    const receivable = receivables[0]
+    const isReceived = receivable.status === 'received'
+    const isOverdue = receivable.status === 'overdue'
+    const isToday = receivable.due_date === today
+    const isLoading = loading === receivable.installment_number
+
+    return (
+      <>
+        <div
+          onClick={() => openDrawer(receivable)}
+          className={cn(
+            'p-3 rounded-xl border cursor-pointer transition-all active:scale-[0.98]',
+            isReceived && 'bg-green-500/5 border-green-500/20',
+            isOverdue && !isReceived && 'bg-destructive/5 border-destructive/20',
+            isToday && !isReceived && !isOverdue && 'bg-amber-500/5 border-amber-500/20',
+            !isReceived && !isOverdue && !isToday && 'bg-card hover:bg-muted/50'
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : isReceived ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : null}
+              <span className={cn(
+                'text-sm font-medium',
+                isReceived && 'text-green-600'
+              )}>
+                Pagamento à vista
+              </span>
+              {isOverdue && !isReceived && (
+                <span className="text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full uppercase">
+                  Atrasada
+                </span>
+              )}
+              {isToday && !isOverdue && !isReceived && (
+                <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-full uppercase">
+                  Hoje
+                </span>
+              )}
+            </div>
+            <p className={cn(
+              'text-base font-bold tabular-nums text-green-600'
+            )}>
+              {formatCurrency(receivable.expected_commission)}
+            </p>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {isReceived && receivable.received_at ? (
+              <span className="text-green-600">Recebido em {formatDate(receivable.received_at)}</span>
+            ) : (
+              <span>Vence {formatDate(receivable.due_date)}</span>
+            )}
+          </div>
+        </div>
+
+        {renderDrawerDialog()}
+      </>
+    )
+  }
+
+  // Visualização para parcelado
   return (
     <>
       <div className="space-y-2">
@@ -187,8 +253,7 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
               {/* Value */}
               <div className="text-right shrink-0">
                 <p className={cn(
-                  'text-sm font-bold tabular-nums',
-                  isReceived ? 'text-green-600' : isOverdue ? 'text-destructive' : 'text-foreground'
+                  'text-sm font-bold tabular-nums text-green-600'
                 )}>
                   {formatCurrency(receivable.expected_commission)}
                 </p>
@@ -198,107 +263,110 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
         })}
       </div>
 
-      {/* Action content - shared between Drawer and Dialog */}
-      {(() => {
-        const actionContent = (
-          <div className="space-y-4">
-            {selectedInstallment?.status !== 'received' ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="received-date">Data do recebimento</Label>
-                  <Input
-                    id="received-date"
-                    type="date"
-                    value={receivedDate}
-                    onChange={(e) => setReceivedDate(e.target.value)}
-                  />
-                </div>
-                <Button
-                  className="w-full"
-                  onClick={() => selectedInstallment && handleMarkAsReceived(selectedInstallment)}
-                  disabled={loading !== null}
-                >
-                  {loading === selectedInstallment?.installment_number ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Check className="h-4 w-4 mr-2" />
-                  )}
-                  Marcar como recebida
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-center">
-                  <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-green-600">Parcela recebida</p>
-                  {selectedInstallment.received_at && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      em {formatDate(selectedInstallment.received_at)}
-                    </p>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full text-destructive hover:text-destructive"
-                  onClick={() => selectedInstallment && handleUndo(selectedInstallment)}
-                  disabled={loading !== null}
-                >
-                  {loading === selectedInstallment?.installment_number ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                  )}
-                  Desfazer recebimento
-                </Button>
-              </>
-            )}
-          </div>
-        )
+      {renderDrawerDialog()}
+    </>
+  )
 
-        // Mobile: Drawer
-        if (isMobile) {
-          return (
-            <Drawer open={!!selectedInstallment} onOpenChange={(open) => !open && setSelectedInstallment(null)}>
-              <DrawerContent>
-                <div className="mx-auto w-full max-w-lg">
-                  <DrawerHeader>
-                    <DrawerTitle>
-                      {selectedInstallment?.installment_number}ª Parcela
-                    </DrawerTitle>
-                    <DrawerDescription>
-                      {selectedInstallment && formatCurrency(selectedInstallment.expected_commission)}
-                      {' • '}
-                      Vence em {selectedInstallment && formatDate(selectedInstallment.due_date)}
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="px-4 pb-6">
-                    {actionContent}
-                  </div>
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        }
+  function renderDrawerDialog() {
+    const actionContent = (
+      <div className="space-y-4">
+        {selectedInstallment?.status !== 'received' ? (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="received-date">Data do recebimento</Label>
+              <Input
+                id="received-date"
+                type="date"
+                value={receivedDate}
+                onChange={(e) => setReceivedDate(e.target.value)}
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => selectedInstallment && handleMarkAsReceived(selectedInstallment)}
+              disabled={loading !== null}
+            >
+              {loading === selectedInstallment?.installment_number ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              Marcar como recebido
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-4 text-center">
+              <Check className="h-8 w-8 text-green-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-green-600">
+                {isSinglePayment ? 'Pagamento recebido' : 'Parcela recebida'}
+              </p>
+              {selectedInstallment.received_at && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  em {formatDate(selectedInstallment.received_at)}
+                </p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => selectedInstallment && handleUndo(selectedInstallment)}
+              disabled={loading !== null}
+            >
+              {loading === selectedInstallment?.installment_number ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RotateCcw className="h-4 w-4 mr-2" />
+              )}
+              Desfazer recebimento
+            </Button>
+          </>
+        )}
+      </div>
+    )
 
-        // Desktop: Dialog
-        return (
-          <Dialog open={!!selectedInstallment} onOpenChange={(open) => !open && setSelectedInstallment(null)}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedInstallment?.installment_number}ª Parcela
-                </DialogTitle>
-                <DialogDescription>
+    // Mobile: Drawer
+    if (isMobile) {
+      return (
+        <Drawer open={!!selectedInstallment} onOpenChange={(open) => !open && setSelectedInstallment(null)}>
+          <DrawerContent>
+            <div className="mx-auto w-full max-w-lg">
+              <DrawerHeader>
+                <DrawerTitle>
+                  {isSinglePayment ? 'Pagamento à vista' : `${selectedInstallment?.installment_number}ª Parcela`}
+                </DrawerTitle>
+                <DrawerDescription>
                   {selectedInstallment && formatCurrency(selectedInstallment.expected_commission)}
                   {' • '}
                   Vence em {selectedInstallment && formatDate(selectedInstallment.due_date)}
-                </DialogDescription>
-              </DialogHeader>
-              {actionContent}
-            </DialogContent>
-          </Dialog>
-        )
-      })()}
-    </>
-  )
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="px-4 pb-6">
+                {actionContent}
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )
+    }
+
+    // Desktop: Dialog
+    return (
+      <Dialog open={!!selectedInstallment} onOpenChange={(open) => !open && setSelectedInstallment(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isSinglePayment ? 'Pagamento à vista' : `${selectedInstallment?.installment_number}ª Parcela`}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInstallment && formatCurrency(selectedInstallment.expected_commission)}
+              {' • '}
+              Vence em {selectedInstallment && formatDate(selectedInstallment.due_date)}
+            </DialogDescription>
+          </DialogHeader>
+          {actionContent}
+        </DialogContent>
+      </Dialog>
+    )
+  }
 }

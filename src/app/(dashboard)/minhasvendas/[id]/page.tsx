@@ -57,22 +57,7 @@ async function VendaDetalheContent({ id }: { id: string }) {
           totalPending={totalPending}
         />
 
-        {/* Parcelas */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Parcelas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <SaleDetailInstallments
-              saleId={id}
-              receivables={saleReceivables}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Dados da Venda (colapsável) */}
+        {/* Dados da Venda */}
         <SaleDetailInfo
           saleId={id}
           sale={{
@@ -85,6 +70,21 @@ async function VendaDetalheContent({ id }: { id: string }) {
             saleDate: sale.sale_date,
           }}
         />
+
+        {/* Parcelas */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {saleReceivables.length === 1 ? 'Pagamento' : 'Parcelas'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <SaleDetailInstallments
+              saleId={id}
+              receivables={saleReceivables}
+            />
+          </CardContent>
+        </Card>
 
         {/* Observações */}
         {sale.notes && (
