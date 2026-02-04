@@ -3,6 +3,7 @@ import { Hero } from './secoes/hero';
 import { Problema } from './secoes/problema';
 import { Seamless } from './secoes/seamless';
 import { Simple } from './secoes/simple';
+import { Understandable } from './secoes/understandable';
 import { FeaturesShowcase } from './secoes/features-showcase';
 import { Metodologia } from './secoes/metodologia';
 // import { Kai } from './secoes/kai';
@@ -19,6 +20,7 @@ export default function SitePage() {
         <Problema />
         <Seamless />
         <Simple />
+        <Understandable />
         <FeaturesShowcase />
         <Metodologia />
         {/* <Kai /> */}
