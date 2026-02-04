@@ -52,9 +52,13 @@ function formatDate(dateStr: string | null): string {
   return new Intl.DateTimeFormat('pt-BR').format(new Date(dateStr + 'T00:00:00'))
 }
 
-function getDay(dateStr: string | null): string {
+function formatShortDate(dateStr: string | null): string {
   if (!dateStr) return '-'
-  return String(new Date(dateStr + 'T00:00:00').getDate()).padStart(2, '0')
+  const date = new Date(dateStr + 'T00:00:00')
+  const day = date.getDate()
+  const month = date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  const year = date.getFullYear()
+  return `${day} ${month} ${year}`
 }
 
 function getCommissionPercent(gross: number | null, commission: number | null): string | null {
@@ -238,7 +242,7 @@ export function PersonalSaleTable({ sales }: Props) {
       <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">Dia</TableHead>
+              <TableHead className="w-[100px]">Data</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead className="text-center">Valor</TableHead>
               <TableHead className="text-center">Comissão</TableHead>
@@ -257,8 +261,8 @@ export function PersonalSaleTable({ sales }: Props) {
                   onClick={() => handleView(sale.id)}
                   onContextMenu={(e) => handleContextMenu(e, sale)}
                 >
-                  <TableCell className="py-3 text-center tabular-nums text-muted-foreground font-medium">
-                    {getDay(sale.sale_date)}
+                  <TableCell className="py-3 tabular-nums text-muted-foreground text-sm">
+                    {formatShortDate(sale.sale_date)}
                   </TableCell>
                   <TableCell className="py-3">
                     <div className="font-medium">{sale.client_name || 'Cliente não informado'}</div>
