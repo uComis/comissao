@@ -106,11 +106,34 @@ function PaymentFormContent({
   const [fadeState, setFadeState] = useState<'visible' | 'fading-out' | 'fading-in'>('visible')
   const contentRef = useRef<HTMLDivElement>(null)
   const [contentHeight, setContentHeight] = useState<number | 'auto'>('auto')
+  const [hasDescendingError, setHasDescendingError] = useState(false)
 
   const safeInst = getSafeNumber(installments, 1)
   const safeInterval = getSafeNumber(interval, 30)
   const safeFirstDays = getSafeNumber(firstInstallmentDays, 0)
   const isVista = safeInst === 1
+
+  const handleScheduleInputChange = useCallback((rawValue: string) => {
+    // Replace , and . with /
+    let value = rawValue.replace(/[,.]/g, '/')
+    // Remove duplicate slashes
+    value = value.replace(/\/+/g, '/')
+    // Remove leading slash
+    value = value.replace(/^\//, '')
+
+    // Check for descending values
+    const parts = value.split('/').map(p => parseInt(p.trim())).filter(n => !isNaN(n))
+    let hasDescending = false
+    for (let i = 1; i < parts.length; i++) {
+      if (parts[i] <= parts[i - 1]) {
+        hasDescending = true
+        break
+      }
+    }
+    setHasDescendingError(hasDescending)
+
+    onQuickConditionChange(value)
+  }, [onQuickConditionChange])
 
   // Measure content height after render
   useEffect(() => {
@@ -227,10 +250,11 @@ function PaymentFormContent({
                 <Input
                   placeholder="Ex: 30/60/90"
                   value={isInputFocused ? quickCondition : summarizeSchedule(quickCondition)}
-                  onChange={(e) => onQuickConditionChange(e.target.value)}
+                  onChange={(e) => handleScheduleInputChange(e.target.value)}
                   onBlur={() => {
                     setTimeout(() => {
                       setShowSuggestions(false)
+                      setIsInputFocused(false)
                       onQuickConditionBlur()
                     }, 200)
                   }}
@@ -238,7 +262,10 @@ function PaymentFormContent({
                     setShowSuggestions(true)
                     setIsInputFocused(true)
                   }}
-                  className="h-12 text-base font-medium rounded-xl border-2 focus-visible:ring-0 focus-visible:border-primary/50 transition-all pr-10"
+                  className={cn(
+                    "h-12 text-base font-medium rounded-xl border-2 focus-visible:ring-0 focus-visible:border-primary/50 transition-all pr-10",
+                    hasDescendingError && "border-red-500 focus-visible:border-red-500"
+                  )}
                 />
                 {quickCondition && (
                   <button

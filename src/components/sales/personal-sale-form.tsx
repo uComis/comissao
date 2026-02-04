@@ -666,7 +666,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         onInstallmentsChange={handleInstallmentsChange}
                         onIntervalChange={(val) => { setInterval(val); setHasChangedSteppers(true) }}
                         onFirstInstallmentDaysChange={(val) => { setFirstInstallmentDays(val); setFirstInstallmentDate(calculateDateFromDays(val, saleDate)); setHasChangedSteppers(true) }}
-                        onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                        onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false) }}
                         onQuickConditionBlur={handleQuickConditionBlur}
                         onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                     onSelectSuggestion={handleSelectSuggestion}
@@ -785,7 +785,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     onInstallmentsChange={handleInstallmentsChange}
                     onIntervalChange={(val) => { setInterval(val); setHasChangedSteppers(true) }}
                     onFirstInstallmentDaysChange={(val) => { setFirstInstallmentDays(val); setFirstInstallmentDate(calculateDateFromDays(val, saleDate)); setHasChangedSteppers(true) }}
-                    onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
+                    onQuickConditionChange={(value) => { setQuickCondition(value); setIsUpdatingFromQuick(true); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false) }}
                     onQuickConditionBlur={handleQuickConditionBlur}
                     onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                     onSelectSuggestion={handleSelectSuggestion}
@@ -802,7 +802,30 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       </form>
       <ClientDialog open={clientDialogOpen} onOpenChange={setClientDialogOpen} onSuccess={handleClientCreated} initialName={clientInitialName} />
       {supplierId && <ProductDialog open={productDialogOpen} onOpenChange={(open) => { setProductDialogOpen(open); if (!open) setEditProductDialogProduct(null) }} supplierId={supplierId} product={editProductDialogProduct} onProductCreated={handleProductCreated} showSku={false} />}
-      <InstallmentsSheet open={installmentsSheetOpen} onOpenChange={setInstallmentsSheetOpen} saleDate={saleDate} installments={getSafeNumber(installments, 1)} interval={getSafeNumber(interval, 30)} totalValue={totalValue} commissionPercentage={null} />
+      <InstallmentsSheet
+        open={installmentsSheetOpen}
+        onOpenChange={setInstallmentsSheetOpen}
+        saleDate={saleDate}
+        firstInstallmentDays={getSafeNumber(firstInstallmentDays, 0)}
+        installments={getSafeNumber(installments, 1)}
+        interval={getSafeNumber(interval, 30)}
+        totalValue={totalValue}
+        commissionPercentage={null}
+        customDaysList={customDaysList}
+        onScheduleChange={(days) => {
+          setCustomDaysList(days)
+          setQuickCondition(days.join('/'))
+          setInstallments(days.length)
+          if (days.length > 0) {
+            setFirstInstallmentDays(days[0])
+            setFirstInstallmentDate(calculateDateFromDays(days[0], saleDate))
+          }
+          if (days.length > 1) {
+            setInterval(days[1] - days[0])
+          }
+          setHasChangedSteppers(true)
+        }}
+      />
       <MobileItemDrawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} entry={valueEntries.find((e) => e.id === editingEntryId) || null} informItems={informItems} supplierId={supplierId} products={selectedProducts} onProductSelect={(product) => {
         if (!editingEntryId) return
         const eid = editingEntryId
