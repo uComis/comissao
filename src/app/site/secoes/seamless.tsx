@@ -1,13 +1,10 @@
 import Image from 'next/image'
-import { ImageIcon, Video, Box, Music, Globe, Sparkles } from 'lucide-react'
+import { Zap, Calculator, Clock } from 'lucide-react'
 
 const features = [
-  { icon: ImageIcon, label: 'Images' },
-  { icon: Video, label: 'Video' },
-  { icon: Box, label: '3D Models' },
-  { icon: Music, label: 'Audio' },
-  { icon: Globe, label: 'Interactive Models' },
-  { icon: Sparkles, label: 'AR Models' },
+  { icon: Zap, label: 'Poucos campos' },
+  { icon: Calculator, label: 'Cálculo automático' },
+  { icon: Clock, label: 'Parcelas na hora' },
 ]
 
 export function Seamless() {
@@ -21,7 +18,7 @@ export function Seamless() {
               <div className="relative w-[340px] sm:w-[400px]">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Phone"
+                  alt="Cadastro rápido de vendas"
                   width={450}
                   height={920}
                   className="w-full h-auto"
@@ -32,18 +29,18 @@ export function Seamless() {
 
           {/* Content */}
           <div className="flex-1 space-y-6">
-            <p className="text-[#C9A227] font-medium">Seamless</p>
+            <p className="text-[#C9A227] font-medium">Rápido</p>
 
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
-              The best way to<br />experience NFTs.
+              Cadastre uma venda<br />em 30 segundos.
             </h1>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              View NFTs in their ideal intended format. Full rich media support no matter the type, from video and audio, to images and interactive.
+              Sem formulários intermináveis. Você digita o essencial, o sistema calcula o resto. Comissão e parcelas geradas automaticamente.
             </p>
 
-            {/* Features grid */}
-            <ul className="grid grid-cols-2 gap-x-8 gap-y-3 pt-2">
+            {/* Features list */}
+            <ul className="space-y-3 pt-2">
               {features.map((feature) => (
                 <li key={feature.label} className="flex items-center gap-3">
                   <feature.icon className="w-5 h-5 text-[#C9A227]" />
@@ -57,7 +54,7 @@ export function Seamless() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Manage your collectibles"
+                  alt="Cadastro de venda"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
@@ -69,8 +66,8 @@ export function Seamless() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Manage your collectibles</h5>
-                <p className="text-gray-500 text-sm">Watch the demo</p>
+                <h5 className="font-semibold text-gray-900">Cadastro de venda</h5>
+                <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>
           </div>

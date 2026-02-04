@@ -1,10 +1,10 @@
 import Image from 'next/image'
-import { Check } from 'lucide-react'
+import { FolderOpen, Settings, List } from 'lucide-react'
 
 const features = [
-  'Human-Readable Activity',
-  'Real-Time Monitoring',
-  'Custom Filtering',
+  { icon: FolderOpen, label: 'Multi-pasta sem limites' },
+  { icon: Settings, label: 'Regras por fornecedor' },
+  { icon: List, label: 'Timeline unificada' },
 ]
 
 export function Understandable() {
@@ -18,7 +18,7 @@ export function Understandable() {
               <div className="relative w-[340px] sm:w-[400px]">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Phone"
+                  alt="Múltiplas pastas consolidadas"
                   width={450}
                   height={920}
                   className="w-full h-auto"
@@ -29,23 +29,23 @@ export function Understandable() {
 
           {/* Content - Right side */}
           <div className="flex-1 space-y-6">
-            <p className="text-[#F97316] font-medium">Understandable</p>
+            <p className="text-[#F97316] font-medium">Consolidado</p>
 
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
-              Wallet activity you<br />
-              can understand.
+              Todas as pastas.<br />
+              Um só lugar.
             </h1>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Your transactions and wallet history is readable at a glance. No more having to decipher what confusing events with weird names mean. We do that for you.
+              Cada representada tem seu portal. Você não deveria precisar de 5 logins para saber quanto vai ganhar. Consolide tudo em uma única tela.
             </p>
 
             {/* Features list */}
             <ul className="space-y-3 pt-2">
               {features.map((feature) => (
-                <li key={feature} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-[#F97316]" />
-                  <span className="text-[#F97316] font-medium">{feature}</span>
+                <li key={feature.label} className="flex items-center gap-3">
+                  <feature.icon className="w-5 h-5 text-[#F97316]" />
+                  <span className="text-[#F97316] font-medium">{feature.label}</span>
                 </li>
               ))}
             </ul>
@@ -55,7 +55,7 @@ export function Understandable() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Wallet Activity"
+                  alt="Consolidação de pastas"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
@@ -67,8 +67,8 @@ export function Understandable() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Wallet Activity</h5>
-                <p className="text-gray-500 text-sm">Watch the demo</p>
+                <h5 className="font-semibold text-gray-900">Consolidação de pastas</h5>
+                <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>
           </div>

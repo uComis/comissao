@@ -1,10 +1,10 @@
 import Image from 'next/image'
-import { Check } from 'lucide-react'
+import { PieChart, Clock, CalendarCheck } from 'lucide-react'
 
 const features = [
-  'Watch Any Wallet',
-  'Rich Notifications',
-  'Fully Customizable',
+  { icon: PieChart, label: 'Receita por fornecedor' },
+  { icon: Clock, label: 'Parcelas pendentes' },
+  { icon: CalendarCheck, label: 'Próximos recebimentos' },
 ]
 
 export function Simple() {
@@ -14,23 +14,23 @@ export function Simple() {
         <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
           {/* Content - Left side */}
           <div className="flex-1 space-y-6">
-            <p className="text-[#22C55E] font-medium">Simple</p>
+            <p className="text-[#22C55E] font-medium">Visível</p>
 
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
-              Watch the wallets<br />
-              you care about.
+              Saiba quanto vai<br />
+              receber. Agora.
             </h1>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Keep up to date with unlimited wallets in view-only mode by entering an address or ENS name, and get real-time notifications on any new activity.
+              Dashboard consolidado com todas as suas pastas. Sem precisar abrir 5 portais diferentes para saber quanto vai ganhar este mês.
             </p>
 
             {/* Features list */}
             <ul className="space-y-3 pt-2">
               {features.map((feature) => (
-                <li key={feature} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-[#22C55E]" />
-                  <span className="text-[#22C55E] font-medium">{feature}</span>
+                <li key={feature.label} className="flex items-center gap-3">
+                  <feature.icon className="w-5 h-5 text-[#22C55E]" />
+                  <span className="text-[#22C55E] font-medium">{feature.label}</span>
                 </li>
               ))}
             </ul>
@@ -40,7 +40,7 @@ export function Simple() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Watching Wallets"
+                  alt="Dashboard"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
@@ -52,8 +52,8 @@ export function Simple() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Watching Wallets</h5>
-                <p className="text-gray-500 text-sm">Watch the demo</p>
+                <h5 className="font-semibold text-gray-900">Dashboard em tempo real</h5>
+                <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>
           </div>
@@ -64,7 +64,7 @@ export function Simple() {
               <div className="relative w-[340px] sm:w-[400px]">
                 <Image
                   src="/images/landing/iphone-dark-vertical.png"
-                  alt="Phone"
+                  alt="Dashboard de comissões"
                   width={450}
                   height={920}
                   className="w-full h-auto"
