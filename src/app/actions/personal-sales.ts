@@ -46,6 +46,86 @@ type ActionResult<T> =
 // QUERIES
 // =====================================================
 
+export type PaginatedSalesParams = {
+  page?: number
+  pageSize?: number
+  search?: string
+  supplierId?: string
+  clientId?: string
+}
+
+export type PaginatedSalesResult = {
+  data: PersonalSale[]
+  total: number
+}
+
+export async function getPersonalSalesPaginated(
+  params: PaginatedSalesParams = {}
+): Promise<PaginatedSalesResult> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('User not authenticated')
+
+  const {
+    page = 1,
+    pageSize = 10,
+    search,
+    supplierId,
+    clientId,
+  } = params
+
+  // Aplicar filtro de retenção
+  const minDate = await getDataRetentionFilter(user.id)
+
+  // Query base
+  let query = supabase
+    .from('personal_sales')
+    .select(`
+      *,
+      supplier:personal_suppliers(id, name),
+      client:personal_clients(id, name)
+    `, { count: 'exact' })
+    .eq('user_id', user.id)
+
+  // Filtro de retenção
+  if (minDate) {
+    query = query.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  // Filtro por pasta
+  if (supplierId && supplierId !== 'all') {
+    query = query.eq('supplier_id', supplierId)
+  }
+
+  // Filtro por cliente
+  if (clientId && clientId !== 'all') {
+    query = query.eq('client_id', clientId)
+  }
+
+  // Filtro por busca (client_name)
+  if (search && search.trim()) {
+    query = query.ilike('client_name', `%${search.trim()}%`)
+  }
+
+  // Ordenar por data (mais recentes primeiro)
+  query = query.order('sale_date', { ascending: false })
+
+  // Paginação
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+  query = query.range(from, to)
+
+  const { data, error, count } = await query
+
+  if (error) throw error
+
+  return {
+    data: data || [],
+    total: count || 0,
+  }
+}
+
 export async function getPersonalSales(): Promise<PersonalSale[]> {
   const supabase = await createClient()
 
@@ -54,7 +134,7 @@ export async function getPersonalSales(): Promise<PersonalSale[]> {
 
   // Aplicar filtro de retenção
   const minDate = await getDataRetentionFilter(user.id)
-  
+
   let query = supabase
     .from('personal_sales')
     .select(`

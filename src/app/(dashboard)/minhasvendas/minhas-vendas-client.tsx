@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useTransition, useCallback } from 'react'
 import Link from 'next/link'
-import { MonthPicker } from '@/components/dashboard/month-picker'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { PersonalSaleTable } from '@/components/sales'
 import { Card } from '@/components/ui/card'
@@ -26,27 +25,38 @@ import { AnimatedTableContainer } from '@/components/ui/animated-table-container
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
 import { Fab } from '@/components/ui/fab'
-import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter } from 'lucide-react'
+import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { getPersonalSalesPaginated, type PaginatedSalesResult } from '@/app/actions/personal-sales'
 import type { PersonalSale } from '@/types'
 
 const PAGE_SIZE_DEFAULT = 10
 
+type Supplier = { id: string; name: string }
+type Client = { id: string; name: string }
+
 type Props = {
-  sales: PersonalSale[]
+  initialData: PaginatedSalesResult
+  suppliers: Supplier[]
+  clients: Client[]
 }
 
-export function MinhasVendasClient({ sales }: Props) {
+export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
   const isMobile = useIsMobile()
-  const [month, setMonth] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1)
-  })
+  const [isPending, startTransition] = useTransition()
+
+  // Data state
+  const [sales, setSales] = useState<PersonalSale[]>(initialData.data)
+  const [total, setTotal] = useState(initialData.total)
+
+  // Filter state
   const [search, setSearch] = useState('')
   const [supplierId, setSupplierId] = useState<string>('all')
   const [clientId, setClientId] = useState<string>('all')
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  // Pagination state
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT)
   const [mobileVisible, setMobileVisible] = useState(PAGE_SIZE_DEFAULT)
@@ -54,55 +64,78 @@ export function MinhasVendasClient({ sales }: Props) {
   const selectFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
   const drawerFilterCount = selectFilterCount + (search ? 1 : 0)
 
-  const suppliers = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const s of sales) {
-      if (s.supplier?.id && s.supplier?.name) map.set(s.supplier.id, s.supplier.name)
-    }
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [sales])
-
-  const clients = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const s of sales) {
-      if (s.client?.id && s.client?.name) map.set(s.client.id, s.client.name)
-      else if (s.client_name) map.set(s.client_name, s.client_name)
-    }
-    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
-  }, [sales])
-
-  const filtered = useMemo(() => {
-    return sales.filter((sale) => {
-      if (sale.sale_date) {
-        const d = new Date(sale.sale_date + 'T00:00:00')
-        if (d.getFullYear() !== month.getFullYear() || d.getMonth() !== month.getMonth()) return false
+  // Fetch data from server - atualiza página só quando dados chegam
+  const fetchData = useCallback((newPage: number, newPageSize: number, updatePageTo?: number) => {
+    startTransition(async () => {
+      try {
+        const result = await getPersonalSalesPaginated({
+          page: newPage,
+          pageSize: newPageSize,
+          search: search || undefined,
+          supplierId: supplierId !== 'all' ? supplierId : undefined,
+          clientId: clientId !== 'all' ? clientId : undefined,
+        })
+        // Atualiza dados E página juntos para sincronizar com a animação
+        setSales(result.data)
+        setTotal(result.total)
+        if (updatePageTo !== undefined) {
+          setPage(updatePageTo)
+        }
+      } catch (error) {
+        console.error('Error fetching sales:', error)
       }
-      if (search) {
-        const q = search.toLowerCase()
-        if (!sale.client_name?.toLowerCase().includes(q) && !sale.supplier?.name?.toLowerCase().includes(q)) return false
-      }
-      if (supplierId !== 'all' && sale.supplier?.id !== supplierId) return false
-      if (clientId !== 'all' && sale.client?.id !== clientId && sale.client_name !== clientId) return false
-      return true
     })
-  }, [sales, month, search, supplierId, clientId])
+  }, [search, supplierId, clientId])
 
-  // Reset pagination when filters change
-  useMemo(() => { setPage(1); setMobileVisible(PAGE_SIZE_DEFAULT) }, [search, supplierId, clientId, month])
+  // Fetch when filters change (reset to page 1)
+  useEffect(() => {
+    setMobileVisible(PAGE_SIZE_DEFAULT)
+    fetchData(1, pageSize, 1)
+  }, [search, supplierId, clientId, pageSize, fetchData])
 
-  const paginated = useMemo(() => {
-    if (isMobile) return filtered.slice(0, mobileVisible)
-    const start = (page - 1) * pageSize
-    return filtered.slice(start, start + pageSize)
-  }, [filtered, page, pageSize, isMobile, mobileVisible])
+  // Fetch when page changes (desktop) - não atualiza page imediatamente
+  const handlePageChange = (newPage: number) => {
+    fetchData(newPage, pageSize, newPage)
+  }
 
+  // Fetch when page size changes
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize)
+    fetchData(1, newPageSize, 1)
+  }
+
+  // Load more for mobile
+  const handleLoadMore = () => {
+    const newVisible = mobileVisible + PAGE_SIZE_DEFAULT
+    setMobileVisible(newVisible)
+
+    // If we need more data from server
+    if (newVisible > sales.length && sales.length < total) {
+      startTransition(async () => {
+        try {
+          const result = await getPersonalSalesPaginated({
+            page: 1,
+            pageSize: newVisible,
+            search: search || undefined,
+            supplierId: supplierId !== 'all' ? supplierId : undefined,
+            clientId: clientId !== 'all' ? clientId : undefined,
+          })
+          setSales(result.data)
+          setTotal(result.total)
+        } catch (error) {
+          console.error('Error fetching more sales:', error)
+        }
+      })
+    }
+  }
+
+  // Stats calculadas a partir do total e dos dados visíveis
   const stats = useMemo(() => {
-    const count = filtered.length
-    const faturado = filtered.reduce((sum, s) => sum + (s.gross_value || 0), 0)
-    const comissao = filtered.reduce((sum, s) => sum + (s.commission_value || 0), 0)
-    const ticket = count > 0 ? faturado / count : 0
-    return { count, faturado, comissao, ticket }
-  }, [filtered])
+    const faturado = sales.reduce((sum, s) => sum + (s.gross_value || 0), 0)
+    const comissao = sales.reduce((sum, s) => sum + (s.commission_value || 0), 0)
+    const ticket = sales.length > 0 ? faturado / sales.length : 0
+    return { count: total, faturado, comissao, ticket }
+  }, [sales, total])
 
   function clearFilters() {
     setSupplierId('all')
@@ -142,7 +175,12 @@ export function MinhasVendasClient({ sales }: Props) {
     </Select>
   )
 
-  const hasMoreMobile = mobileVisible < filtered.length
+  // Mobile: paginated data
+  const mobileSales = useMemo(() => {
+    return sales.slice(0, mobileVisible)
+  }, [sales, mobileVisible])
+
+  const hasMoreMobile = mobileVisible < total
 
   return (
     <div className="space-y-4">
@@ -151,10 +189,10 @@ export function MinhasVendasClient({ sales }: Props) {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-        <StatCard label="Vendas" value={String(stats.count)} icon={ShoppingBag} subtitle="no mês" />
-        <StatCard label="Faturado" value={formatCurrency(stats.faturado)} icon={TrendingUp} />
-        <StatCard label="Comissão" value={formatCurrency(stats.comissao)} icon={Target} valueClassName="text-[#409eff]" />
-        <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} />
+        <StatCard label="Vendas" value={String(stats.count)} icon={ShoppingBag} subtitle="total" />
+        <StatCard label="Faturado" value={formatCurrency(stats.faturado)} icon={TrendingUp} subtitle="página atual" />
+        <StatCard label="Comissão" value={formatCurrency(stats.comissao)} icon={Target} valueClassName="text-[#409eff]" subtitle="página atual" />
+        <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} subtitle="página atual" />
       </div>
 
       {/* Desktop Filters */}
@@ -177,7 +215,9 @@ export function MinhasVendasClient({ sales }: Props) {
             </FilterPopoverField>
           </FilterPopover>
           <div className="flex-1" />
-          <MonthPicker value={month} onChange={setMonth} />
+          {isPending && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
           <Button asChild variant="outline" size="sm">
             <Link href="/minhasvendas/nova">
               <Plus className="h-4 w-4 mr-1.5" />
@@ -204,7 +244,9 @@ export function MinhasVendasClient({ sales }: Props) {
             )}
           </Button>
           <div className="flex-1" />
-          <MonthPicker value={month} onChange={setMonth} />
+          {isPending && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </div>
       </Card>
 
@@ -248,37 +290,45 @@ export function MinhasVendasClient({ sales }: Props) {
       </Drawer>
 
       {/* Table / List */}
-      {filtered.length === 0 ? (
+      {total === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          Nenhuma venda encontrada neste período.
+          Nenhuma venda encontrada.
         </div>
       ) : (
         <>
           {/* Desktop: table + pagination */}
           <div className="hidden md:block">
             <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
-              <PersonalSaleTable sales={paginated} />
+              <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
+                <PersonalSaleTable sales={sales} />
+              </div>
             </AnimatedTableContainer>
             <DataTablePagination
               page={page}
               pageSize={pageSize}
-              total={filtered.length}
-              onPageChange={setPage}
-              onPageSizeChange={setPageSize}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
             />
           </div>
 
           {/* Mobile: load more */}
           <div className="md:hidden">
-            <PersonalSaleTable sales={paginated} />
+            <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
+              <PersonalSaleTable sales={mobileSales} />
+            </div>
             {hasMoreMobile && (
               <div className="pt-4 pb-2">
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => setMobileVisible((v) => v + PAGE_SIZE_DEFAULT)}
+                  onClick={handleLoadMore}
+                  disabled={isPending}
                 >
-                  Carregar mais ({filtered.length - mobileVisible} restantes)
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
+                  Carregar mais ({total - mobileVisible} restantes)
                 </Button>
               </div>
             )}
