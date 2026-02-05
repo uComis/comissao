@@ -13,7 +13,7 @@ interface ScrollRevealProps {
   delay?: number // em ms
   duration?: number // em ms
   threshold?: number
-  as?: keyof JSX.IntrinsicElements
+  as?: React.ElementType
 }
 
 const variantStyles: Record<AnimationVariant, { hidden: string; visible: string }> = {
