@@ -18,7 +18,7 @@ const MENU_ITEMS = [
   { label: 'Segurança', href: '#seguranca' },
   { label: 'Preços', href: '#precos' },
   { label: 'Perguntas frequentes', href: '#faq' },
-  { label: 'Ajuda', href: '/site/ajuda' },
+  { label: 'Ajuda', href: '/ajuda' },
 ];
 
 
@@ -61,7 +61,7 @@ export function Header() {
         <div className={`relative flex items-center justify-between transition-all duration-500 ease-out ${scrolled ? 'h-14' : 'h-24'}`}>
           {/* Logo à esquerda */}
           <Link
-            href="/site"
+            href="/"
             className="flex items-center transition-all duration-500 ease-out hover:opacity-80"
           >
             <div
@@ -90,13 +90,13 @@ export function Header() {
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             {MENU_ITEMS.map((item, index) => {
               const isAnchorLink = item.href.startsWith('#');
-              const isOnSitePage = pathname === '/site' || pathname === '/site/';
+              const isOnHomePage = pathname === '/' || pathname === '';
 
               if (isAnchorLink) {
                 return (
                   <a
                     key={item.href}
-                    href={isOnSitePage ? item.href : `/site${item.href}`}
+                    href={isOnHomePage ? item.href : `/${item.href}`}
                     className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                     style={mounted ? {
                       opacity: 1,

@@ -9,12 +9,12 @@ const LINKS_PRODUTO = [
   { label: 'Segurança', href: '#seguranca' },
   { label: 'Preços', href: '#precos' },
   { label: 'Perguntas frequentes', href: '#faq' },
-  { label: 'Ajuda', href: '/site/ajuda' },
+  { label: 'Ajuda', href: '/ajuda' },
 ];
 
 const LINKS_LEGAL = [
-  { label: 'Privacidade', href: '/site/privacidade' },
-  { label: 'Termos de Uso', href: '/site/termos' },
+  { label: 'Privacidade', href: '/privacidade' },
+  { label: 'Termos de Uso', href: '/termos' },
 ];
 
 const SOCIAL_LINKS = [
@@ -24,7 +24,7 @@ const SOCIAL_LINKS = [
 
 export function Footer() {
   const pathname = usePathname();
-  const isOnSitePage = pathname === '/site' || pathname === '/site/';
+  const isOnHomePage = pathname === '/' || pathname === '';
 
   return (
     <footer className="border-t bg-white">
@@ -32,7 +32,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-start justify-between gap-8">
           {/* Logo à esquerda */}
           <div>
-            <Link href="/site" className="inline-block">
+            <Link href="/" className="inline-block">
               <Image
                 src="/images/logo/uComis_black.svg"
                 alt="uComis"
@@ -56,7 +56,7 @@ export function Footer() {
                     return (
                       <a
                         key={link.href}
-                        href={isOnSitePage ? link.href : `/site${link.href}`}
+                        href={isOnHomePage ? link.href : `/${link.href}`}
                         className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {link.label}

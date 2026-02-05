@@ -60,3 +60,5 @@ supabase/.temp/
 *.ps1
 schema-dev.sql
 nul
+
+certificates

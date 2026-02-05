@@ -95,7 +95,7 @@ export function Faq() {
             {/* Link "Ver mais" */}
             <ScrollReveal delay={400}>
               <Link
-                href="/site/faq"
+                href="/faq"
                 className="inline-flex items-center gap-1 font-medium hover:underline mt-6"
                 style={{ color: '#FF5310' }}
               >

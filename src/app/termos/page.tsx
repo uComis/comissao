@@ -1,5 +1,6 @@
-import { Header } from '../secoes/header';
-import { Footer } from '../secoes/footer';
+import { SiteWrapper } from '@/app/site/secoes/site-wrapper';
+import { Header } from '@/app/site/secoes/header';
+import { Footer } from '@/app/site/secoes/footer';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export const metadata = {
@@ -11,7 +12,7 @@ const LAST_UPDATED = '05 de fevereiro de 2026';
 
 export default function TermosPage() {
   return (
-    <div>
+    <SiteWrapper>
       <Header />
       <main className="pt-24">
         <section className="py-16 sm:py-20 bg-gray-50">
@@ -133,6 +134,6 @@ export default function TermosPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </SiteWrapper>
   );
 }

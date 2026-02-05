@@ -46,7 +46,7 @@ const orgMenuSections: MenuSection[] = [
   {
     label: 'Dashboard',
     items: [
-      { title: 'Dashboard', url: '/', icon: Home },
+      { title: 'Dashboard', url: '/dashboard', icon: Home },
     ],
   },
   {

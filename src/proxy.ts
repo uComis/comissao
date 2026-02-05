@@ -7,7 +7,7 @@ import { startTimer, logDebug } from './lib/debug-timer'
 const PERSONAL_ROUTES = ['/home', '/minhasvendas', '/fornecedores', '/recebiveis']
 
 // Rotas exclusivas de empresa (modo organization)
-const ORG_ROUTES = ['/', '/vendas', '/vendedores', '/regras', '/relatorios', '/configuracoes']
+const ORG_ROUTES = ['/dashboard', '/vendas', '/vendedores', '/regras', '/relatorios', '/configuracoes']
 
 // Rotas acessíveis em qualquer modo (não devem forçar redirect por modo)
 const NEUTRAL_ROUTES = ['/minhaconta']
@@ -22,7 +22,10 @@ const PUBLIC_AUTH_ROUTES = [
   '/auth/callback', 
   '/reset-password', 
   '/api/webhooks', 
-  '/site'
+  '/privacidade',
+  '/termos',
+  '/ajuda',
+  '/faq',
 ]
 
 export async function proxy(request: NextRequest) {
@@ -30,10 +33,10 @@ export async function proxy(request: NextRequest) {
   const hostname = request.nextUrl.hostname
   const timer = startTimer(`PROXY ${pathname}`)
 
-  // Redireciona www.ucomis.com para /site
-  if (hostname === 'www.ucomis.com' && !pathname.startsWith('/site') && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
+  // Redireciona www.ucomis.com para /
+  if (hostname === 'www.ucomis.com' && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/site'
+    url.hostname = 'ucomis.com'
     return NextResponse.redirect(url)
   }
 
@@ -90,11 +93,13 @@ export async function proxy(request: NextRequest) {
   fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'proxy.ts:getUser', message: 'Resultado getUser', data: { hasUser: !!user, userId: user?.id, userEmail: user?.email, pathname, isPublicAuthRoute }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C,D' }) }).catch(() => { });
   // #endregion
 
-  // Se não está logado e acessa /, redireciona para /site
-  if (!user && pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/site'
-    return NextResponse.redirect(url)
+  // Rotas públicas do site (landing, legal, etc.) - acessíveis sem login
+  const SITE_PAGES = ['/', '/privacidade', '/termos', '/ajuda', '/faq']
+  const isSitePage = SITE_PAGES.includes(pathname)
+
+  // Se não está logado e acessa página do site, deixa ver
+  if (!user && isSitePage) {
+    return supabaseResponse
   }
 
   // Se não está logado e tenta acessar página protegida
@@ -165,9 +170,16 @@ export async function proxy(request: NextRequest) {
       } else if (userModeCookie === 'personal') {
         url.pathname = '/home'
       } else {
-        url.pathname = '/'
+        url.pathname = '/dashboard'
       }
 
+      return NextResponse.redirect(url)
+    }
+
+    // Usuário logado acessando página do site → redirecionar para dashboard
+    if (isSitePage) {
+      const url = request.nextUrl.clone()
+      url.pathname = userModeCookie === 'personal' ? '/home' : '/dashboard'
       return NextResponse.redirect(url)
     }
 
@@ -195,7 +207,7 @@ export async function proxy(request: NextRequest) {
       if (!isNeutralRoute && userModeCookie === 'organization' && isPersonalRoute) {
         // Empresa tentando acessar rota de vendedor
         const url = request.nextUrl.clone()
-        url.pathname = '/'
+        url.pathname = '/dashboard'
         return NextResponse.redirect(url)
       }
     }

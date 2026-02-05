@@ -1,5 +1,6 @@
-import { Header } from '../secoes/header';
-import { Footer } from '../secoes/footer';
+import { SiteWrapper } from '@/app/site/secoes/site-wrapper';
+import { Header } from '@/app/site/secoes/header';
+import { Footer } from '@/app/site/secoes/footer';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 
 export const metadata = {
@@ -9,10 +10,9 @@ export const metadata = {
 
 export default function AjudaPage() {
   return (
-    <div>
+    <SiteWrapper>
       <Header />
       <main className="pt-24">
-        {/* Hero */}
         <section className="py-16 sm:py-20 bg-gray-50">
           <div className="container mx-auto px-6 max-w-[1200px]">
             <ScrollReveal className="text-center max-w-2xl mx-auto">
@@ -24,7 +24,6 @@ export default function AjudaPage() {
           </div>
         </section>
 
-        {/* Placeholder */}
         <section className="py-16 sm:py-20 bg-white">
           <div className="container mx-auto px-6 max-w-[1200px]">
             <ScrollReveal className="text-center">
@@ -44,6 +43,6 @@ export default function AjudaPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </SiteWrapper>
   );
 }

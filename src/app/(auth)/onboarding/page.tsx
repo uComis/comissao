@@ -88,7 +88,7 @@ export default function OnboardingPage() {
       if (mode === 'personal') {
         router.push('/home')
       } else {
-        router.push('/')
+        router.push('/dashboard')
       }
     } catch (error) {
       console.error('Onboarding error:', error)

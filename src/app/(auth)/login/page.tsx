@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { GoogleOneTap } from '@/components/google-one-tap'
 
 export default function LoginPage() {
   const { signInWithGoogle, signInWithPassword, isConfigured } = useAuth()
@@ -83,7 +84,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
   }
 
   return (
-    <motion.div 
+    <>
+    <GoogleOneTap />
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -257,5 +260,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
         </motion.div>
       </div>
     </motion.div>
+    </>
   )
 }

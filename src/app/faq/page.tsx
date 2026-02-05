@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Header } from '../secoes/header'
-import { Footer } from '../secoes/footer'
+import { SiteWrapper } from '@/app/site/secoes/site-wrapper'
+import { Header } from '@/app/site/secoes/header'
+import { Footer } from '@/app/site/secoes/footer'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
 
 const FAQ_ITEMS = [
@@ -88,13 +89,12 @@ export default function FaqPage() {
   }
 
   return (
-    <div>
+    <SiteWrapper>
       <Header />
       <main className="pt-24">
         <section className="py-20 sm:py-24 bg-white">
           <div className="container mx-auto px-6 max-w-[1200px]">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
-              {/* Coluna esquerda - Título */}
               <ScrollReveal className="flex flex-col justify-start">
                 <p className="font-medium mb-4" style={{ color: '#FF5310' }}>Dúvidas</p>
                 <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight text-gray-900">
@@ -105,7 +105,6 @@ export default function FaqPage() {
                 </p>
               </ScrollReveal>
 
-              {/* Coluna direita - Perguntas */}
               <div>
                 {FAQ_ITEMS.map((item, index) => (
                   <FaqItem
@@ -123,6 +122,6 @@ export default function FaqPage() {
         </section>
       </main>
       <Footer />
-    </div>
+    </SiteWrapper>
   )
 }
