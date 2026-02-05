@@ -175,14 +175,7 @@ export async function proxy(request: NextRequest) {
 
       return NextResponse.redirect(url)
     }
-
-    // Usuário logado acessando página do site → redirecionar para dashboard
-    if (isSitePage) {
-      const url = request.nextUrl.clone()
-      url.pathname = userModeCookie === 'personal' ? '/home' : '/dashboard'
-      return NextResponse.redirect(url)
-    }
-
+    
     // Se está em página protegida (não é auth/onboarding)
     if (!isPublicAuthRoute) {
       // Se não tem modo definido E organization habilitada → onboarding
