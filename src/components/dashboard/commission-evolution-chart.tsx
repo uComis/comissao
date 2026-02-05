@@ -94,7 +94,7 @@ export function CommissionEvolutionChart({ title, description, data, names }: Co
                     formatter={(value) => formatCurrency(Number(value))}
                 />} 
             />
-            <ChartLegend className="mt-4" content={<ChartLegendContent />} />
+            <ChartLegend content={<ChartLegendContent className="flex-wrap justify-center !overflow-visible" />} />
             
             {names.map((name, index) => (
               <Area
