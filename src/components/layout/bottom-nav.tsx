@@ -137,6 +137,7 @@ export function BottomNav() {
             <PopoverTrigger asChild>
               <button
                 type="button"
+                suppressHydrationWarning
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 transition-all active:scale-90',
                   isGestaoActive ? 'text-[#409eff]' : 'text-muted-foreground'

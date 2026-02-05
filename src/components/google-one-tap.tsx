@@ -46,7 +46,7 @@ export function GoogleOneTap() {
 
         router.refresh()
       },
-      auto_select: true,
+      auto_select: false,
       cancel_on_tap_outside: true,
       use_fedcm_for_prompt: false,
     })

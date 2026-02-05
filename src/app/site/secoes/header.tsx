@@ -172,7 +172,7 @@ export function Header() {
                         {user.email}
                       </div>
                       <Link
-                        href="/"
+                        href="/home"
                         className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
                         onClick={() => setUserMenuOpen(false)}
                       >
@@ -194,7 +194,7 @@ export function Header() {
                     asChild
                     className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
-                    <Link href="/">Ir para o app</Link>
+                    <Link href="/home">Ir para o app</Link>
                   </Button>
                 </>
               ) : (
@@ -230,7 +230,7 @@ export function Header() {
                     asChild
                     className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
                   >
-                    <Link href="/">Ir para o app</Link>
+                    <Link href="/home">Ir para o app</Link>
                   </Button>
                 </>
               ) : (
