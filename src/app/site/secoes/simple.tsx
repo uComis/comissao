@@ -9,9 +9,9 @@ const features = [
 
 export function Simple() {
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-20 sm:py-24 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
           {/* Content - Left side */}
           <div className="flex-1 space-y-6">
             <p className="text-[#22C55E] font-medium">Visível</p>

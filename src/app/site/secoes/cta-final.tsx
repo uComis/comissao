@@ -11,7 +11,7 @@ const BENEFICIOS = [
 
 export function CtaFinal() {
   return (
-    <section id="precos" className="py-32 bg-gray-50 relative overflow-hidden">
+    <section id="precos" className="py-20 sm:py-24 bg-gray-50 relative overflow-hidden">
       {/* Elementos decorativos sutis - mesmo padrão do problema.tsx */}
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <div className="absolute inset-0" style={{

@@ -9,9 +9,9 @@ const features = [
 
 export function Seamless() {
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-20 sm:py-24 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+        <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
           {/* iPhone mockup */}
           <div className="flex-1 flex justify-center">
             <div className="bg-[#f5f5f7] rounded-[40px] rounded-b-none pt-4 sm:pt-6 px-8 sm:px-12 pb-0 overflow-hidden h-[500px] sm:h-[580px]">

@@ -27,7 +27,7 @@ const FEATURES = [
 
 export function FeaturesShowcase() {
   return (
-    <section className="py-32 bg-white relative overflow-hidden">
+    <section className="py-20 sm:py-24 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide mb-16 text-center text-foreground">

@@ -20,7 +20,7 @@ const securityCards = [
 
 export function Seguranca() {
   return (
-    <section id="seguranca" className="py-24 sm:py-32 bg-white">
+    <section id="seguranca" className="py-20 sm:py-24 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header centralizado */}
         <div className="text-center max-w-2xl mx-auto mb-16">

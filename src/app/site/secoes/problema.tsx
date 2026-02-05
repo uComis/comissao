@@ -1,6 +1,6 @@
 export function Problema() {
   return (
-    <section className="py-24 sm:py-32 bg-white">
+    <section className="py-20 sm:py-24 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <div className="text-center space-y-4 max-w-3xl mx-auto">
