@@ -4,7 +4,7 @@ import { Instagram, Twitter, Mail } from 'lucide-react';
 
 const LINKS_PRODUTO = [
   { label: 'Segurança', href: '#seguranca' },
-  { label: 'Perguntas frequentes', href: '/planos' },
+  { label: 'Perguntas frequentes', href: '#faq' },
   { label: 'Ajuda', href: '/ajuda' },
 ];
 

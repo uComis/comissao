@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 const MENU_ITEMS = [
   { label: 'Segurança', href: '#seguranca' },
-  { label: 'Perguntas frequentes', href: '/planos' },
+  { label: 'Perguntas frequentes', href: '#faq' },
 ];
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 

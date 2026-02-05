@@ -6,6 +6,7 @@ import { Simple } from './secoes/simple';
 import { Understandable } from './secoes/understandable';
 import { FeaturesShowcase } from './secoes/features-showcase';
 import { Seguranca } from './secoes/seguranca';
+import { Faq } from './secoes/faq';
 import { CtaFinal } from './secoes/cta-final';
 import { Footer } from './secoes/footer';
 
@@ -21,6 +22,7 @@ export default function SitePage() {
         <Understandable />
         <FeaturesShowcase />
         <Seguranca />
+        <Faq />
         <CtaFinal />
       </main>
       <Footer />
