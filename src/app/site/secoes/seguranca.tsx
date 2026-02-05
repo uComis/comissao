@@ -1,48 +1,56 @@
-'use client'
+import { Lock, ShieldCheck, EyeOff } from 'lucide-react'
 
-import { Check } from 'lucide-react'
-
-const features = [
-  'Self-Custody',
-  'Own Your Keys',
-  'No Name Required',
-  'No Lock-In',
-  'Fully Audited',
+const securityCards = [
+  {
+    icon: Lock,
+    title: 'Criptografia',
+    description: 'Seus dados são criptografados com padrão bancário (AES-256).',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Auditado',
+    description: 'Infraestrutura certificada SOC 2 Type 2, auditada anualmente.',
+  },
+  {
+    icon: EyeOff,
+    title: 'Acesso restrito',
+    description: 'Só você vê seus dados. Nem a gente tem acesso.',
+  },
 ]
 
 export function Seguranca() {
   return (
     <section id="seguranca" className="py-24 sm:py-32 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-          {/* Content - Left side */}
-          <div className="flex-1 space-y-6">
-            <p className="text-[#3B82F6] font-medium">Secure</p>
+        {/* Header centralizado */}
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <p className="text-[#3B82F6] font-medium mb-4">Seguro</p>
 
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
-              Relentless protection.<br />
-              Restful ease.
-            </h1>
+          <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight mb-6">
+            Seus dados protegidos.<br />
+            Sua paz garantida.
+          </h1>
 
-            <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Family is fully self-custodial, meaning only you have access to your wallet and its private keys. We have no control over your crypto, nor do we want any.
-            </p>
+          <p className="text-gray-600 text-lg leading-relaxed">
+            Usamos a mesma infraestrutura de segurança de grandes empresas de tecnologia.
+            Seus dados estão criptografados e protegidos 24 horas por dia.
+          </p>
+        </div>
 
-            {/* Features list */}
-            <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-              {features.map((feature) => (
-                <li key={feature} className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-[#3B82F6]" />
-                  <span className="text-[#3B82F6] font-medium text-sm">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Placeholder - Right side */}
-          <div className="flex-1 flex justify-center items-center">
-            <div className="w-full max-w-[500px] h-[400px] bg-gray-100 rounded-2xl" />
-          </div>
+        {/* Cards de segurança */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {securityCards.map((card) => (
+            <div
+              key={card.title}
+              className="bg-gray-50 rounded-2xl p-8 text-center"
+            >
+              <div className="w-14 h-14 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center mx-auto mb-5">
+                <card.icon className="w-7 h-7 text-[#3B82F6]" />
+              </div>
+              <h3 className="text-xl font-semibold mb-3">{card.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{card.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
