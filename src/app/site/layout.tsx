@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { GoogleOneTap } from '@/components/google-one-tap'
 
 export default function SiteLayout({
   children,
@@ -55,6 +56,7 @@ export default function SiteLayout({
 
   return (
     <div className="light" data-theme="light" style={{ colorScheme: 'light', fontFamily: 'var(--font-google-sans)' }}>
+      <GoogleOneTap />
       {children}
     </div>
   )

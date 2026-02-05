@@ -6,11 +6,15 @@ import { Simple } from './secoes/simple';
 import { Understandable } from './secoes/understandable';
 import { FeaturesShowcase } from './secoes/features-showcase';
 import { Seguranca } from './secoes/seguranca';
+import { Precos } from './secoes/precos';
 import { Faq } from './secoes/faq';
 import { CtaFinal } from './secoes/cta-final';
 import { Footer } from './secoes/footer';
+import { getPlans } from '@/app/actions/billing/plans';
 
-export default function SitePage() {
+export default async function SitePage() {
+  const plans = await getPlans();
+
   return (
     <div className="">
       <Header />
@@ -22,6 +26,7 @@ export default function SitePage() {
         <Understandable />
         <FeaturesShowcase />
         <Seguranca />
+        <Precos plans={plans} />
         <Faq />
         <CtaFinal />
       </main>

@@ -1,11 +1,15 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-import { Instagram, Twitter, Mail } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Instagram, Mail } from 'lucide-react';
 
 const LINKS_PRODUTO = [
   { label: 'Segurança', href: '#seguranca' },
+  { label: 'Preços', href: '#precos' },
   { label: 'Perguntas frequentes', href: '#faq' },
-  { label: 'Ajuda', href: '/ajuda' },
+  { label: 'Ajuda', href: '/site/ajuda' },
 ];
 
 const LINKS_LEGAL = [
@@ -15,11 +19,13 @@ const LINKS_LEGAL = [
 
 const SOCIAL_LINKS = [
   { label: 'Instagram', href: '#', icon: Instagram },
-  { label: 'Twitter', href: '#', icon: Twitter },
   { label: 'Email', href: 'mailto:suporte@ucomis.com.br', icon: Mail },
 ];
 
 export function Footer() {
+  const pathname = usePathname();
+  const isOnSitePage = pathname === '/site' || pathname === '/site/';
+
   return (
     <footer className="border-t bg-white">
       <div className="container mx-auto px-6 py-12 max-w-[1200px]">
@@ -43,15 +49,31 @@ export function Footer() {
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-foreground">Produto</h4>
               <nav className="flex flex-col gap-2">
-                {LINKS_PRODUTO.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+                {LINKS_PRODUTO.map((link) => {
+                  const isAnchorLink = link.href.startsWith('#');
+
+                  if (isAnchorLink) {
+                    return (
+                      <a
+                        key={link.href}
+                        href={isOnSitePage ? link.href : `/site${link.href}`}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
 

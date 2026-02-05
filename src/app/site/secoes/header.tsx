@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -11,12 +12,14 @@ import {
 } from '@/components/ui/popover';
 import { LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const MENU_ITEMS = [
   { label: 'Segurança', href: '#seguranca' },
+  { label: 'Preços', href: '#precos' },
   { label: 'Perguntas frequentes', href: '#faq' },
+  { label: 'Ajuda', href: '/site/ajuda' },
 ];
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
 export function Header() {
@@ -24,6 +27,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Pequeno delay para garantir que o estado inicial seja renderizado
@@ -84,24 +88,50 @@ export function Header() {
 
           {/* Menu Desktop - centralizado */}
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            {MENU_ITEMS.map((item, index) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-                style={mounted ? {
-                  opacity: 1,
-                  transform: 'translateY(0)',
-                  transition: 'opacity 400ms ease-out, transform 400ms ease-out',
-                  transitionDelay: `${150 + index * 100}ms`
-                } : {
-                  opacity: 0,
-                  transform: 'translateY(-10px)'
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {MENU_ITEMS.map((item, index) => {
+              const isAnchorLink = item.href.startsWith('#');
+              const isOnSitePage = pathname === '/site' || pathname === '/site/';
+
+              if (isAnchorLink) {
+                return (
+                  <a
+                    key={item.href}
+                    href={isOnSitePage ? item.href : `/site${item.href}`}
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                    style={mounted ? {
+                      opacity: 1,
+                      transform: 'translateY(0)',
+                      transition: 'opacity 400ms ease-out, transform 400ms ease-out',
+                      transitionDelay: `${150 + index * 100}ms`
+                    } : {
+                      opacity: 0,
+                      transform: 'translateY(-10px)'
+                    }}
+                  >
+                    {item.label}
+                  </a>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  style={mounted ? {
+                    opacity: 1,
+                    transform: 'translateY(0)',
+                    transition: 'opacity 400ms ease-out, transform 400ms ease-out',
+                    transitionDelay: `${150 + index * 100}ms`
+                  } : {
+                    opacity: 0,
+                    transform: 'translateY(-10px)'
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* CTA Desktop e Mobile */}
