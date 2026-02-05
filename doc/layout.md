@@ -875,6 +875,146 @@ Separa **filtros** (refinam dados) de **navegação** (mudam o conjunto de dados
 
 ---
 
+## ScrollReveal (Landing Page)
+
+Sistema de animações de scroll para a landing page (`/site`). Elementos aparecem conforme o usuário rola a página.
+
+### Arquitetura
+
+| Arquivo | Responsabilidade |
+|---------|------------------|
+| `src/hooks/use-scroll-reveal.ts` | Hook com Intersection Observer |
+| `src/components/ui/scroll-reveal.tsx` | Componente wrapper + ScrollRevealGroup |
+
+### Hook useScrollReveal
+
+Detecta quando um elemento entra no viewport usando Intersection Observer.
+
+```ts
+const { ref, isVisible } = useScrollReveal({
+  threshold: 0.1,      // % do elemento visível para triggerar (default: 0.1)
+  rootMargin: '0px',   // margem do viewport (default: '0px')
+  triggerOnce: true    // anima só uma vez (default: true)
+})
+```
+
+**Retorno:**
+- `ref` — atribuir ao elemento observado
+- `isVisible` — `true` quando elemento está visível
+
+### Componente ScrollReveal
+
+Wrapper que aplica animação de entrada automaticamente.
+
+```tsx
+import { ScrollReveal } from '@/components/ui/scroll-reveal'
+
+<ScrollReveal
+  variant="slide-up"  // tipo de animação
+  delay={150}         // delay em ms (default: 0)
+  duration={600}      // duração em ms (default: 600)
+  threshold={0.1}     // threshold do observer
+>
+  <div>Conteúdo animado</div>
+</ScrollReveal>
+```
+
+### Variantes disponíveis
+
+| Variante | Efeito |
+|----------|--------|
+| `fade` | Apenas opacidade (0 → 1) |
+| `slide-up` | Opacidade + translate-y (8px → 0) |
+| `slide-down` | Opacidade + translate-y (-8px → 0) |
+| `slide-left` | Opacidade + translate-x (8px → 0) |
+| `slide-right` | Opacidade + translate-x (-8px → 0) |
+| `scale` | Opacidade + scale (0.95 → 1) |
+
+### ScrollRevealGroup (Stagger)
+
+Para animar múltiplos elementos com delay sequencial (stagger effect).
+
+```tsx
+import { ScrollRevealGroup } from '@/components/ui/scroll-reveal'
+
+<ScrollRevealGroup
+  variant="slide-up"
+  staggerDelay={100}  // delay entre cada filho em ms
+>
+  {items.map(item => <Card key={item.id}>{item.name}</Card>)}
+</ScrollRevealGroup>
+```
+
+### Uso com hook direto (stagger customizado)
+
+Para controle mais fino, use o hook diretamente:
+
+```tsx
+const { ref, isVisible } = useScrollReveal({ threshold: 0.1 })
+
+<div ref={ref} className="grid grid-cols-3 gap-4">
+  {items.map((item, index) => (
+    <div
+      key={item.id}
+      className={`transition-all duration-700 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
+      style={{ transitionDelay: `${index * 150}ms` }}
+    >
+      {item.name}
+    </div>
+  ))}
+</div>
+```
+
+### Animação de entrada (Hero/Header)
+
+Para animações que disparam no mount (não no scroll), use estado `mounted` com delay:
+
+```tsx
+const [mounted, setMounted] = useState(false)
+
+useEffect(() => {
+  const timeout = setTimeout(() => setMounted(true), 100)
+  return () => clearTimeout(timeout)
+}, [])
+
+<h1
+  className={`transition-all ease-out ${
+    mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+  }`}
+  style={{ transitionDuration: '700ms', transitionDelay: '0ms' }}
+>
+  Título
+</h1>
+```
+
+> **Importante:** O delay de 100ms no `setTimeout` é necessário para o browser renderizar o estado inicial antes de iniciar a transição.
+
+### Onde é usado
+
+| Seção | Animação |
+|-------|----------|
+| Header | Stagger: logo → menus → CTAs (mount) |
+| Hero | Sequencial: título → descrição → botão → celular (mount) |
+| Problema | slide-up |
+| Seamless | slide-right (imagem) + slide-left (conteúdo) |
+| Simple | slide-right (conteúdo) + slide-left (imagem) |
+| Understandable | slide-right (imagem) + slide-left (conteúdo) |
+| FeaturesShowcase | slide-up (título) + stagger (cards) |
+| Segurança | slide-up (header) + stagger (cards) |
+| CTA Final | slide-up (header) + stagger (benefícios) + scale (botão) |
+
+### Regras
+
+1. **Landing page apenas** — não usar no dashboard (performance)
+2. **`triggerOnce: true`** — elementos animam apenas uma vez
+3. **Delays em `style`** — não usar classes Tailwind `delay-*` (podem ser purgadas)
+4. **Delay de mount** — sempre 100ms para animações de entrada
+5. **Seções alternadas** — imagem e conteúdo animam de lados opostos
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)
