@@ -1,27 +1,27 @@
 import Image from 'next/image';
-import { PenSquare, BarChart3, SlidersHorizontal } from 'lucide-react';
+import { FileSpreadsheet, Layers, CalendarCheck } from 'lucide-react';
 
 const FEATURES = [
   {
-    label: 'Registre',
-    icon: PenSquare,
+    label: 'Sem planilha',
+    icon: FileSpreadsheet,
     color: 'text-landing-primary', // Azul padrão
     image: '/images/landing/mobile-1.png', // Substituir depois
-    alt: 'Registre vendas no uComis'
+    alt: 'Cadastro simples, sem planilhas'
   },
   {
-    label: 'Visualize',
-    icon: BarChart3,
+    label: 'Várias pastas, 1 tela',
+    icon: Layers,
     color: '#67C23A', // Verde
     image: '/images/landing/mobile-2.png', // Substituir depois
-    alt: 'Visualize comissões automaticamente'
+    alt: 'Todas as pastas consolidadas em uma tela'
   },
   {
-    label: 'Controle',
-    icon: SlidersHorizontal,
+    label: 'Zero surpresas',
+    icon: CalendarCheck,
     color: '#E6A23C', // Laranja
     image: '/images/landing/mobile-1.png', // Substituir depois
-    alt: 'Controle seus recebíveis'
+    alt: 'Saiba exatamente quando vai receber'
   }
 ];
 

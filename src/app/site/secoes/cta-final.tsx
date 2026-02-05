@@ -3,10 +3,18 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 
 const BENEFICIOS = [
-  'Setup instantâneo em menos de 2 minutos',
-  '14 dias de teste grátis',
-  'Todas as funcionalidades liberadas',
-  'Sem cartão de crédito necessário',
+  {
+    titulo: 'Sem setup, zero configuração',
+    descricao: 'Clique e use'
+  },
+  {
+    titulo: '14 dias de teste grátis',
+    descricao: 'Todas as funcionalidades liberadas'
+  },
+  {
+    titulo: 'Sem cartão de crédito',
+    descricao: 'Sem compromisso pra começar'
+  }
 ];
 
 export function CtaFinal() {
@@ -25,26 +33,27 @@ export function CtaFinal() {
           {/* Título */}
           <div className="space-y-6 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
-              Pronto para recuperar sua{' '}
+              Você sabe sua{' '}
               <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
-                paz mental?
+                comissão
               </span>
+              {' '}desse e dos próximos meses?
             </h2>
             <p className="text-xl text-muted-foreground leading-relaxed">
-              Pare de perder tempo com planilhas. Comece a confiar nos seus
-              números hoje.
+              Com o uComis, sua comissão deixa de ser mistério e vira fato.
             </p>
           </div>
 
           {/* Benefícios */}
-          <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {BENEFICIOS.map((beneficio, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 text-left bg-white rounded-lg p-4 border border-gray-200 hover:border-landing-primary/30 hover:shadow-md transition-all"
+                className="flex flex-col items-center text-center bg-white rounded-lg p-5 border border-gray-200 hover:border-landing-primary/30 hover:shadow-md transition-all"
               >
-                <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-landing-primary" />
-                <span className="text-sm font-medium text-foreground">{beneficio}</span>
+                <CheckCircle2 className="w-6 h-6 mb-3 text-landing-primary" />
+                <span className="text-sm font-bold text-foreground">{beneficio.titulo}</span>
+                <span className="text-xs text-muted-foreground mt-1">{beneficio.descricao}</span>
               </div>
             ))}
           </div>
