@@ -23,7 +23,11 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Pequeno delay para garantir que o estado inicial seja renderizado
+    const timeout = setTimeout(() => {
+      setMounted(true);
+    }, 100);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -53,52 +57,61 @@ export function Header() {
             href="/site"
             className="flex items-center transition-all duration-500 ease-out hover:opacity-80"
           >
-            <div className={`${scrolled ? 'h-6 w-[120px]' : 'h-9 w-[160px]'} flex items-center transition-all duration-500 ease-out`}>
-              {mounted && (
-                <Image
-                  src={logoSrc}
-                  alt="uComis"
-                  width={160}
-                  height={36}
-                  priority
-                  className={`transition-all duration-500 ease-out animate-in fade-in duration-700 ${scrolled ? 'h-6 w-auto' : 'h-9 w-auto'}`}
-                />
-              )}
+            <div
+              className={`${scrolled ? 'h-6 w-[120px]' : 'h-9 w-[160px]'} flex items-center transition-all duration-500 ease-out`}
+              style={mounted ? {
+                opacity: 1,
+                transform: 'translateY(0)',
+                transition: 'opacity 500ms ease-out, transform 500ms ease-out'
+              } : {
+                opacity: 0,
+                transform: 'translateY(-10px)'
+              }}
+            >
+              <Image
+                src={logoSrc}
+                alt="uComis"
+                width={160}
+                height={36}
+                priority
+                className={`transition-all duration-500 ease-out ${scrolled ? 'h-6 w-auto' : 'h-9 w-auto'}`}
+              />
             </div>
           </Link>
 
           {/* Menu Desktop - centralizado */}
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-          {MENU_ITEMS.map((item) => {
-            const animationDuration = 400;
-            const animationDelay = 200; // Todos aparecem ao mesmo tempo
-            return (
+            {MENU_ITEMS.map((item, index) => (
               <Link
                 key={item.href}
                 href={item.href}
                 className="text-base font-medium text-gray-600 hover:text-gray-900 transition-colors"
                 style={mounted ? {
+                  opacity: 1,
+                  transform: 'translateY(0)',
+                  transition: 'opacity 400ms ease-out, transform 400ms ease-out',
+                  transitionDelay: `${150 + index * 100}ms`
+                } : {
                   opacity: 0,
-                  animation: `fadeIn ${animationDuration}ms ease-out forwards`,
-                  animationDelay: `${animationDelay}ms`
-                } : { opacity: 0 }}
+                  transform: 'translateY(-10px)'
+                }}
               >
                 {item.label}
               </Link>
-            );
-          })}
+            ))}
           </nav>
 
           {/* CTA Desktop e Menu Mobile */}
           <div className="flex items-center gap-3">
-            {/* CTA Desktop - slide down quando Preços terminar (400ms início + 400ms duração = 800ms) */}
-            <div 
+            {/* CTA Desktop */}
+            <div
               className="hidden md:flex items-center gap-3"
-              style={mounted ? { 
-                opacity: 0,
-                transform: 'translateY(-8px)',
-                animation: 'slideDown 500ms ease-out 500ms forwards'
-              } : { 
+              style={mounted ? {
+                opacity: 1,
+                transform: 'translateY(0)',
+                transition: 'opacity 500ms ease-out, transform 500ms ease-out',
+                transitionDelay: '450ms'
+              } : {
                 opacity: 0,
                 transform: 'translateY(-8px)'
               }}

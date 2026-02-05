@@ -1,4 +1,8 @@
+'use client'
+
 import { Lock, ShieldCheck, EyeOff } from 'lucide-react'
+import { ScrollReveal } from '@/components/ui/scroll-reveal'
+import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 const securityCards = [
   {
@@ -19,11 +23,13 @@ const securityCards = [
 ]
 
 export function Seguranca() {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+
   return (
     <section id="seguranca" className="py-20 sm:py-24 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header centralizado */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <ScrollReveal className="text-center max-w-2xl mx-auto mb-16">
           <p className="text-[#3B82F6] font-medium mb-4">Seguro</p>
 
           <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight mb-6">
@@ -35,14 +41,17 @@ export function Seguranca() {
             Usamos a mesma infraestrutura de segurança de grandes empresas de tecnologia.
             Seus dados estão criptografados e protegidos 24 horas por dia.
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Cards de segurança */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {securityCards.map((card) => (
+        <div ref={ref} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {securityCards.map((card, index) => (
             <div
               key={card.title}
-              className="bg-gray-50 rounded-2xl p-8 text-center"
+              className={`bg-gray-50 rounded-2xl p-8 text-center transition-all duration-700 ease-out ${
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+              style={{ transitionDelay: `${index * 150}ms` }}
             >
               <div className="w-14 h-14 bg-[#3B82F6]/10 rounded-xl flex items-center justify-center mx-auto mb-5">
                 <card.icon className="w-7 h-7 text-[#3B82F6]" />

@@ -10,8 +10,14 @@ const palavras = ['certa', 'rápida', 'simples', 'precisa', 'segura']
 export function Hero() {
   const [palavraAtual, setPalavraAtual] = useState(0)
   const [isChanging, setIsChanging] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // Pequeno delay para garantir que o estado inicial seja renderizado
+    const mountTimeout = setTimeout(() => {
+      setMounted(true)
+    }, 100)
+
     const interval = setInterval(() => {
       setIsChanging(true)
       setTimeout(() => {
@@ -20,7 +26,10 @@ export function Hero() {
       }, 300)
     }, 3000)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearTimeout(mountTimeout)
+      clearInterval(interval)
+    }
   }, [])
 
   return (
@@ -36,7 +45,12 @@ export function Hero() {
       <div className="flex flex-col items-center justify-start px-4 sm:px-6 pt-8 sm:pt-12 pb-0">
         <div className="text-center max-w-4xl mx-auto space-y-5">
           {/* Título com palavras rotativas */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight">
+          <h1
+            className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight transition-all ease-out ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}
+            style={{ transitionDuration: '700ms', transitionDelay: '0ms' }}
+          >
             A forma{' '}
             <span
               className={`inline-block min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] transition-all duration-[400ms] ease ${
@@ -52,12 +66,22 @@ export function Hero() {
           </h1>
 
           {/* Descrição */}
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-700 leading-relaxed max-w-2xl mx-auto">
+          <p
+            className={`text-lg sm:text-xl md:text-2xl text-gray-700 leading-relaxed max-w-2xl mx-auto transition-all ease-out ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}
+            style={{ transitionDuration: '700ms', transitionDelay: '150ms' }}
+          >
             Rápido e fácil, organize suas comissões em um só lugar
           </p>
 
           {/* Botão CTA */}
-          <div className="pt-2">
+          <div
+            className={`pt-2 transition-all ease-out ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            }`}
+            style={{ transitionDuration: '700ms', transitionDelay: '300ms' }}
+          >
             <Button
               asChild
               size="lg"
@@ -75,7 +99,12 @@ export function Hero() {
       </div>
 
       {/* Celular centralizado - cortado pela metade */}
-      <div className="relative w-full flex justify-center mt-6 sm:mt-8 overflow-hidden h-[400px] sm:h-[450px] md:h-[500px] lg:h-[550px]">
+      <div
+        className={`relative w-full flex justify-center mt-6 sm:mt-8 overflow-hidden h-[400px] sm:h-[450px] md:h-[500px] lg:h-[550px] transition-all ease-out ${
+          mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+        }`}
+        style={{ transitionDuration: '1000ms', transitionDelay: '500ms' }}
+      >
         <div className="relative w-[300px] sm:w-[340px] md:w-[400px] lg:w-[450px]">
           <Image
             src="/images/landing/iphone-dark-vertical.png"

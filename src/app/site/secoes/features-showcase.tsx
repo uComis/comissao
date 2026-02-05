@@ -1,5 +1,9 @@
+'use client'
+
 import Image from 'next/image';
 import { FileSpreadsheet, Layers, CalendarCheck } from 'lucide-react';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 
 const FEATURES = [
   {
@@ -26,21 +30,30 @@ const FEATURES = [
 ];
 
 export function FeaturesShowcase() {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+
   return (
     <section className="py-20 sm:py-24 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide mb-16 text-center text-foreground">
-          Tudo em um só lugar.
-        </h1>
+        <ScrollReveal>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide mb-16 text-center text-foreground">
+            Tudo em um só lugar.
+          </h1>
+        </ScrollReveal>
 
         {/* 3 Colunas - Prints de Celular */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+        <div ref={ref} className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
           {FEATURES.map((feature, index) => (
             <div
               key={index}
-              className="relative flex flex-col bg-gradient-to-b from-background via-muted/20 to-background rounded-lg overflow-hidden"
-              style={{ aspectRatio: '1 / 1' }}
+              className={`relative flex flex-col bg-gradient-to-b from-background via-muted/20 to-background rounded-lg overflow-hidden transition-all duration-700 ease-out ${
+                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+              }`}
+              style={{
+                aspectRatio: '1 / 1',
+                transitionDelay: `${index * 150}ms`
+              }}
             >
               {/* Título no topo - apenas para esquerda e direita */}
               {index !== 1 && (

@@ -1,6 +1,10 @@
+'use client'
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
+import { ScrollReveal } from '@/components/ui/scroll-reveal';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 
 const BENEFICIOS = [
   {
@@ -18,6 +22,8 @@ const BENEFICIOS = [
 ];
 
 export function CtaFinal() {
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
+
   return (
     <section id="precos" className="py-20 sm:py-24 relative overflow-hidden bg-gradient-to-br from-[#1a1033] via-[#0f1a2e] to-[#0a0a0a]">
       {/* Elementos decorativos sutis */}
@@ -31,7 +37,7 @@ export function CtaFinal() {
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
         <div className="text-center space-y-12">
           {/* Título */}
-          <div className="space-y-6 max-w-3xl mx-auto">
+          <ScrollReveal className="space-y-6 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide text-white">
               Você sabe sua{' '}
               <span className="bg-gradient-to-r from-[#a78bfa] via-[#60a5fa] to-[#38bdf8] bg-clip-text text-transparent">
@@ -42,14 +48,17 @@ export function CtaFinal() {
             <p className="text-xl text-gray-300 leading-relaxed">
               Com o uComis, sua comissão deixa de ser mistério e vira fato.
             </p>
-          </div>
+          </ScrollReveal>
 
           {/* Benefícios */}
-          <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
+          <div ref={ref} className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {BENEFICIOS.map((beneficio, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10 hover:bg-white/15 hover:border-white/20 transition-all"
+                className={`flex flex-col items-center text-center bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10 hover:bg-white/15 hover:border-white/20 transition-all duration-700 ease-out ${
+                  isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+                }`}
+                style={{ transitionDelay: `${index * 150}ms` }}
               >
                 <CheckCircle2 className="w-6 h-6 mb-3 text-[#60a5fa]" />
                 <span className="text-sm font-bold text-white">{beneficio.titulo}</span>
@@ -59,7 +68,7 @@ export function CtaFinal() {
           </div>
 
           {/* CTA */}
-          <div className="space-y-4">
+          <ScrollReveal delay={300} variant="scale">
             <Button
               asChild
               size="lg"
@@ -67,7 +76,7 @@ export function CtaFinal() {
             >
               <Link href="/login">Comece agora grátis</Link>
             </Button>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>

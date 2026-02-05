@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { Zap, Calculator, Clock } from 'lucide-react'
+import { ScrollReveal } from '@/components/ui/scroll-reveal'
 
 const features = [
   { icon: Zap, label: 'Poucos campos' },
@@ -13,7 +14,7 @@ export function Seamless() {
       <div className="container mx-auto px-6 max-w-[1200px]">
         <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
           {/* iPhone mockup */}
-          <div className="flex-1 flex justify-center">
+          <ScrollReveal variant="slide-right" className="flex-1 flex justify-center">
             <div className="bg-[#f5f5f7] rounded-[40px] rounded-b-none pt-4 sm:pt-6 px-8 sm:px-12 pb-0 overflow-hidden h-[500px] sm:h-[580px]">
               <div className="relative w-[340px] sm:w-[400px]">
                 <Image
@@ -25,10 +26,10 @@ export function Seamless() {
                 />
               </div>
             </div>
-          </div>
+          </ScrollReveal>
 
           {/* Content */}
-          <div className="flex-1 space-y-6">
+          <ScrollReveal variant="slide-left" delay={150} className="flex-1 space-y-6">
             <p className="text-[#C9A227] font-medium">Rápido</p>
 
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
@@ -70,7 +71,7 @@ export function Seamless() {
                 <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </section>
