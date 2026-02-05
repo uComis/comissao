@@ -53,7 +53,7 @@ export function Hero() {
           >
             A forma{' '}
             <span
-              className={`inline-block min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] transition-all duration-[400ms] ease ${
+              className={`inline-block min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${
                 isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
               }`}
             >
