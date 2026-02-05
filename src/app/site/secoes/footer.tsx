@@ -13,8 +13,8 @@ const LINKS_PRODUTO = [
 ];
 
 const LINKS_LEGAL = [
-  { label: 'Privacidade', href: '/privacidade' },
-  { label: 'Termos de Uso', href: '/termos' },
+  { label: 'Privacidade', href: '/site/privacidade' },
+  { label: 'Termos de Uso', href: '/site/termos' },
 ];
 
 const SOCIAL_LINKS = [
