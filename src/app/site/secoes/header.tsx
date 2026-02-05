@@ -9,18 +9,21 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Menu } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
 
 const MENU_ITEMS = [
-  { label: 'Soluções', href: '#solucoes' },
   { label: 'Segurança', href: '#seguranca' },
-  { label: 'Preços', href: '#precos' },
+  { label: 'Perguntas frequentes', href: '/planos' },
 ];
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 export function Header() {
   const [mounted, setMounted] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
     // Pequeno delay para garantir que o estado inicial seja renderizado
@@ -85,7 +88,7 @@ export function Header() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-base font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                 style={mounted ? {
                   opacity: 1,
                   transform: 'translateY(0)',
@@ -101,7 +104,7 @@ export function Header() {
             ))}
           </nav>
 
-          {/* CTA Desktop e Menu Mobile */}
+          {/* CTA Desktop e Mobile */}
           <div className="flex items-center gap-3">
             {/* CTA Desktop */}
             <div
@@ -116,65 +119,109 @@ export function Header() {
                 transform: 'translateY(-8px)'
               }}
             >
-              <Button
-                asChild
-                variant="ghost"
-                className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
-              >
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button
-                asChild
-                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
-              >
-                <Link href="/login">Comece agora</Link>
-              </Button>
+              {!loading && user ? (
+                <>
+                  <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email || ''} />
+                          <AvatarFallback className="bg-landing-primary text-white text-xs">
+                            {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="bottom"
+                      align="end"
+                      className="w-[200px] p-2 bg-white border-gray-200 shadow-lg"
+                      sideOffset={8}
+                    >
+                      <div className="px-2 py-1.5 text-sm text-gray-500 truncate border-b border-gray-100 mb-1">
+                        {user.email}
+                      </div>
+                      <Link
+                        href="/"
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Ir para o app
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          signOut();
+                        }}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors w-full"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sair
+                      </button>
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    asChild
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+                  >
+                    <Link href="/">Ir para o app</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
+                  >
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+                  >
+                    <Link href="/login">Comece agora</Link>
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* CTA Mobile - botões no header */}
             <div className="flex items-center gap-2 md:hidden">
-              <Button
-                asChild
-                variant="ghost"
-                className="text-gray-700 hover:text-gray-900 rounded-full transition-all duration-300 px-3 text-sm h-8"
-              >
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button
-                asChild
-                className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
-              >
-                <Link href="/login">Comece agora</Link>
-              </Button>
+              {!loading && user ? (
+                <>
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email || ''} />
+                    <AvatarFallback className="bg-landing-primary text-white text-xs">
+                      {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button
+                    asChild
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
+                  >
+                    <Link href="/">Ir para o app</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    className="text-gray-700 hover:text-gray-900 rounded-full transition-all duration-300 px-3 text-sm h-8"
+                  >
+                    <Link href="/login">Login</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
+                  >
+                    <Link href="/login">Comece agora</Link>
+                  </Button>
+                </>
+              )}
             </div>
 
-            {/* Menu Mobile */}
-            <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <PopoverTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" aria-label="Toggle menu">
-                  <Menu className="w-6 h-6" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                side="bottom" 
-                align="end" 
-                className="w-[280px] p-4 bg-white border-gray-200 shadow-lg"
-                sideOffset={8}
-              >
-                <nav className="flex flex-col gap-3">
-                  {MENU_ITEMS.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-1.5 text-center"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </nav>
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
       </div>

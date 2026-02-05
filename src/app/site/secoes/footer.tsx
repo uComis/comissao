@@ -2,22 +2,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Instagram, Twitter, Mail } from 'lucide-react';
 
-const LINKS_PRODUCT = [
-  { label: 'Funcionalidades', href: '#solucoes' },
+const LINKS_PRODUTO = [
   { label: 'Segurança', href: '#seguranca' },
-  { label: 'Preços', href: '#precos' },
-];
-
-const LINKS_RESOURCES = [
-  { label: 'Documentação', href: '/docs' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'FAQ', href: '/faq' },
+  { label: 'Perguntas frequentes', href: '/planos' },
+  { label: 'Ajuda', href: '/ajuda' },
 ];
 
 const LINKS_LEGAL = [
-  { label: 'Política de Privacidade', href: '/privacidade' },
+  { label: 'Privacidade', href: '/privacidade' },
   { label: 'Termos de Uso', href: '/termos' },
-  { label: 'Contato', href: 'mailto:suporte@ucomis.com.br' },
 ];
 
 const SOCIAL_LINKS = [
@@ -44,13 +37,13 @@ export function Footer() {
             </Link>
           </div>
 
-          {/* Três colunas de links no centro */}
-          <div className="flex flex-wrap gap-8 md:gap-12 flex-1 justify-start md:justify-center">
-            {/* Coluna 1: Product - esquerda no mobile */}
+          {/* Colunas de links */}
+          <div className="flex gap-12 md:gap-16">
+            {/* Coluna Produto */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Product</h4>
+              <h4 className="text-sm font-semibold text-foreground">Produto</h4>
               <nav className="flex flex-col gap-2">
-                {LINKS_PRODUCT.map((link) => (
+                {LINKS_PRODUTO.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -62,24 +55,8 @@ export function Footer() {
               </nav>
             </div>
 
-            {/* Coluna 2: Resources - direita no mobile */}
+            {/* Coluna Legal */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Resources</h4>
-              <nav className="flex flex-col gap-2">
-                {LINKS_RESOURCES.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            {/* Coluna 3: Legal - esquerda no mobile (quebra linha) */}
-            <div className="space-y-3 w-full md:w-auto">
               <h4 className="text-sm font-semibold text-foreground">Legal</h4>
               <nav className="flex flex-col gap-2">
                 {LINKS_LEGAL.map((link) => (
