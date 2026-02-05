@@ -26,12 +26,9 @@ export function CtaFinal() {
 
   return (
     <section id="precos" className="py-20 sm:py-24 relative overflow-hidden bg-gradient-to-br from-[#1a1033] via-[#0f1a2e] to-[#0a0a0a]">
-      {/* Elementos decorativos sutis */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0)',
-          backgroundSize: '24px 24px'
-        }} />
+      {/* Padrão de pontos */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 h-full w-full bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,transparent_20%,#000_100%)] opacity-[0.25]" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10 max-w-[1200px]">
