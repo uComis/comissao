@@ -11,6 +11,7 @@ import { Precos } from '@/app/site/secoes/precos';
 import { Faq } from '@/app/site/secoes/faq';
 import { CtaFinal } from '@/app/site/secoes/cta-final';
 import { Footer } from '@/app/site/secoes/footer';
+import { Confidence } from '@/app/site/secoes/confidence';
 import { getPlans } from '@/app/actions/billing/plans';
 
 export default async function LandingPage() {
@@ -27,6 +28,7 @@ export default async function LandingPage() {
         <Understandable />
         <FeaturesShowcase />
         <Seguranca />
+        <Confidence />
         <Precos plans={plans} />
         <Faq />
         <CtaFinal />

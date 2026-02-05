@@ -23,7 +23,7 @@ export function Simple() {
             </h1>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Dashboard consolidado com todas as suas pastas. Sem precisar abrir 5 portais diferentes para saber quanto vai ganhar este mês.
+              Abandone as planilhas manuais e sujeitas a erros. Tenha previsibilidade financeira com cálculos automáticos de todas as suas comissões.
             </p>
 
             {/* Features list */}
