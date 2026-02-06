@@ -24,7 +24,7 @@ export default function RecuperarSenhaPage() {
   }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
+  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

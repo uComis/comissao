@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { GoogleOneTap } from '@/components/google-one-tap'
+import { ThemeToggle } from '@/components/layout/theme-toggle'
 
 export default function LoginPage() {
   const { signInWithGoogle, signInWithPassword, isConfigured } = useAuth()
@@ -28,7 +29,7 @@ export default function LoginPage() {
   }, [])
 
   const isDark = mounted && resolvedTheme === 'dark'
-  const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
+  const logoSrc = isDark ? '/images/logo/uComis_white.svg' : '/images/logo/uComis_black.svg'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +87,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key`}
   return (
     <>
     <GoogleOneTap />
+    <div className="fixed bottom-4 right-4 z-50 opacity-60 hover:opacity-100 transition-opacity">
+      <ThemeToggle />
+    </div>
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
