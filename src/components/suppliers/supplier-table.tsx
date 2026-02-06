@@ -34,7 +34,6 @@ import { MoreHorizontal, Pencil, Trash2, ShoppingCart, Calendar, Lock } from 'lu
 import { deletePersonalSupplier, type PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { getBlockedSuppliers } from '@/app/actions/billing'
 import { toast } from 'sonner'
-import { useIsMobile } from '@/hooks/use-mobile'
 
 type Props = {
   suppliers: PersonalSupplierWithRules[]
@@ -60,7 +59,6 @@ function formatDateShort(dateStr: string | null | undefined): string {
 
 export function SupplierTable({ suppliers, onDelete }: Props) {
   const router = useRouter()
-  const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [blockedSupplierIds, setBlockedSupplierIds] = useState<string[]>([])
@@ -155,140 +153,125 @@ export function SupplierTable({ suppliers, onDelete }: Props) {
     </AlertDialog>
   )
 
-  // Mobile: Cards view (same pattern as personal-sale-table and client-table)
-  if (isMobile) {
-    return (
-      <>
-        <div className="space-y-3">
-          {suppliers.map((supplier) => {
-            const blocked = isBlocked(supplier.id)
-            const hasCommission = (supplier.total_commission ?? 0) > 0
-            const salesCount = supplier.total_sales ?? 0
-            const lastDate = formatDateShort(supplier.last_sale_date)
-
-            return (
-              <Card
-                key={supplier.id}
-                className={`p-4 ${blocked ? 'opacity-60' : 'cursor-pointer active:scale-[0.98] transition-transform'}`}
-                onClick={() => !blocked && handleEdit(supplier.id)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    {/* Nome */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium truncate">{supplier.name}</span>
-                      {blocked && (
-                        <Badge variant="secondary" className="shrink-0 text-xs">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Bloqueado
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Vendas */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
-                      <span>{salesCount > 0
-                        ? `${salesCount} venda${salesCount !== 1 ? 's' : ''}`
-                        : 'Nenhuma venda'}</span>
-                    </div>
-
-                    {/* Última venda */}
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{lastDate || '—'}</span>
-                    </div>
-                  </div>
-
-                  {/* Coluna direita: Menu + Valores */}
-                  <div className="flex flex-col items-end gap-1">
-                    {!blocked && (
-                      <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
-                        <ActionMenu supplier={supplier} />
-                      </div>
-                    )}
-
-                    {/* Faturamento */}
-                    <div className="text-xs text-muted-foreground">
-                      {(supplier.total_gross ?? 0) > 0 ? formatCurrency(supplier.total_gross) : '—'}
-                    </div>
-
-                    {/* Comissão */}
-                    <div className={cn(
-                      "text-lg font-semibold",
-                      hasCommission ? "text-[#409eff]" : "text-muted-foreground"
-                    )}>
-                      {formatCurrency(supplier.total_commission)}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-        <DeleteDialog />
-      </>
-    )
-  }
-
-  // Desktop: Table view (same pattern as client-table)
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Pasta</TableHead>
-            <TableHead className="text-center">Vendas</TableHead>
-            <TableHead className="text-center">Faturamento</TableHead>
-            <TableHead className="text-center">Comissão</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {suppliers.map((supplier) => {
-            const blocked = isBlocked(supplier.id)
-            const hasCommission = (supplier.total_commission ?? 0) > 0
-            const salesCount = supplier.total_sales ?? 0
-            const lastDate = formatDateShort(supplier.last_sale_date)
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {suppliers.map((supplier) => {
+          const blocked = isBlocked(supplier.id)
+          const hasCommission = (supplier.total_commission ?? 0) > 0
+          const salesCount = supplier.total_sales ?? 0
+          const lastDate = formatDateShort(supplier.last_sale_date)
 
-            return (
-              <TableRow key={supplier.id} className={blocked ? 'opacity-60' : 'cursor-pointer'} onClick={() => !blocked && handleEdit(supplier.id)}>
-                <TableCell className="py-3">
+          return (
+            <Card
+              key={supplier.id}
+              className={`p-4 ${blocked ? 'opacity-60' : 'cursor-pointer active:scale-[0.98] transition-transform'}`}
+              onClick={() => !blocked && handleEdit(supplier.id)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{supplier.name}</span>
+                    <span className="font-medium truncate">{supplier.name}</span>
                     {blocked && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="shrink-0 text-xs">
                         <Lock className="h-3 w-3 mr-1" />
                         Bloqueado
                       </Badge>
                     )}
                   </div>
-                  {lastDate && (
-                    <div className="text-xs text-muted-foreground mt-0.5">última venda: {lastDate}</div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ShoppingCart className="h-3.5 w-3.5 shrink-0" />
+                    <span>{salesCount > 0
+                      ? `${salesCount} venda${salesCount !== 1 ? 's' : ''}`
+                      : 'Nenhuma venda'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{lastDate || '—'}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {!blocked && (
+                    <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
+                      <ActionMenu supplier={supplier} />
+                    </div>
                   )}
-                </TableCell>
-                <TableCell className="text-center tabular-nums text-muted-foreground">
-                  {salesCount > 0 ? salesCount : '—'}
-                </TableCell>
-                <TableCell className="text-center tabular-nums text-muted-foreground">
-                  {(supplier.total_gross ?? 0) > 0 ? formatCurrency(supplier.total_gross) : '—'}
-                </TableCell>
-                <TableCell className="text-center py-3">
+                  <div className="text-xs text-muted-foreground">
+                    {(supplier.total_gross ?? 0) > 0 ? formatCurrency(supplier.total_gross) : '—'}
+                  </div>
                   <div className={cn(
-                    "font-medium tabular-nums",
+                    "text-lg font-semibold",
                     hasCommission ? "text-[#409eff]" : "text-muted-foreground"
                   )}>
                     {formatCurrency(supplier.total_commission)}
                   </div>
-                </TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  {!blocked && <ActionMenu supplier={supplier} />}
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pasta</TableHead>
+              <TableHead className="text-center">Vendas</TableHead>
+              <TableHead className="text-center">Faturamento</TableHead>
+              <TableHead className="text-center">Comissão</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {suppliers.map((supplier) => {
+              const blocked = isBlocked(supplier.id)
+              const hasCommission = (supplier.total_commission ?? 0) > 0
+              const salesCount = supplier.total_sales ?? 0
+              const lastDate = formatDateShort(supplier.last_sale_date)
+
+              return (
+                <TableRow key={supplier.id} className={blocked ? 'opacity-60' : 'cursor-pointer'} onClick={() => !blocked && handleEdit(supplier.id)}>
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{supplier.name}</span>
+                      {blocked && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Bloqueado
+                        </Badge>
+                      )}
+                    </div>
+                    {lastDate && (
+                      <div className="text-xs text-muted-foreground mt-0.5">última venda: {lastDate}</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums text-muted-foreground">
+                    {salesCount > 0 ? salesCount : '—'}
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums text-muted-foreground">
+                    {(supplier.total_gross ?? 0) > 0 ? formatCurrency(supplier.total_gross) : '—'}
+                  </TableCell>
+                  <TableCell className="text-center py-3">
+                    <div className={cn(
+                      "font-medium tabular-nums",
+                      hasCommission ? "text-[#409eff]" : "text-muted-foreground"
+                    )}>
+                      {formatCurrency(supplier.total_commission)}
+                    </div>
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    {!blocked && <ActionMenu supplier={supplier} />}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
       <DeleteDialog />
     </>
   )

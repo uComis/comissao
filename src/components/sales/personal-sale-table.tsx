@@ -32,7 +32,6 @@ import { Card } from '@/components/ui/card'
 import { MoreHorizontal, Eye, Trash2, Calendar, Building2, Receipt } from 'lucide-react'
 import { deletePersonalSale } from '@/app/actions/personal-sales'
 import { toast } from 'sonner'
-import { useIsMobile } from '@/hooks/use-mobile'
 import type { PersonalSale } from '@/types'
 
 type Props = {
@@ -77,7 +76,6 @@ function CommissionBadge({ percent }: { percent: string | null }) {
 
 export function PersonalSaleTable({ sales }: Props) {
   const router = useRouter()
-  const isMobile = useIsMobile()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ sale: PersonalSale; x: number; y: number } | null>(null)
@@ -169,124 +167,111 @@ export function PersonalSaleTable({ sales }: Props) {
     </AlertDialog>
   )
 
-  // Mobile: Cards view (unchanged layout, just adding % badge)
-  if (isMobile) {
-    return (
-      <>
-        <div className="space-y-3">
-          {sales.map((sale) => {
-            const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
-
-            return (
-              <Card
-                key={sale.id}
-                className="p-4 active:scale-[0.98] transition-transform"
-                onClick={() => handleView(sale.id)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    {/* Cliente */}
-                    <div className="font-medium truncate">
-                      {sale.client_name || 'Cliente não informado'}
-                    </div>
-
-                    {/* Fornecedor */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Building2 className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{sale.supplier?.name || '-'}</span>
-                    </div>
-
-                    {/* Data */}
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(sale.sale_date)}</span>
-                    </div>
-                  </div>
-
-                  {/* Coluna direita: Menu + Valores */}
-                  <div className="flex flex-col items-end gap-1">
-                    {/* Menu de ações */}
-                    <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
-                      <ActionMenu sale={sale} />
-                    </div>
-
-                    {/* Valor bruto */}
-                    <div className="text-xs text-muted-foreground">
-                      {formatCurrency(sale.gross_value)}
-                    </div>
-
-                    {/* Comissão + badge */}
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn(
-                        "text-lg font-semibold",
-                        sale.commission_value && sale.commission_value > 0 ? "text-[#409eff]" : "text-muted-foreground"
-                      )}>
-                        {formatCurrency(sale.commission_value)}
-                      </span>
-                      <CommissionBadge percent={percent} />
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
-        <DeleteDialog />
-      </>
-    )
-  }
-
-  // Desktop: Compact table — Dia | Cliente/Pasta | Valor | Comissão | Actions
+  // Mobile: Cards view
+  // Desktop: Compact table
+  // Both rendered, visibility controlled by CSS to avoid layout flash
   return (
     <>
-      <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Data</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-center">Valor</TableHead>
-              <TableHead className="text-center">Comissão</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sales.map((sale) => {
-              const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
-              const hasCommission = sale.commission_value != null && sale.commission_value > 0
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {sales.map((sale) => {
+          const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
 
-              return (
-                <TableRow
-                  key={sale.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleView(sale.id)}
-                  onContextMenu={(e) => handleContextMenu(e, sale)}
-                >
-                  <TableCell className="py-3 tabular-nums text-muted-foreground text-sm">
-                    {formatShortDate(sale.sale_date)}
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <div className="font-medium">{sale.client_name || 'Cliente não informado'}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{sale.supplier?.name || '-'}</div>
-                  </TableCell>
-                  <TableCell className="text-center tabular-nums">
-                    {formatCurrency(sale.gross_value)}
-                  </TableCell>
-                  <TableCell className="text-center py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <span className={cn("font-medium tabular-nums", hasCommission ? "text-[#409eff]" : "text-muted-foreground")}>
-                        {formatCurrency(sale.commission_value)}
-                      </span>
-                      <CommissionBadge percent={percent} />
-                    </div>
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+          return (
+            <Card
+              key={sale.id}
+              className="p-4 active:scale-[0.98] transition-transform"
+              onClick={() => handleView(sale.id)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="font-medium truncate">
+                    {sale.client_name || 'Cliente não informado'}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{sale.supplier?.name || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>{formatDate(sale.sale_date)}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
                     <ActionMenu sale={sale} />
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-      </Table>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatCurrency(sale.gross_value)}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn(
+                      "text-lg font-semibold",
+                      sale.commission_value && sale.commission_value > 0 ? "text-[#409eff]" : "text-muted-foreground"
+                    )}>
+                      {formatCurrency(sale.commission_value)}
+                    </span>
+                    <CommissionBadge percent={percent} />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
+        <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Data</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="text-center">Valor</TableHead>
+                <TableHead className="text-center">Comissão</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sales.map((sale) => {
+                const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
+                const hasCommission = sale.commission_value != null && sale.commission_value > 0
+
+                return (
+                  <TableRow
+                    key={sale.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleView(sale.id)}
+                    onContextMenu={(e) => handleContextMenu(e, sale)}
+                  >
+                    <TableCell className="py-3 tabular-nums text-muted-foreground text-sm">
+                      {formatShortDate(sale.sale_date)}
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="font-medium">{sale.client_name || 'Cliente não informado'}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{sale.supplier?.name || '-'}</div>
+                    </TableCell>
+                    <TableCell className="text-center tabular-nums">
+                      {formatCurrency(sale.gross_value)}
+                    </TableCell>
+                    <TableCell className="text-center py-3">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span className={cn("font-medium tabular-nums", hasCommission ? "text-[#409eff]" : "text-muted-foreground")}>
+                          {formatCurrency(sale.commission_value)}
+                        </span>
+                        <CommissionBadge percent={percent} />
+                      </div>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <ActionMenu sale={sale} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+        </Table>
+      </div>
+
       <DeleteDialog />
 
       {/* Context Menu (Right Click) */}

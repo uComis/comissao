@@ -27,7 +27,6 @@ import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popove
 import { Fab } from '@/components/ui/fab'
 import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter, Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { getPersonalSalesPaginated, type PaginatedSalesResult } from '@/app/actions/personal-sales'
 import type { PersonalSale } from '@/types'
 
@@ -43,7 +42,6 @@ type Props = {
 }
 
 export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
-  const isMobile = useIsMobile()
   const [isPending, startTransition] = useTransition()
 
   // Data state
