@@ -155,7 +155,7 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
               )}
             </div>
             <p className={cn(
-              'text-base font-bold tabular-nums text-green-600'
+              'text-base font-bold tabular-nums text-[#409eff]'
             )}>
               {formatCurrency(receivable.expected_commission)}
             </p>
@@ -253,7 +253,7 @@ export function SaleDetailInstallments({ saleId, receivables }: Props) {
               {/* Value */}
               <div className="text-right shrink-0">
                 <p className={cn(
-                  'text-sm font-bold tabular-nums text-green-600'
+                  'text-sm font-bold tabular-nums text-[#409eff]'
                 )}>
                   {formatCurrency(receivable.expected_commission)}
                 </p>

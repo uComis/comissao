@@ -115,10 +115,10 @@ export function SaleDetailInfo({ saleId, sale }: Props) {
 
           {/* Comissão */}
           <div className="flex items-start gap-2">
-            <TrendingUp className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+            <TrendingUp className="h-4 w-4 text-[#409eff] mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Comissão</p>
-              <p className="text-sm font-semibold text-green-600">{formatCurrency(sale.commissionValue)}</p>
+              <p className="text-sm font-semibold text-[#409eff]">{formatCurrency(sale.commissionValue)}</p>
             </div>
           </div>
         </CardContent>

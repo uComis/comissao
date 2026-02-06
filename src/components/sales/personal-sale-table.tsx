@@ -36,6 +36,7 @@ import type { PersonalSale } from '@/types'
 
 type Props = {
   sales: PersonalSale[]
+  onSaleDeleted?: (id: string) => void
 }
 
 function formatCurrency(value: number | null): string {
@@ -74,7 +75,7 @@ function CommissionBadge({ percent }: { percent: string | null }) {
   )
 }
 
-export function PersonalSaleTable({ sales }: Props) {
+export function PersonalSaleTable({ sales, onSaleDeleted }: Props) {
   const router = useRouter()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -88,6 +89,7 @@ export function PersonalSaleTable({ sales }: Props) {
       const result = await deletePersonalSale(deleteId)
       if (result.success) {
         toast.success('Venda excluída')
+        onSaleDeleted?.(deleteId)
       } else {
         toast.error(result.error)
       }

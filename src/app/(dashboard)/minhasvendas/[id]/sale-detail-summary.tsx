@@ -23,8 +23,8 @@ export function SaleDetailSummary({ totalReceived, totalOverdue, totalPending }:
         label="Recebido"
         value={formatCurrency(totalReceived)}
         icon={CheckCircle2}
-        valueClassName="text-green-600"
-        iconClassName="text-green-600"
+        valueClassName="text-[#409eff]"
+        iconClassName="text-[#409eff]"
       />
       <StatCard
         label="Atrasado"
@@ -37,8 +37,8 @@ export function SaleDetailSummary({ totalReceived, totalOverdue, totalPending }:
         label="A Receber"
         value={formatCurrency(totalPending)}
         icon={Clock}
-        valueClassName="text-[#409eff]"
-        iconClassName="text-[#409eff]"
+        valueClassName="text-foreground"
+        iconClassName="text-foreground"
       />
     </div>
   )

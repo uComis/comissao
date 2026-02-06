@@ -141,6 +141,11 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
     return { count: total, faturado, comissao, ticket }
   }, [sales, total])
 
+  const handleSaleDeleted = useCallback((id: string) => {
+    setSales(prev => prev.filter(s => s.id !== id))
+    setTotal(prev => prev - 1)
+  }, [])
+
   function clearFilters() {
     setSupplierId('all')
     setClientId('all')
@@ -304,7 +309,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
           <div className="hidden md:block">
             <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
               <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                <PersonalSaleTable sales={sales} />
+                <PersonalSaleTable sales={sales} onSaleDeleted={handleSaleDeleted} />
               </div>
             </AnimatedTableContainer>
             <DataTablePagination
@@ -319,7 +324,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
           {/* Mobile: load more */}
           <div className="md:hidden">
             <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-              <PersonalSaleTable sales={mobileSales} />
+              <PersonalSaleTable sales={mobileSales} onSaleDeleted={handleSaleDeleted} />
             </div>
             {hasMoreMobile && (
               <div className="pt-4 pb-2">
