@@ -55,6 +55,7 @@ type Props = {
   label?: string
   placeholder?: string
   className?: string
+  initialClients?: PersonalClient[]
   refreshTrigger?: number
 }
 
@@ -65,13 +66,14 @@ export function ClientPicker({
   label = 'Cliente',
   placeholder = 'Selecionar cliente',
   className,
+  initialClients,
   refreshTrigger = 0,
 }: Props) {
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
-  const [clients, setClients] = useState<PersonalClient[]>([])
-  const [loadingClients, setLoadingClients] = useState(true)
+  const [clients, setClients] = useState<PersonalClient[]>(initialClients ?? [])
+  const [loadingClients, setLoadingClients] = useState(!initialClients)
 
   // Mobile sliding state
   const [view, setView] = useState<'list' | 'form'>('list')
@@ -94,9 +96,22 @@ export function ClientPicker({
     }
   }, [])
 
+  // Only fetch on mount when no initialClients were provided
   useEffect(() => {
-    loadClients()
-  }, [loadClients, refreshTrigger])
+    if (!initialClients) {
+      loadClients()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Re-fetch when refreshTrigger changes (e.g., after adding a new client)
+  const prevTrigger = useRef(refreshTrigger)
+  useEffect(() => {
+    if (refreshTrigger !== prevTrigger.current) {
+      prevTrigger.current = refreshTrigger
+      loadClients()
+    }
+  }, [refreshTrigger, loadClients])
 
   // Reset view when sheet opens
   useEffect(() => {

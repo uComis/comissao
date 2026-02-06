@@ -24,6 +24,7 @@ type PaymentConditionSectionProps = {
   totalValue: number
   grossTotal: number
   totalCommission: number
+  paymentConfirmed?: boolean
   onSaleDateChange: (date: string) => void
   onFirstInstallmentDateChange: (date: string) => void
   onInstallmentsChange: (value: number) => void
@@ -36,6 +37,7 @@ type PaymentConditionSectionProps = {
   onPatternRemove: () => void
   onSelectSuggestion: (value: string) => void
   onViewInstallments?: () => void
+  onConfirm?: () => void
 }
 
 const suggestions = [
@@ -353,14 +355,14 @@ export function PaymentConditionSection(props: PaymentConditionSectionProps) {
 
   const summaryLabel = isVista ? 'À vista' : `Parcelado ${safeInst}x`
 
-  const hasConfig = !!(props.quickCondition || safeInst > 1 || safeFirstDays > 0)
+  const hasConfig = !!(props.paymentConfirmed || props.quickCondition || safeInst > 1 || safeFirstDays > 0)
 
   const formContent = (
     <div className="space-y-5">
       <PaymentFormContent {...props} onClose={() => setOpen(false)} />
       <Button
         type="button"
-        onClick={() => setOpen(false)}
+        onClick={() => { props.onConfirm?.(); setOpen(false) }}
         className="w-full h-12 text-base font-medium"
       >
         Confirmar

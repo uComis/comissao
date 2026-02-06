@@ -129,18 +129,18 @@ export default function AnalyticsPage() {
 
         {/* <1400px: um card com toggle (Cliente | Pasta) */}
         <div className="lg:col-span-2 min-[1400px]:hidden">
-          <Tabs defaultValue="cliente" className="h-full relative">
+          <Tabs defaultValue="pasta" className="h-full relative">
             <div className="absolute right-3 top-3 z-10">
-              <TabsList className="bg-muted/70 border border-border/60 shadow-sm">
+              <TabsList className="bg-muted/70 border border-border/60 shadow-sm h-7 lg:h-9">
                 <TabsTrigger
                   value="cliente"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                  className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
                 >
                   Cliente
                 </TabsTrigger>
                 <TabsTrigger
                   value="pasta"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                  className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
                 >
                   Pasta
                 </TabsTrigger>

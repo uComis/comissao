@@ -1,44 +1,71 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { getSubscription, type Subscription } from '@/app/actions/billing'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { getSubscription, getBlockedSuppliers, type Subscription } from '@/app/actions/billing'
 import { useAuth } from '@/contexts/auth-context'
 import { UpgradeCelebrationModal } from './upgrade-celebration-modal'
+
+type BillingData = {
+  subscription: Subscription | null
+  blockedCount: number
+  blockedSupplierIds: string[]
+  loading: boolean
+}
+
+const BillingContext = createContext<BillingData>({
+  subscription: null,
+  blockedCount: 0,
+  blockedSupplierIds: [],
+  loading: true,
+})
+
+export function useBillingData() {
+  return useContext(BillingContext)
+}
 
 export function BillingNotificationProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [blockedCount, setBlockedCount] = useState(0)
+  const [blockedSupplierIds, setBlockedSupplierIds] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const statusRef = useRef<string | null>(null)
+  const isFetching = useRef(false)
 
-  const refreshSubscription = useCallback(async () => {
-    if (!user) return
+  const refresh = useCallback(async () => {
+    if (!user || isFetching.current) return
+    isFetching.current = true
     try {
-      const sub = await getSubscription(user.id)
+      const [sub, blocked] = await Promise.all([
+        getSubscription(user.id),
+        getBlockedSuppliers(user.id),
+      ])
+      statusRef.current = (sub as Subscription | null)?.status ?? null
       setSubscription(sub as Subscription | null)
+      setBlockedCount(blocked.blockedCount)
+      setBlockedSupplierIds(blocked.blockedSupplierIds)
     } catch (err) {
-      console.error('Erro ao atualizar assinatura no provider:', err)
+      console.error('Erro ao carregar dados de billing:', err)
+    } finally {
+      setLoading(false)
+      isFetching.current = false
     }
   }, [user])
 
   useEffect(() => {
-    const init = async () => {
-      await refreshSubscription()
-    }
-    init()
+    refresh()
 
-    // 1. Detecção via Visibility API (quando volta para a aba)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        init()
+        refresh()
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // 2. Polling suave (opcional, para quando o usuário fica na aba aberta)
-    // Se estiver com assinatura unpaid ou past_due, checa a cada 10 segundos
     const interval = setInterval(() => {
-      if (subscription?.status === 'unpaid' || subscription?.status === 'past_due') {
-        init()
+      if (statusRef.current === 'unpaid' || statusRef.current === 'past_due') {
+        refresh()
       }
     }, 10000)
 
@@ -46,13 +73,12 @@ export function BillingNotificationProvider({ children }: { children: React.Reac
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       clearInterval(interval)
     }
-  }, [refreshSubscription, subscription?.status])
+  }, [refresh])
 
   return (
-    <>
+    <BillingContext.Provider value={{ subscription, blockedCount, blockedSupplierIds, loading }}>
       <UpgradeCelebrationModal subscription={subscription} />
       {children}
-    </>
+    </BillingContext.Provider>
   )
 }
-

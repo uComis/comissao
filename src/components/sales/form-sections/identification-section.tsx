@@ -7,12 +7,14 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
+import type { PersonalClient } from '@/types'
 
 type IdentificationSectionProps = {
   suppliers: PersonalSupplierWithRules[]
   supplierId: string
   clientId: string | null
   clientRefreshTrigger: number
+  initialClients?: PersonalClient[]
   isDefaultSupplier: boolean
   onSupplierChange: (id: string) => void
   onClientChange: (id: string | null, name: string) => void
@@ -26,6 +28,7 @@ export function IdentificationSection({
   supplierId,
   clientId,
   clientRefreshTrigger,
+  initialClients,
   isDefaultSupplier,
   onSupplierChange,
   onClientChange,
@@ -75,6 +78,7 @@ export function IdentificationSection({
             value={clientId}
             onChange={onClientChange}
             onAddClick={() => onClientAddClick()}
+            initialClients={initialClients}
             refreshTrigger={clientRefreshTrigger}
             className="w-full border-2 border-primary/10 hover:border-primary/30 transition-all rounded-xl"
           />

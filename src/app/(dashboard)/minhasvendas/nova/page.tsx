@@ -1,12 +1,16 @@
 import { Suspense } from 'react'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getProductsBySupplier } from '@/app/actions/products'
+import { getPersonalClients } from '@/app/actions/personal-clients'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FadeIn } from '@/components/ui/fade-in'
 import { NovaVendaShell } from './shell'
 
 async function NovaVendaContent() {
-  const suppliers = await getPersonalSuppliers()
+  const [suppliers, clients] = await Promise.all([
+    getPersonalSuppliers(),
+    getPersonalClients(),
+  ])
 
   // Buscar produtos de cada fornecedor
   const productsBySupplier: Record<string, Awaited<ReturnType<typeof getProductsBySupplier>>> = {}
@@ -20,6 +24,7 @@ async function NovaVendaContent() {
       <NovaVendaShell
         suppliers={suppliers}
         productsBySupplier={productsBySupplier}
+        clients={clients}
       />
     </FadeIn>
   )

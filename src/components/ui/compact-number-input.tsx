@@ -87,8 +87,9 @@ export function CompactNumberInput({
     setDisplayValue(formatNumber(rounded, decimals))
   }
 
-  function handleFocus() {
+  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
     setIsFocused(true)
+    e.target.select()
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

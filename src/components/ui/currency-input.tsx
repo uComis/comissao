@@ -116,6 +116,10 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
           value={displayValue}
           onChange={handleChange}
           onBlur={handleBlur}
+          onFocus={(e) => {
+            e.target.select()
+            if (props.onFocus) props.onFocus(e)
+          }}
         />
       </div>
     )

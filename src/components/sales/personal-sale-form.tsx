@@ -30,6 +30,7 @@ import {
 type Props = {
   suppliers: PersonalSupplierWithRules[]
   productsBySupplier: Record<string, Product[]>
+  initialClients?: PersonalClient[]
   sale?: PersonalSaleWithItems
   mode?: 'create' | 'edit'
   formId?: string
@@ -88,7 +89,7 @@ const calculateDaysFromDate = (targetDateStr: string, baseDateStr: string) => {
   return diffDays
 }
 
-export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, sale, mode = 'create', formId, onSavingChange }: Props) {
+export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, initialClients, sale, mode = 'create', formId, onSavingChange }: Props) {
   const router = useRouter()
   const { preferences, setPreference } = usePreferences()
   const [saving, setSaving] = useState(false)
@@ -127,6 +128,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
   const [customDaysList, setCustomDaysList] = useState<number[] | null>(null)
   const [detectedPattern, setDetectedPattern] = useState<{ interval: number; count: number } | null>(null)
 
+  const [paymentConfirmed, setPaymentConfirmed] = useState(!!sale?.payment_condition)
   const [notes, setNotes] = useState(sale?.notes || '')
   const [valueEntries, setValueEntries] = useState<ValueEntry[]>(() => {
     if (sale?.items && sale.items.length > 0) {
@@ -596,6 +598,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                   supplierId={supplierId}
                   clientId={clientId}
                   clientRefreshTrigger={clientRefreshTrigger}
+                  initialClients={initialClients}
                   isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
                   onSupplierChange={handleSupplierChange}
                   onClientChange={handleClientChange}
@@ -694,6 +697,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                         onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                     onSelectSuggestion={handleSelectSuggestion}
                     onViewInstallments={() => setInstallmentsSheetOpen(true)}
+                    paymentConfirmed={paymentConfirmed}
+                    onConfirm={() => setPaymentConfirmed(true)}
                   />
                 </div>
                 <div className="space-y-3">
@@ -714,6 +719,7 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     supplierId={supplierId}
                     clientId={clientId}
                     clientRefreshTrigger={clientRefreshTrigger}
+                    initialClients={initialClients}
                     isDefaultSupplier={preferences.defaultSupplierId === supplierId && !!supplierId}
                     onSupplierChange={handleSupplierChange}
                     onClientChange={handleClientChange}
@@ -813,6 +819,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
                     onClearCondition={() => { setQuickCondition(''); setInstallments(1); setInterval(''); setFirstInstallmentDays(0); setFirstInstallmentDate(today); setIrregularPatternWarning(null); setCustomDaysList(null); setDetectedPattern(null); setHasChangedSteppers(false); setIsUpdatingFromQuick(false) }}
                     onSelectSuggestion={handleSelectSuggestion}
                     onViewInstallments={() => setInstallmentsSheetOpen(true)}
+                    paymentConfirmed={paymentConfirmed}
+                    onConfirm={() => setPaymentConfirmed(true)}
                   />
                 </div>
                 <div className="px-6 py-4 space-y-3">

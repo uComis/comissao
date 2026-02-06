@@ -6,14 +6,15 @@ import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { PersonalSaleForm } from '@/components/sales'
 import type { PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
-import type { Product } from '@/types'
+import type { Product, PersonalClient } from '@/types'
 
 type Props = {
   suppliers: PersonalSupplierWithRules[]
   productsBySupplier: Record<string, Product[]>
+  clients?: PersonalClient[]
 }
 
-export function NovaVendaShell({ suppliers, productsBySupplier }: Props) {
+export function NovaVendaShell({ suppliers, productsBySupplier, clients }: Props) {
   const [saving, setSaving] = useState(false)
 
   useSetPageHeader({ title: 'Registro de venda', backHref: '/minhasvendas', taskMode: true, contentMaxWidth: 'max-w-4xl' })
@@ -34,6 +35,7 @@ export function NovaVendaShell({ suppliers, productsBySupplier }: Props) {
         <PersonalSaleForm
           suppliers={suppliers}
           productsBySupplier={productsBySupplier}
+          initialClients={clients}
           formId="sale-form"
           onSavingChange={setSaving}
         />
