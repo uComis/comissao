@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4000 --experimental-https",
+    "dev": "next dev --experimental-https -p 4000",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -68,6 +68,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.9.19",
     "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
