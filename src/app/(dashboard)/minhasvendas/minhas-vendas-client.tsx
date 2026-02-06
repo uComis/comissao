@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useTransition, useCallback } from 'react'
+import { useState, useMemo, useEffect, useRef, useTransition, useCallback } from 'react'
 import Link from 'next/link'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { PersonalSaleTable } from '@/components/sales'
@@ -86,7 +86,13 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
   }, [search, supplierId, clientId])
 
   // Fetch when filters change (reset to page 1)
+  // Skip first render — initialData already has the data from the server
+  const isFirstRender = useRef(true)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     setMobileVisible(PAGE_SIZE_DEFAULT)
     fetchData(1, pageSize, 1)
   }, [search, supplierId, clientId, pageSize, fetchData])
