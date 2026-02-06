@@ -26,8 +26,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { MoreHorizontal, Pencil, Trash2, Power, PowerOff } from 'lucide-react'
 import { deleteProduct, toggleProductActive } from '@/app/actions/products'
 import { toast } from 'sonner'
@@ -115,8 +117,91 @@ export function ProductTable({ products, supplierId, showSku = true, supplierCom
     return null
   }
 
+  const ActionMenu = ({ product }: { product: Product }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={toggling === product.id} onClick={(e) => e.stopPropagation()}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setEditingProduct(product)}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleToggleActive(product)}>
+          {product.is_active ? (
+            <>
+              <PowerOff className="h-4 w-4 mr-2" />
+              Desativar
+            </>
+          ) : (
+            <>
+              <Power className="h-4 w-4 mr-2" />
+              Ativar
+            </>
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => setDeleteId(product.id)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   return (
     <>
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {products.map((product) => {
+          const { text, hasOverride } = getCommissionDisplay(product)
+
+          return (
+            <Card
+              key={product.id}
+              className={cn(
+                'p-4 active:scale-[0.98] transition-transform',
+                !product.is_active && 'opacity-50'
+              )}
+              onClick={() => setEditingProduct(product)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="font-medium truncate">
+                    {product.name}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatPrice(product.unit_price)}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div onClick={(e) => e.stopPropagation()} className="-mr-2 -mt-1">
+                    <ActionMenu product={product} />
+                  </div>
+                  <Badge
+                    variant={hasOverride ? 'default' : 'outline'}
+                    className="cursor-pointer hover:bg-primary/80 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setRuleProduct(product) }}
+                  >
+                    {text}
+                  </Badge>
+                  <Badge variant={product.is_active ? 'default' : 'secondary'}>
+                    {product.is_active ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
       <Table>
           <TableHeader>
             <TableRow>
@@ -158,45 +243,13 @@ export function ProductTable({ products, supplierId, showSku = true, supplierCom
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" disabled={toggling === product.id}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingProduct(product)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleToggleActive(product)}>
-                        {product.is_active ? (
-                          <>
-                            <PowerOff className="h-4 w-4 mr-2" />
-                            Desativar
-                          </>
-                        ) : (
-                          <>
-                            <Power className="h-4 w-4 mr-2" />
-                            Ativar
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => setDeleteId(product.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ActionMenu product={product} />
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
       </Table>
+      </div>
 
       {/* Dialog de edição */}
       <ProductDialog
