@@ -1015,6 +1015,122 @@ useEffect(() => {
 
 ---
 
+## PhoneMockup (Landing Page)
+
+Mockup de iPhone em CSS puro com carrossel de imagens. Usado nas seções da landing page para exibir screenshots do app.
+
+**Arquivo:** `src/components/ui/phone-mockup.tsx`
+
+### Props
+
+| Prop | Tipo | Obrigatório | Default | Descrição |
+|------|------|:-----------:|---------|-----------|
+| `images` | `string[]` | Sim | — | Array de URLs de imagens para exibir na tela |
+| `interval` | `number` | Não | `3` | Segundos por imagem no carrossel |
+| `visiblePercent` | `number` | Não | `100` | Porcentagem visível do celular (1-100) |
+| `anchor` | `'top' \| 'bottom'` | Não | `'top'` | Qual parte do celular fica visível quando cortado |
+| `statusBarMode` | `'light' \| 'dark'` | Não | `'light'` | Cor dos ícones/texto da status bar |
+| `statusBarColor` | `string` | Não | transparente | Cor de fundo da status bar (ex: `"#1a1a2e"`) |
+| `className` | `string` | Não | — | Classes extras (usar para definir a **largura**) |
+
+### Padrão Visual
+
+```
+┌─────────────────────────────┐
+│  ┌─────────────────────┐    │ ← Moldura azulada (gradient blue-100 → blue-200)
+│  │  9:41    ▼ ■         │    │ ← Status Bar (light/dark + cor custom)
+│  │  ┌───────────────┐  │    │
+│  │  │               │  │    │ ← Dynamic Island
+│  │  └───────────────┘  │    │
+│  │                     │    │
+│  │   [Imagem/Conteúdo] │    │ ← Carrossel com crossfade (700ms)
+│  │                     │    │
+│  │      ──────────     │    │ ← Home Indicator
+│  └─────────────────────┘    │
+└─────────────────────────────┘
+  │                         │
+  ├─ Botões volume (esq)   ├─ Botão power (dir)
+```
+
+### Dimensionamento
+
+O consumidor define apenas a **largura** via `className`. A altura é calculada automaticamente via `aspect-ratio`:
+
+- **100% visível:** aspect-ratio `18 / 37` (proporção real do iPhone)
+- **Com clipping:** aspect-ratio ajustado proporcionalmente (ex: 75% → `18 / 27.75`)
+
+### Uso — Celular completo
+
+```tsx
+import { PhoneMockup } from '@/components/ui/phone-mockup'
+
+<PhoneMockup
+  images={['/images/landing/mobile-1.png', '/images/landing/mobile-2.png']}
+  interval={3}
+  statusBarMode="dark"
+  statusBarColor="#1a1a2e"
+  className="w-[280px]"
+/>
+```
+
+### Uso — Cortado no topo (mostra parte de cima)
+
+```tsx
+<PhoneMockup
+  images={['/images/landing/mobile-1.png']}
+  visiblePercent={75}
+  anchor="top"
+  statusBarMode="dark"
+  className="w-[280px]"
+/>
+```
+
+### Uso — Cortado no fundo (mostra parte de baixo)
+
+```tsx
+<PhoneMockup
+  images={['/images/landing/mobile-1.png']}
+  visiblePercent={55}
+  anchor="bottom"
+  className="w-[280px]"
+/>
+```
+
+### Anatomia interna
+
+| Camada | Descrição |
+|--------|-----------|
+| Moldura externa | Gradient `blue-100 → blue-200` com `rounded-[3rem]` |
+| Botões laterais | Power (direita), Volume × 2 + Silent (esquerda) |
+| Bezel interno | Preto `rounded-[2.9rem]` com padding `0.5rem` |
+| Dynamic Island | Pill preto `5rem × 1.4rem` centralizado no topo |
+| Status Bar | Hora (9:41), WiFi (SVG), Bateria (SVG) — respeita `statusBarMode` |
+| Conteúdo | Imagens com `object-cover object-top`, crossfade entre elas |
+| Home Indicator | Barrinha `35%` largura no fundo — branca (dark) ou preta (light) |
+| Safe areas | Spacer topo `2.4rem` + spacer fundo `1.2rem` |
+
+### Clipping (visiblePercent + anchor)
+
+O componente usa `overflow-hidden` com `aspect-ratio` dinâmico no container externo. O frame do celular é posicionado `absolute top-0` ou `bottom-0` conforme o `anchor`, e o container corta o excedente.
+
+### Carrossel
+
+- Com 1 imagem: estático, sem timer
+- Com 2+ imagens: cicla com `setInterval`, crossfade via `opacity` com `transition-opacity duration-700`
+
+### Futuro
+
+- **Vídeo:** aceitar array de `{ type: 'image' | 'video', src }`. Para vídeos, ignorar `interval` e esperar o vídeo terminar antes de avançar.
+
+### Regras
+
+1. **Landing page apenas** — não usar no dashboard
+2. **Definir largura via `className`** — altura é auto (aspect-ratio)
+3. **`statusBarMode` deve combinar com o conteúdo** — usar `dark` para screenshots com fundo escuro
+4. **Imagens devem ser screenshots mobile** — `object-cover object-top` assume conteúdo vertical
+
+---
+
 ## Componentes Futuros
 
 ### EmptyState (Planejado)

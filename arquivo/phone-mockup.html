@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Mockup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap');
+  </style>
+</head>
+<body class="w-full flex justify-center p-10 bg-neutral-100 min-h-screen">
+  <div class="w-[18rem] h-[37rem] bg-gradient-to-b from-blue-100 to-blue-200 border border-blue-300 rounded-[3rem] flex items-center justify-center box-border p-[0.2rem] relative">
+    <!-- Botão direito -->
+    <div class="w-1 h-20 rounded-[0_0.1rem_0.1rem_0] bg-gradient-to-r from-neutral-400 via-blue-300 to-blue-300 border-r border-blue-100 absolute -right-1 top-[30%]"></div>
+    <!-- Botões esquerdos -->
+    <div class="w-1 h-10 rounded-[0_0.1rem_0.1rem_0] bg-gradient-to-l from-neutral-400 via-blue-300 to-blue-300 border-l border-blue-100 absolute -left-1 top-[38%]"></div>
+    <div class="w-1 h-10 rounded-[0_0.1rem_0.1rem_0] bg-gradient-to-l from-neutral-400 via-blue-300 to-blue-300 border-l border-blue-100 absolute -left-1 top-[28%]"></div>
+    <div class="w-1 h-5 rounded-[0_0.1rem_0.1rem_0] bg-gradient-to-l from-neutral-400 via-blue-300 to-blue-300 border-l border-blue-100 absolute -left-1 top-[20%]"></div>
+    
+    <div class="h-full w-full bg-black rounded-[2.9rem] flex items-center justify-center box-border p-[0.5rem]">
+      
+      <!-- ============ TELA - TROQUE O CONTEÚDO AQUI ============ -->
+      <div class="h-full w-full rounded-[2.4rem] overflow-hidden relative flex flex-col">
+        
+        <!-- Dynamic Island -->
+        <div class="absolute top-0 left-0 right-0 flex justify-center z-20 pointer-events-none">
+          <div class="w-[5rem] h-[1.4rem] bg-black mt-[0.5rem] rounded-full"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between h-[2.4rem] px-7 font-[Inter]">
+          <span class="text-black text-[10px] font-semibold -ml-1">9:41</span>
+          <div class="flex items-center gap-[3px] -mr-1">
+            <!-- WiFi -->
+            <svg width="12" height="9" viewBox="0 0 15 12" fill="none" class="opacity-90">
+              <path d="M7.5 10.5C8.33 10.5 9 11.17 9 12C9 12.83 8.33 13.5 7.5 13.5C6.67 13.5 6 12.83 6 12C6 11.17 6.67 10.5 7.5 10.5Z" fill="black" transform="translate(0,-3)"/>
+              <path d="M4.5 8.5C5.3 7.7 6.35 7.25 7.5 7.25C8.65 7.25 9.7 7.7 10.5 8.5" stroke="black" stroke-width="1.3" stroke-linecap="round" transform="translate(0,-3)"/>
+              <path d="M2 6C3.45 4.55 5.4 3.75 7.5 3.75C9.6 3.75 11.55 4.55 13 6" stroke="black" stroke-width="1.3" stroke-linecap="round" transform="translate(0,-3)"/>
+            </svg>
+            <!-- Battery -->
+            <svg width="20" height="9" viewBox="0 0 25 12" fill="none" class="opacity-90">
+              <rect x="0" y="1" width="21" height="10" rx="2" stroke="black" stroke-width="1"/>
+              <rect x="1.5" y="2.5" width="18" height="7" rx="1" fill="black"/>
+              <rect x="22" y="4" width="2" height="4" rx="0.5" fill="black" opacity="0.4"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- ====== SEU CONTEÚDO AQUI ====== -->
+        <div class="w-full h-full bg-white flex items-center justify-center text-neutral-300 text-sm font-[Inter]">
+          Seu conteúdo aqui
+        </div>
+        <!-- ====== FIM DO CONTEÚDO ====== -->
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>
