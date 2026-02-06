@@ -288,7 +288,8 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       const result = isEdit ? await updatePersonalSale(sale.id, payload) : await createPersonalSale(payload)
       if (result.success) {
         toast.success(isEdit ? 'Venda atualizada' : 'Venda cadastrada')
-        router.push('/minhasvendas')
+        const saleId = result.data?.id || (isEdit ? sale.id : null)
+        router.push(saleId ? `/minhasvendas/${saleId}` : '/minhasvendas')
       } else {
         toast.error(result.error)
       }
@@ -362,17 +363,39 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     else setSwipedItemId(null)
   }
 
+  function hasTieredRuleForEntry(entry: ValueEntry): boolean {
+    const productId = entry.productId
+    if (productId) {
+      const product = selectedProducts.find((p) => p.id === productId)
+      if (product?.commission_rule_id) {
+        const rule = selectedSupplier?.commission_rules.find((r) => r.id === product.commission_rule_id)
+        if (rule?.type === 'tiered') return true
+      }
+    }
+    if (selectedSupplier) {
+      const supplierRule = selectedSupplier.commission_rules.find((r) => r.type === 'tiered' && r.is_default)
+      if (supplierRule) return true
+    }
+    return false
+  }
+
   function handleUpdateValueEntry(id: string, field: keyof Omit<ValueEntry, 'id'>, value: string | number) {
     setValueEntries((prev) =>
       prev.map((entry) => {
         if (entry.id === id) {
           const updatedEntry = { ...entry, [field]: value }
-          if (field === 'grossValue' || field === 'productId') {
+          if (field === 'productId') {
             const valStr = typeof value === 'string' ? value : String(value)
-            const newComm = getEffectiveRate(id, 'commission', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
-            const newTax = getEffectiveRate(id, 'tax', field === 'grossValue' ? valStr : undefined, field === 'productId' ? valStr : undefined)
-            if (newComm || field === 'productId') updatedEntry.commissionRate = String(newComm)
-            if (newTax || field === 'productId') updatedEntry.taxRate = String(newTax)
+            const newComm = getEffectiveRate(id, 'commission', undefined, valStr)
+            const newTax = getEffectiveRate(id, 'tax', undefined, valStr)
+            updatedEntry.commissionRate = String(newComm)
+            updatedEntry.taxRate = String(newTax)
+          } else if (field === 'grossValue' && hasTieredRuleForEntry(entry)) {
+            const valStr = typeof value === 'string' ? value : String(value)
+            const newComm = getEffectiveRate(id, 'commission', valStr, undefined)
+            const newTax = getEffectiveRate(id, 'tax', valStr, undefined)
+            updatedEntry.commissionRate = String(newComm)
+            updatedEntry.taxRate = String(newTax)
           }
           return updatedEntry
         }

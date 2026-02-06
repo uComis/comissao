@@ -108,8 +108,8 @@ export async function getPersonalSalesPaginated(
     query = query.ilike('client_name', `%${search.trim()}%`)
   }
 
-  // Ordenar por data (mais recentes primeiro)
-  query = query.order('sale_date', { ascending: false })
+  // Ordenar por data (mais recentes primeiro), desempate por criação mais recente
+  query = query.order('sale_date', { ascending: false }).order('created_at', { ascending: false })
 
   // Paginação
   const from = (page - 1) * pageSize
@@ -149,7 +149,7 @@ export async function getPersonalSales(): Promise<PersonalSale[]> {
     query = query.gte('sale_date', minDate.toISOString().split('T')[0])
   }
 
-  const { data, error } = await query.order('sale_date', { ascending: false })
+  const { data, error } = await query.order('sale_date', { ascending: false }).order('created_at', { ascending: false })
 
   if (error) throw error
   return data || []
@@ -179,7 +179,7 @@ export async function getPersonalSalesBySupplier(supplierId: string): Promise<Pe
     query = query.gte('sale_date', minDate.toISOString().split('T')[0])
   }
 
-  const { data, error } = await query.order('sale_date', { ascending: false })
+  const { data, error } = await query.order('sale_date', { ascending: false }).order('created_at', { ascending: false })
 
   if (error) throw error
   return data || []
