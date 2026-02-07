@@ -4,14 +4,16 @@ import Image from 'next/image';
 import { FileSpreadsheet, Layers, CalendarCheck } from 'lucide-react';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { useScrollReveal } from '@/hooks/use-scroll-reveal';
+import { PhoneMockup } from '@/components/ui/phone-mockup';
 
 const FEATURES = [
   {
     label: 'Sem planilha',
     icon: FileSpreadsheet,
     color: 'text-landing-primary', // Azul padrão
-    image: '/images/landing/mobile-1.png', // Substituir depois
-    alt: 'Cadastro simples, sem planilhas'
+    image: '/images/site/meus clientes/meus-clientes-light.png',
+    alt: 'Cadastro simples, sem planilhas',
+    useMockup: true,
   },
   {
     label: 'Várias pastas, 1 tela',
@@ -73,44 +75,49 @@ export function FeaturesShowcase() {
                 </div>
               )}
 
-              {/* Celular - pequeno, 60% da largura do card */}
+              {/* Celular */}
               <div
                 className={`relative w-full flex justify-center ${index === 1 ? '' : 'flex-1 mt-auto'}`}
               >
-                <div
-                  className="relative overflow-hidden w-[60%]"
-                  style={{
-                    aspectRatio: '381 / 450.6' // 60% da altura original (751 * 0.6)
-                  }}
-                >
-                  {/* Celular completo dentro, cortado visualmente */}
+                {feature.useMockup ? (
+                  <PhoneMockup
+                    images={[{ src: feature.image, statusBarMode: 'light', statusBarColor: '#f9f9f9' }]}
+                    visiblePercent={60}
+                    anchor={index === 1 ? 'bottom' : 'top'}
+                    className="w-[60%] drop-shadow-2xl"
+                  />
+                ) : (
                   <div
-                    className={`absolute inset-0 w-full ${index === 1 ? 'bottom-0 top-auto' : 'top-0 bottom-auto'}`}
+                    className="relative overflow-hidden w-[60%]"
                     style={{
-                      aspectRatio: '381 / 751',
-                      clipPath: index === 1 ? 'inset(40% 0 0 0)' : 'inset(0 0 40% 0)',
-                      height: '166.67%' // 100% / 0.6 para compensar clipPath
+                      aspectRatio: '381 / 450.6'
                     }}
                   >
-                    {/* Moldura do celular - placeholder */}
-                    {index === 1 ? (
-                      <div className="absolute inset-0 rounded-b-[2.5rem] border-b-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
-                    ) : (
-                      <div className="absolute inset-0 rounded-t-[2.5rem] border-t-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
-                    )}
-
-                    {/* Imagem dentro do celular */}
-                    <div className={`absolute inset-[8px] overflow-hidden ${index === 1 ? 'rounded-b-[2rem]' : 'rounded-t-[2rem]'}`}>
-                      <Image
-                        src={feature.image}
-                        alt={feature.alt}
-                        fill
-                        className={`object-cover ${index === 1 ? 'object-bottom' : 'object-top'}`}
-                        sizes="(max-width: 768px) 380px, 450px"
-                      />
+                    <div
+                      className={`absolute inset-0 w-full ${index === 1 ? 'bottom-0 top-auto' : 'top-0 bottom-auto'}`}
+                      style={{
+                        aspectRatio: '381 / 751',
+                        clipPath: index === 1 ? 'inset(40% 0 0 0)' : 'inset(0 0 40% 0)',
+                        height: '166.67%'
+                      }}
+                    >
+                      {index === 1 ? (
+                        <div className="absolute inset-0 rounded-b-[2.5rem] border-b-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
+                      ) : (
+                        <div className="absolute inset-0 rounded-t-[2.5rem] border-t-[8px] border-l-[8px] border-r-[8px] border-black shadow-2xl" />
+                      )}
+                      <div className={`absolute inset-[8px] overflow-hidden ${index === 1 ? 'rounded-b-[2rem]' : 'rounded-t-[2rem]'}`}>
+                        <Image
+                          src={feature.image}
+                          alt={feature.alt}
+                          fill
+                          className={`object-cover ${index === 1 ? 'object-bottom' : 'object-top'}`}
+                          sizes="(max-width: 768px) 380px, 450px"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Título embaixo - apenas para centro */}
