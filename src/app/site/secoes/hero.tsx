@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { PhoneMockup } from '@/components/ui/phone-mockup'
 import { useEffect, useState } from 'react'
 
 const palavras = ['certa', 'rápida', 'simples', 'precisa', 'segura']
@@ -100,21 +100,21 @@ export function Hero() {
 
       {/* Celular centralizado - cortado pela metade */}
       <div
-        className={`relative w-full flex justify-center mt-6 sm:mt-8 overflow-hidden h-[400px] sm:h-[450px] md:h-[500px] lg:h-[550px] transition-all ease-out ${
+        className={`relative w-full flex justify-center mt-6 sm:mt-8 transition-all ease-out ${
           mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
         }`}
         style={{ transitionDuration: '1000ms', transitionDelay: '500ms' }}
       >
-        <div className="relative w-[300px] sm:w-[340px] md:w-[400px] lg:w-[450px]">
-          <Image
-            src="/images/landing/iphone-dark-vertical.png"
-            alt="uComis app"
-            width={450}
-            height={920}
-            className="w-full h-auto drop-shadow-2xl"
-            priority
-          />
-        </div>
+        <PhoneMockup
+          images={[
+            { src: '/images/site/home/home_light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+            { src: '/images/site/home/home_escuro.png', statusBarMode: 'dark', statusBarColor: '#0a0a0a' },
+          ]}
+          interval={5}
+          visiblePercent={60}
+          anchor="top"
+          className="w-[300px] sm:w-[340px] md:w-[400px] lg:w-[450px] drop-shadow-2xl"
+        />
       </div>
     </section>
   )
