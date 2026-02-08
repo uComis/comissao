@@ -31,6 +31,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Printer } from 'lucide-react'
 import { useSetPageHeader, useHeaderActions } from '@/components/layout'
+import { SkeletonTransition } from '@/components/ui/skeleton-transition'
 import type { DashboardSummary, DashboardHistory } from '@/types'
 
 function formatCurrency(value: number): string {
@@ -59,12 +60,6 @@ function generatePeriods(): { value: string; label: string }[] {
   return periods
 }
 
-function formatPeriodLabel(period: string): string {
-  const [year, month] = period.split('-')
-  const date = new Date(Number(year), Number(month) - 1, 1)
-  const label = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(date)
-  return label.charAt(0).toUpperCase() + label.slice(1)
-}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -151,21 +146,7 @@ export default function DashboardPage() {
     </>
   )
 
-  if (orgLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!organization) {
+  if (!organization && !orgLoading) {
     return (
       <div className="text-muted-foreground text-center py-8">
         Organização não encontrada
@@ -173,8 +154,21 @@ export default function DashboardPage() {
     )
   }
 
+  const skeleton = (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-64" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+      </div>
+    </div>
+  )
+
   return (
-    <div className="space-y-6 animate-page-in">
+    <SkeletonTransition isLoading={orgLoading} skeleton={skeleton}>
+      <div className="space-y-6">
 
       {/* Gráfico de evolução multi-série */}
       <EvolutionChart data={history?.periods ?? []} loading={historyLoading} />
@@ -238,5 +232,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </SkeletonTransition>
   )
 }

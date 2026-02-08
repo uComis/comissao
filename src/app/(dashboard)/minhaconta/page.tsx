@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog"
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -40,7 +39,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import { SkeletonTransition } from '@/components/ui/skeleton-transition'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Item,
@@ -59,7 +58,6 @@ export default function MinhaContaPage() {
   const { profile, privacyMode, setPrivacyMode } = useAppData()
   const router = useRouter()
   const pathname = usePathname()
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [envVars, setEnvVars] = useState<EnvironmentVariable[]>([])
   const [envVarsLoading, setEnvVarsLoading] = useState(false)
   const [envVarsOpen, setEnvVarsOpen] = useState(false)
@@ -259,8 +257,32 @@ export default function MinhaContaPage() {
     }
   ]
 
-  return (
+  const skeleton = (
     <div className="space-y-6 max-w-2xl md:mx-auto">
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Skeleton className="h-20 w-20 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  const isLoading = !profile && !user
+
+  return (
+    <SkeletonTransition isLoading={isLoading} skeleton={skeleton}>
+      <div className="space-y-6 max-w-2xl md:mx-auto">
       <div className="relative overflow-hidden">
         {/* Menu List */}
         <div
@@ -711,6 +733,7 @@ export default function MinhaContaPage() {
         )}
       </div>
     </div>
+    </SkeletonTransition>
   )
 }
 

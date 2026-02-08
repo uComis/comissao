@@ -10,6 +10,7 @@ import { HomeDashboardData } from '@/lib/services/dashboard-service'
 import { GoalDialog } from '@/components/dashboard/goal-dialog'
 import { HomeSkeleton } from '@/components/dashboard/home-skeleton'
 import { HomeEmptyState } from '@/components/dashboard/home-empty-state'
+import { SkeletonTransition } from '@/components/ui/skeleton-transition'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import {
@@ -50,10 +51,8 @@ export default function AnalyticsPage() {
 
   useHeaderActions(null)
 
-  // Initial loading: show skeleton
-  if (initialLoading) {
-    return <HomeSkeleton />
-  }
+  const cards = data?.cards
+  const rankings = data?.rankings
 
   // Empty state: user has no data at all
   const isEmpty = data &&
@@ -62,149 +61,148 @@ export default function AnalyticsPage() {
     data.rankings.clients.length === 0 &&
     data.rankings.folders.length === 0
 
-  if (isEmpty) {
+  if (isEmpty && !initialLoading) {
     return (
-      <>
-        <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8 max-w-[1500px] md:px-0">
+      <div className="animate-page-in">
+        <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8">
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
         </div>
         <HomeEmptyState />
-      </>
+      </div>
     )
   }
 
-  const cards = data?.cards
-  const rankings = data?.rankings
-
   return (
-    <div className="space-y-8 animate-page-in">
+    <SkeletonTransition isLoading={initialLoading} skeleton={<HomeSkeleton />}>
+      <div className="space-y-8">
 
-      <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
-        <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-      </div>
+        <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
+          <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+        </div>
 
-      <div className={cn(
-        "grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 transition-opacity duration-300",
-        refreshing && "opacity-50 pointer-events-none"
-      )}>
-        {/* Grupo da Esquerda: 4 Cards em 2x2 */}
-        <div className="grid grid-cols-2 gap-2 md:gap-4 lg:col-span-2">
-          <StatCard
-            label="Minha Comissão"
-            value={formatCurrency(cards?.commission.current || 0)}
-            icon={Target}
-            valueClassName="truncate max-w-full"
-            progress={cards?.commission.progress}
-            remainingLabel={cards?.commission.goal && cards.commission.goal > 0 ? (cards.commission.current >= cards.commission.goal ? "Meta atingida!" : `Faltam ${formatCurrency(cards.commission.remaining)}`) : "Defina sua meta"}
-            showProgressBar={true}
-            onClick={() => setIsGoalDialogOpen(true)}
+        <div className={cn(
+          "grid gap-4 lg:grid-cols-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 transition-opacity duration-300",
+          refreshing && "opacity-50 pointer-events-none"
+        )}>
+          {/* Grupo da Esquerda: 4 Cards em 2x2 */}
+          <div className="grid grid-cols-2 gap-2 md:gap-4 lg:col-span-2">
+            <StatCard
+              label="Minha Comissão"
+              value={formatCurrency(cards?.commission.current || 0)}
+              icon={Target}
+              valueClassName="truncate max-w-full"
+              progress={cards?.commission.progress}
+              remainingLabel={cards?.commission.goal && cards.commission.goal > 0 ? (cards.commission.current >= cards.commission.goal ? "Meta atingida!" : `Faltam ${formatCurrency(cards.commission.remaining)}`) : "Defina sua meta"}
+              showProgressBar={true}
+              onClick={() => setIsGoalDialogOpen(true)}
+            />
+            <StatCard
+              label="Vendas"
+              value={formatCurrency(cards?.total_sales.value || 0)}
+              icon={DollarSign}
+              valueClassName="truncate max-w-full"
+              percentage={cards?.total_sales.trend}
+              percentageLabel="vs. mês anterior"
+            />
+            <StatCard
+              label="Vendas Realizadas"
+              value={cards?.sales_performed.value || 0}
+              icon={ShoppingCart}
+              percentage={cards?.sales_performed.trend}
+              percentageLabel="vs. mês anterior"
+            />
+            <StatCard
+              label="Recebimentos"
+              value={formatCurrency(data?.cards.finance.received || 0)}
+              icon={HandCoins}
+              valueClassName="whitespace-nowrap"
+              remainingLabel={data?.cards.finance && (data.cards.finance.pending > 0 || data.cards.finance.overdue > 0)
+                ? `Pendente: ${formatCurrency(data.cards.finance.pending)}${data.cards.finance.overdue > 0 ? ` (+${formatCurrency(data.cards.finance.overdue)} atrasado)` : ''}`
+                : "Tudo em dia!"}
+              percentage={data?.cards.finance && data.cards.finance.overdue > 0 ? -1 : undefined}
+              percentageLabel={data?.cards.finance && data.cards.finance.overdue > 0 ? "Atrasado" : undefined}
+            />
+          </div>
+
+          {/* <1400px: um card com toggle (Cliente | Pasta) */}
+          <div className="lg:col-span-2 min-[1400px]:hidden">
+            <Tabs defaultValue="pasta" className="h-full relative">
+              <div className="absolute right-3 top-3 z-10">
+                <TabsList className="bg-muted/70 border border-border/60 shadow-sm h-7 lg:h-9">
+                  <TabsTrigger
+                    value="cliente"
+                    className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                  >
+                    Cliente
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="pasta"
+                    className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
+                  >
+                    Pasta
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="cliente" className="h-full">
+                <RankingCard
+                  title="Faturamento por Cliente"
+                  data={rankings?.clients || []}
+                  accentColor="#ca8a04"
+                />
+              </TabsContent>
+              <TabsContent value="pasta" className="h-full">
+                <RankingCard
+                  title="Faturamento por Pasta"
+                  data={rankings?.folders || []}
+                  accentColor="#2563eb"
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* >=1400px: dois cards na lateral */}
+          <div className="hidden min-[1400px]:block">
+            <RankingCard
+              title="Faturamento por Cliente"
+              data={rankings?.clients || []}
+              accentColor="#ca8a04"
+            />
+          </div>
+          <div className="hidden min-[1400px]:block">
+            <RankingCard
+              title="Faturamento por Pasta"
+              data={rankings?.folders || []}
+              accentColor="#2563eb"
+                />
+          </div>
+        </div>
+
+        {/* Gráficos de Evolução */}
+        <div className={cn(
+          "grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10 transition-opacity duration-300",
+          refreshing && "opacity-50 pointer-events-none"
+        )}>
+          <CommissionEvolutionChart
+            title="Comissão por Pasta (6 Meses)"
+            description="Histórico das 5 pastas com maior rendimento este mês"
+            data={data?.evolution_folders || []}
+            names={data?.evolution_names?.folders || []}
           />
-          <StatCard
-            label="Vendas"
-            value={formatCurrency(cards?.total_sales.value || 0)}
-            icon={DollarSign}
-            valueClassName="truncate max-w-full"
-            percentage={cards?.total_sales.trend}
-            percentageLabel="vs. mês anterior"
-          />
-          <StatCard
-            label="Vendas Realizadas"
-            value={cards?.sales_performed.value || 0}
-            icon={ShoppingCart}
-            percentage={cards?.sales_performed.trend}
-            percentageLabel="vs. mês anterior"
-          />
-          <StatCard
-            label="Recebimentos"
-            value={formatCurrency(data?.cards.finance.received || 0)}
-            icon={HandCoins}
-            valueClassName="whitespace-nowrap"
-            remainingLabel={data?.cards.finance && (data.cards.finance.pending > 0 || data.cards.finance.overdue > 0)
-              ? `Pendente: ${formatCurrency(data.cards.finance.pending)}${data.cards.finance.overdue > 0 ? ` (+${formatCurrency(data.cards.finance.overdue)} atrasado)` : ''}`
-              : "Tudo em dia!"}
-            percentage={data?.cards.finance && data.cards.finance.overdue > 0 ? -1 : undefined}
-            percentageLabel={data?.cards.finance && data.cards.finance.overdue > 0 ? "Atrasado" : undefined}
+          <CommissionEvolutionChart
+            title="Comissão por Cliente (6 Meses)"
+            description="Histórico dos 5 clientes com maior rendimento este mês"
+            data={data?.evolution_clients || []}
+            names={data?.evolution_names?.clients || []}
           />
         </div>
 
-        {/* <1400px: um card com toggle (Cliente | Pasta) */}
-        <div className="lg:col-span-2 min-[1400px]:hidden">
-          <Tabs defaultValue="pasta" className="h-full relative">
-            <div className="absolute right-3 top-3 z-10">
-              <TabsList className="bg-muted/70 border border-border/60 shadow-sm h-7 lg:h-9">
-                <TabsTrigger
-                  value="cliente"
-                  className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
-                >
-                  Cliente
-                </TabsTrigger>
-                <TabsTrigger
-                  value="pasta"
-                  className="text-xs lg:text-sm px-2 py-0.5 lg:py-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border data-[state=active]:border-primary/60"
-                >
-                  Pasta
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="cliente" className="h-full">
-              <RankingCard
-                title="Faturamento por Cliente"
-                data={rankings?.clients || []}
-                accentColor="#ca8a04"
-              />
-            </TabsContent>
-            <TabsContent value="pasta" className="h-full">
-              <RankingCard
-                title="Faturamento por Pasta"
-                data={rankings?.folders || []}
-                accentColor="#2563eb"
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* >=1400px: dois cards na lateral */}
-        <div className="hidden min-[1400px]:block">
-          <RankingCard
-            title="Faturamento por Cliente"
-            data={rankings?.clients || []}
-            accentColor="#ca8a04"
-          />
-        </div>
-        <div className="hidden min-[1400px]:block">
-          <RankingCard
-            title="Faturamento por Pasta"
-            data={rankings?.folders || []}
-            accentColor="#2563eb"
-          />
-        </div>
-      </div>
-
-      {/* Gráficos de Evolução */}
-      <div className={cn(
-        "grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-[600px] lg:max-w-none mx-auto lg:mx-0 pb-10 transition-opacity duration-300",
-        refreshing && "opacity-50 pointer-events-none"
-      )}>
-        <CommissionEvolutionChart
-          title="Comissão por Pasta (6 Meses)"
-          description="Histórico das 5 pastas com maior rendimento este mês"
-          data={data?.evolution_folders || []}
-          names={data?.evolution_names?.folders || []}
+        <GoalDialog
+          open={isGoalDialogOpen}
+          onOpenChange={setIsGoalDialogOpen}
+          currentGoal={cards?.commission.goal || 0}
+          onSuccess={loadData}
         />
-        <CommissionEvolutionChart
-          title="Comissão por Cliente (6 Meses)"
-          description="Histórico dos 5 clientes com maior rendimento este mês"
-          data={data?.evolution_clients || []}
-          names={data?.evolution_names?.clients || []}
-        />
       </div>
-
-      <GoalDialog
-        open={isGoalDialogOpen}
-        onOpenChange={setIsGoalDialogOpen}
-        currentGoal={cards?.commission.goal || 0}
-        onSuccess={loadData}
-      />
-    </div>
+    </SkeletonTransition>
   )
 }
