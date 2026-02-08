@@ -36,11 +36,10 @@ export function CtaFinal() {
           {/* Título */}
           <ScrollReveal className="space-y-6 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide text-white">
-              Você sabe sua{' '}
+              Previsibilidade real para suas{' '}
               <span className="bg-gradient-to-r from-[#a78bfa] via-[#60a5fa] to-[#38bdf8] bg-clip-text text-transparent">
-                comissão
+                comissões
               </span>
-              {' '}desse e dos próximos meses?
             </h2>
             <p className="text-xl text-gray-300 leading-relaxed">
               Com o uComis, sua comissão deixa de ser mistério e vira fato.

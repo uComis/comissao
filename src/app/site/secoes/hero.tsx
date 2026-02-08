@@ -72,7 +72,7 @@ export function Hero() {
             }`}
             style={{ transitionDuration: '700ms', transitionDelay: '150ms' }}
           >
-            Rápido e fácil, organize suas comissões em um só lugar
+            A inteligência financeira que sua representação precisava.
           </p>
 
           {/* Botão CTA */}
