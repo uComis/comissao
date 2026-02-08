@@ -1,33 +1,43 @@
 'use client'
 
 import Image from 'next/image';
-import { FileSpreadsheet, Layers, CalendarCheck } from 'lucide-react';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
 import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import { PhoneMockup } from '@/components/ui/phone-mockup';
 
-const FEATURES = [
+interface Feature {
+  label: string;
+  color: string;
+  image: string;
+  alt: string;
+  useMockup?: boolean;
+  statusBarMode?: 'light' | 'dark';
+  statusBarColor?: string;
+}
+
+const FEATURES: Feature[] = [
   {
-    label: 'Sem planilha',
-    icon: FileSpreadsheet,
+    label: 'Onde você ganha mais? Compare clientes e pastas',
     color: 'text-landing-primary', // Azul padrão
     image: '/images/site/meus clientes/meus-clientes-light.png',
-    alt: 'Cadastro simples, sem planilhas',
+    alt: 'Comparativo de comissões por cliente e pasta',
     useMockup: true,
   },
   {
-    label: 'Várias pastas, 1 tela',
-    icon: Layers,
+    label: 'Valor na tela, esqueça fórmulas',
     color: '#67C23A', // Verde
-    image: '/images/landing/mobile-2.png', // Substituir depois
-    alt: 'Todas as pastas consolidadas em uma tela'
+    image: '/images/site/valor/valor-light.png',
+    alt: 'Lançamento de valor com cálculo de comissão',
+    useMockup: true,
   },
   {
-    label: 'Zero surpresas',
-    icon: CalendarCheck,
+    label: 'Múltiplas regras, por produto ou faixa',
     color: '#E6A23C', // Laranja
-    image: '/images/landing/mobile-1.png', // Substituir depois
-    alt: 'Saiba exatamente quando vai receber'
+    image: '/images/site/regra/regra-dark.png',
+    alt: 'Configuração flexível de regras de comissão',
+    useMockup: true,
+    statusBarMode: 'dark',
+    statusBarColor: '#0a0a0a'
   }
 ];
 
@@ -59,19 +69,13 @@ export function FeaturesShowcase() {
             >
               {/* Título no topo - apenas para esquerda e direita */}
               {index !== 1 && (
-                <div className="pt-8 px-10 mb-6">
-                  <div className="flex items-center justify-center gap-3">
-                    <feature.icon
-                      className={`w-5 h-5 ${feature.color.startsWith('#') ? '' : feature.color}`}
-                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
-                    />
-                    <h3
-                      className={`text-base lg:text-lg font-bold ${feature.color.startsWith('#') ? '' : feature.color}`}
-                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
-                    >
-                      {feature.label}
-                    </h3>
-                  </div>
+                <div className="pt-8 px-6 mb-6">
+                  <h3
+                    className={`text-base lg:text-lg font-bold text-center ${feature.color.startsWith('#') ? '' : feature.color}`}
+                    style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                  >
+                    {feature.label}
+                  </h3>
                 </div>
               )}
 
@@ -81,7 +85,11 @@ export function FeaturesShowcase() {
               >
                 {feature.useMockup ? (
                   <PhoneMockup
-                    images={[{ src: feature.image, statusBarMode: 'light', statusBarColor: '#f9f9f9' }]}
+                    images={[{ 
+                      src: feature.image, 
+                      statusBarMode: feature.statusBarMode || 'light', 
+                      statusBarColor: feature.statusBarColor || '#f9f9f9' 
+                    }]}
                     visiblePercent={60}
                     anchor={index === 1 ? 'bottom' : 'top'}
                     className="w-[60%] drop-shadow-2xl"
@@ -122,19 +130,13 @@ export function FeaturesShowcase() {
 
               {/* Título embaixo - apenas para centro */}
               {index === 1 && (
-                <div className="pb-8 px-10 mt-6">
-                  <div className="flex items-center justify-center gap-3">
-                    <feature.icon
-                      className={`w-5 h-5 ${feature.color.startsWith('#') ? '' : feature.color}`}
-                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
-                    />
-                    <h3
-                      className={`text-base lg:text-lg font-bold ${feature.color.startsWith('#') ? '' : feature.color}`}
-                      style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
-                    >
-                      {feature.label}
-                    </h3>
-                  </div>
+                <div className="pb-8 px-6 mt-6">
+                  <h3
+                    className={`text-base lg:text-lg font-bold text-center ${feature.color.startsWith('#') ? '' : feature.color}`}
+                    style={feature.color.startsWith('#') ? { color: feature.color } : undefined}
+                  >
+                    {feature.label}
+                  </h3>
                 </div>
               )}
             </div>

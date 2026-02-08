@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { PieChart, Clock, CalendarCheck } from 'lucide-react'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
+import { PhoneMockup } from '@/components/ui/phone-mockup'
 
 const features = [
   { icon: PieChart, label: 'Receita por fornecedor' },
@@ -40,7 +41,7 @@ export function Simple() {
             <button className="flex items-center gap-4 mt-6 group">
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
-                  src="/images/landing/iphone-dark-vertical.png"
+                  src="/images/site/minhas-vendas/minhas_vendas_dark.png"
                   alt="Dashboard"
                   width={56}
                   height={56}
@@ -61,17 +62,14 @@ export function Simple() {
 
           {/* iPhone mockup - Right side */}
           <ScrollReveal variant="slide-left" delay={150} className="flex-1 flex justify-center">
-            <div className="bg-[#f5f5f7] rounded-[40px] rounded-b-none pt-4 sm:pt-6 px-8 sm:px-12 pb-0 overflow-hidden h-[500px] sm:h-[580px]">
-              <div className="relative w-[340px] sm:w-[400px]">
-                <Image
-                  src="/images/landing/iphone-dark-vertical.png"
-                  alt="Dashboard de comissões"
-                  width={450}
-                  height={920}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
+            <PhoneMockup
+              images={[
+                { src: '/images/site/minhas-vendas/minhas_vendas_dark.png', statusBarMode: 'dark', statusBarColor: '#0a0a0a' },
+              ]}
+              visiblePercent={75}
+              anchor="top"
+              className="w-[280px] sm:w-[320px] drop-shadow-2xl"
+            />
           </ScrollReveal>
         </div>
       </div>

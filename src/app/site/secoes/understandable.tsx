@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { FolderOpen, Settings, List } from 'lucide-react'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
+import { PhoneMockup } from '@/components/ui/phone-mockup'
 
 const features = [
   { icon: FolderOpen, label: 'Multi-pasta sem limites' },
@@ -15,17 +16,14 @@ export function Understandable() {
         <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
           {/* iPhone mockup - Left side */}
           <ScrollReveal variant="slide-right" className="flex-1 flex justify-center">
-            <div className="bg-[#f5f5f7] rounded-[40px] rounded-b-none pt-4 sm:pt-6 px-8 sm:px-12 pb-0 overflow-hidden h-[500px] sm:h-[580px]">
-              <div className="relative w-[340px] sm:w-[400px]">
-                <Image
-                  src="/images/landing/iphone-dark-vertical.png"
-                  alt="Múltiplas pastas consolidadas"
-                  width={450}
-                  height={920}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
+            <PhoneMockup
+              images={[
+                { src: '/images/site/minhas-pastas/minhas-pastas-light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+              ]}
+              visiblePercent={75}
+              anchor="top"
+              className="w-[280px] sm:w-[320px] drop-shadow-2xl"
+            />
           </ScrollReveal>
 
           {/* Content - Right side */}
@@ -55,7 +53,7 @@ export function Understandable() {
             <button className="flex items-center gap-4 mt-6 group">
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
-                  src="/images/landing/iphone-dark-vertical.png"
+                  src="/images/site/minhas-pastas/minhas-pastas-light.png"
                   alt="Consolidação de pastas"
                   width={56}
                   height={56}
