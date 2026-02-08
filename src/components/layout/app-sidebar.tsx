@@ -27,6 +27,7 @@ import { SidebarTrialCard } from '@/components/billing/sidebar-trial-card'
 import { UserControl } from './user-control'
 import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
+import { cn } from '@/lib/utils'
 
 type UserMode = 'personal' | 'organization' | null
 
@@ -110,8 +111,6 @@ export function AppSidebar() {
   const isDark = mounted && resolvedTheme === 'dark'
   const logoSrc = isDark ? '/images/logo/uComis_white.png' : '/images/logo/uComis_black.png'
 
-  if (!mounted) return null
-
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader>
@@ -122,7 +121,10 @@ export function AppSidebar() {
             width={140}
             height={28}
             priority
-            className="h-7 w-auto opacity-90 hover:opacity-100 transition-opacity"
+            className={cn(
+              "h-7 w-auto opacity-90 hover:opacity-100 transition-opacity",
+              !mounted && "invisible"
+            )}
           />
           <button
             onClick={toggleSidebar}

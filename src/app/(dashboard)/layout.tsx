@@ -10,15 +10,18 @@ import { getCurrentUser } from '@/app/actions/user'
 import { PageHeaderProvider, LayoutPageHeader } from '@/components/layout'
 import { RoutePageHeader } from './route-page-header'
 import { PageTransition } from '@/components/layout/page-transition'
+import { cookies } from 'next/headers'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Task 3: Chamada única no servidor
   const currentUser = await getCurrentUser()
+  const cookieStore = await cookies()
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   return (
     <CurrentUserProvider initialData={currentUser}>
       <AiChatProvider>
-        <SidebarProvider>
+        <SidebarProvider defaultOpen={defaultOpen}>
           <AppSidebar />
           <SidebarInset className="flex flex-col">
             <PageHeaderProvider>
