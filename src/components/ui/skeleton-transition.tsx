@@ -10,9 +10,28 @@ interface SkeletonTransitionProps {
 }
 
 export function SkeletonTransition({ isLoading, skeleton, children }: SkeletonTransitionProps) {
-  if (isLoading) {
-    return <>{skeleton}</>
-  }
-
-  return <>{children}</>
+  return (
+    <AnimatePresence mode="wait">
+      {isLoading ? (
+        <motion.div
+          key="skeleton"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {skeleton}
+        </motion.div>
+      ) : (
+        <motion.div
+          key="content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
