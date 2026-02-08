@@ -42,12 +42,12 @@ export function Confidence() {
           </div>
 
           <DesktopMockup
-            images={[
-              '/images/site/desktop/faturamento-lightpng.png',
-              '/images/site/desktop/faturamento-dark.png',
+            videoSources={[
+              '/images/site/desktop/dash-light-1080p.mp4',
+              '/images/site/desktop/dash-dark-1080p.mp4',
             ]}
-            interval={5}
-            url="ucomis.com.br/recebiveis"
+            videoPauseInterval={3}
+            url="ucomis.com.br/dashboard"
             className="mt-8 -mb-32"
           />
 
