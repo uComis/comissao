@@ -25,6 +25,8 @@ interface PhoneMockupProps {
   statusBarColor?: string
   /** Hint de tamanho para o browser (padrão: '(max-width: 640px) 280px, 400px') */
   sizes?: string
+  /** Se a primeira imagem deve carregar com prioridade (LCP) */
+  priority?: boolean
   /** Classes extras para o container externo */
   className?: string
 }
@@ -37,6 +39,7 @@ export function PhoneMockup({
   statusBarMode = 'light',
   sizes = '(max-width: 640px) 280px, 400px',
   statusBarColor,
+  priority = false,
   className,
 }: PhoneMockupProps) {
   // Normaliza para PhoneImage[]
@@ -164,7 +167,7 @@ export function PhoneMockup({
                           i === currentIndex ? 'opacity-100' : 'opacity-0'
                         )}
                         sizes={sizes}
-                        priority={i === 0}
+                        priority={priority && i === 0}
                       />
                     ))}
                   </div>

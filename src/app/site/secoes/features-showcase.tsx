@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import { ScrollReveal } from '@/components/ui/scroll-reveal';
-import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 import { PhoneMockup } from '@/components/ui/phone-mockup';
+import { useScrollReveal } from '@/hooks/use-scroll-reveal';
 
 interface Feature {
   label: string;

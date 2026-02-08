@@ -1,3 +1,5 @@
+'use client'
+
 import { CheckCircle2, Search, Scale } from 'lucide-react'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
 import { DesktopMockup } from '@/components/ui/desktop-mockup'

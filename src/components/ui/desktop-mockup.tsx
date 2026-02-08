@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 interface DesktopMockupProps {
   /** Path do vídeo demonstrativo (opcional) */
@@ -33,6 +34,7 @@ export function DesktopMockup({
 }: DesktopMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 })
   
   const sources = videoSources || (videoSrc ? [videoSrc] : [])
   const hasVideoSequence = sources.length > 0
@@ -57,7 +59,7 @@ export function DesktopMockup({
   }
 
   return (
-    <div className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
+    <div ref={ref} className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
       {/* Browser Window Header */}
       <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
         <div className="flex gap-2">
@@ -72,37 +74,39 @@ export function DesktopMockup({
       
       {/* Content Area */}
       <div className="relative aspect-[16/9] w-full bg-white overflow-hidden">
-        {hasVideoSequence ? (
-          <AnimatePresence mode="wait">
-            <motion.video
-              key={sources[currentVideoIndex]}
-              src={sources[currentVideoIndex]}
-              autoPlay
-              muted
-              playsInline
-              onEnded={handleVideoEnded}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8 }}
-              className="w-full h-full object-cover object-top"
-            />
-          </AnimatePresence>
-        ) : (
-          images.map((src, i) => (
-            <Image
-              key={src}
-              src={src}
-              alt="Dashboard Preview"
-              fill
-              className={cn(
-                'w-full h-full object-cover object-top transition-opacity duration-1000',
-                i === currentIndex ? 'opacity-100' : 'opacity-0'
-              )}
-              sizes="(max-width: 1200px) 100vw, 1200px"
-              priority={i === 0}
-            />
-          ))
+        {isVisible && (
+          hasVideoSequence ? (
+            <AnimatePresence mode="wait">
+              <motion.video
+                key={sources[currentVideoIndex]}
+                src={sources[currentVideoIndex]}
+                autoPlay
+                muted
+                playsInline
+                onEnded={handleVideoEnded}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8 }}
+                className="w-full h-full object-cover object-top"
+              />
+            </AnimatePresence>
+          ) : (
+            images.map((src, i) => (
+              <Image
+                key={src}
+                src={src}
+                alt="Dashboard Preview"
+                fill
+                className={cn(
+                  'w-full h-full object-cover object-top transition-opacity duration-1000',
+                  i === currentIndex ? 'opacity-100' : 'opacity-0'
+                )}
+                sizes="(max-width: 1200px) 100vw, 1200px"
+                priority={i === 0}
+              />
+            ))
+          )
         )}
       </div>
     </div>
