@@ -113,6 +113,7 @@ export function Hero() {
           interval={5}
           visiblePercent={60}
           anchor="top"
+          sizes="(max-width: 640px) 300px, (max-width: 768px) 340px, (max-width: 1024px) 400px, 450px"
           className="w-[300px] sm:w-[340px] md:w-[400px] lg:w-[450px] drop-shadow-2xl"
         />
       </div>

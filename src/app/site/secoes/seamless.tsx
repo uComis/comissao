@@ -22,6 +22,7 @@ export function Seamless() {
               ]}
               visiblePercent={75}
               anchor="top"
+              sizes="(max-width: 640px) 280px, 320px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />
           </ScrollReveal>

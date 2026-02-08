@@ -85,13 +85,14 @@ export function FeaturesShowcase() {
               >
                 {feature.useMockup ? (
                   <PhoneMockup
-                    images={[{ 
-                      src: feature.image, 
-                      statusBarMode: feature.statusBarMode || 'light', 
-                      statusBarColor: feature.statusBarColor || '#f9f9f9' 
+                    images={[{
+                      src: feature.image,
+                      statusBarMode: feature.statusBarMode || 'light',
+                      statusBarColor: feature.statusBarColor || '#f9f9f9'
                     }]}
                     visiblePercent={60}
                     anchor={index === 1 ? 'bottom' : 'top'}
+                    sizes="(max-width: 768px) 200px, 220px"
                     className="w-[60%] drop-shadow-2xl"
                   />
                 ) : (

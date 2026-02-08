@@ -23,6 +23,8 @@ interface PhoneMockupProps {
   statusBarMode?: 'light' | 'dark'
   /** Cor padrão de fundo da status bar (padrão: transparente) */
   statusBarColor?: string
+  /** Hint de tamanho para o browser (padrão: '(max-width: 640px) 280px, 400px') */
+  sizes?: string
   /** Classes extras para o container externo */
   className?: string
 }
@@ -33,6 +35,7 @@ export function PhoneMockup({
   visiblePercent = 100,
   anchor = 'top',
   statusBarMode = 'light',
+  sizes = '(max-width: 640px) 280px, 400px',
   statusBarColor,
   className,
 }: PhoneMockupProps) {
@@ -160,7 +163,7 @@ export function PhoneMockup({
                           'object-cover object-top transition-opacity duration-700',
                           i === currentIndex ? 'opacity-100' : 'opacity-0'
                         )}
-                        sizes="(max-width: 640px) 280px, 400px"
+                        sizes={sizes}
                         priority={i === 0}
                       />
                     ))}
