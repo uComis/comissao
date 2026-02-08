@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
-import { useUser } from '@/contexts/app-data-context'
+import { useAppData } from '@/contexts/app-data-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { LogOut, Pencil, Eye, EyeOff, Server, Copy, Check, ArrowRight, Shield, Mail, User, CreditCard, ChevronLeft, ChevronRight, Save } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
@@ -39,6 +39,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Item,
@@ -54,7 +56,7 @@ type MenuSection = 'perfil' | 'seguranca' | 'plano'
 
 export default function MinhaContaPage() {
   const { signOut, user, linkIdentity } = useAuth()
-  const { profile } = useUser()
+  const { profile, privacyMode, setPrivacyMode } = useAppData()
   const router = useRouter()
   const pathname = usePathname()
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
@@ -224,13 +226,15 @@ export default function MinhaContaPage() {
     }
   }
 
-  const name = profile?.name || 'Sem nome'
-  const initials = name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || profile?.email?.[0].toUpperCase() || '?'
+  const name = privacyMode ? 'Nome Público' : (profile?.name || 'Sem nome')
+  const initials = privacyMode 
+    ? 'MH' 
+    : (name
+        ?.split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || profile?.email?.[0].toUpperCase() || '?')
 
   const isOrganizationEnabled = process.env.NEXT_PUBLIC_ENABLE_ORGANIZATION === 'true'
 
@@ -330,7 +334,7 @@ export default function MinhaContaPage() {
                     <div className="flex items-start justify-between mb-6">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-20 w-20 ring-2 ring-border">
-                          <AvatarImage src={profile?.avatar_url || undefined} />
+                          {!privacyMode && <AvatarImage src={profile?.avatar_url || undefined} />}
                           <AvatarFallback className="text-xl font-semibold">{initials}</AvatarFallback>
                         </Avatar>
                         <div className="space-y-1">
@@ -340,7 +344,7 @@ export default function MinhaContaPage() {
                               <Badge variant="secondary" className="text-xs">Admin</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                          <p className="text-sm text-muted-foreground">{privacyMode ? 'public@ucomis.com.br' : profile?.email}</p>
                         </div>
                       </div>
 
@@ -408,6 +412,26 @@ export default function MinhaContaPage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {profile?.is_super_admin && (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <CardTitle className="text-base">Modo Público (Modo Print)</CardTitle>
+                          <CardDescription className="text-xs">
+                            Oculta sua foto de perfil e seções administrativas para screenshots.
+                          </CardDescription>
+                        </div>
+                        <Switch 
+                          checked={privacyMode} 
+                          onCheckedChange={setPrivacyMode}
+                          id="privacy-mode-switch"
+                        />
+                      </div>
+                    </CardHeader>
+                  </Card>
+                )}
 
                 {isOrganizationEnabled && (
                   <Card>

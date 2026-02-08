@@ -39,6 +39,8 @@ type AppDataContextType = {
   profile: UserProfile | null
   organization: Organization | null
   userMode: UserMode
+  privacyMode: boolean
+  setPrivacyMode: (value: boolean) => void
   loading: boolean
   refresh: () => Promise<void>
 }
@@ -49,6 +51,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [userMode, setUserMode] = useState<UserMode>(null)
+  const [privacyMode, _setPrivacyMode] = useState<boolean>(false)
   const [loading, setLoading] = useState(true)
   const { user, isConfigured } = useAuth()
   const supabase = createClient()
@@ -169,6 +172,16 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   }, [user, supabase])
 
   useEffect(() => {
+    // Carregar privacyMode do localStorage
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('privacyMode')
+      if (stored === 'true') {
+        _setPrivacyMode(true)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     if (!isConfigured) {
       setLoading(false)
       return
@@ -181,12 +194,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     await fetchAllData()
   }, [fetchAllData])
 
+  const setPrivacyMode = useCallback((value: boolean) => {
+    _setPrivacyMode(value)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('privacyMode', String(value))
+    }
+  }, [])
+
   return (
     <AppDataContext.Provider
       value={{
         profile,
         organization,
         userMode,
+        privacyMode,
+        setPrivacyMode,
         loading: !isConfigured ? false : loading,
         refresh,
       }}

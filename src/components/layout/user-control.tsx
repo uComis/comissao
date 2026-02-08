@@ -1,6 +1,6 @@
 'use client'
 
-import { useUser } from '@/contexts/app-data-context'
+import { useAppData } from '@/contexts/app-data-context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import Link from 'next/link'
@@ -25,15 +25,17 @@ function getAvatarColor(name: string): string {
 }
 
 export function UserControl() {
-  const { profile } = useUser()
+  const { profile, privacyMode } = useAppData()
 
-  const name = profile?.name || 'Usuário'
-  const initials = name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || profile?.email?.[0].toUpperCase() || 'U'
+  const name = privacyMode ? 'Nome Público' : (profile?.name || 'Usuário')
+  const initials = privacyMode 
+    ? 'MH' 
+    : (name
+        ?.split(' ')
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || profile?.email?.[0].toUpperCase() || 'U')
 
   return (
     <SidebarMenu>
@@ -45,12 +47,12 @@ export function UserControl() {
         >
           <Link href="/minhaconta">
             <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.email ?? ''} />
+              {!privacyMode && <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.email ?? ''} />}
               <AvatarFallback className="rounded-lg text-white font-semibold text-xs" style={{ backgroundColor: getAvatarColor(name) }}>{initials}</AvatarFallback>
             </Avatar>
             <div className="hidden md:grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold">{name}</span>
-              <span className="truncate text-xs">{profile?.email}</span>
+              <span className="truncate text-xs">{privacyMode ? 'public@ucomis.com.br' : profile?.email}</span>
             </div>
           </Link>
         </SidebarMenuButton>

@@ -17,9 +17,7 @@ import {
 import { Home, Users, Scale, ShoppingCart, Building2, Settings, Plus, Wallet, Shield, Bug, Mail, PanelLeft } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useAuth } from '@/contexts/auth-context'
-import { useUser, useUserMode } from '@/contexts/app-data-context'
-import { createClient } from '@/lib/supabase'
+import { useAppData, useUserMode } from '@/contexts/app-data-context'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
 import { UsageWidget } from '@/components/billing/usage-widget'
@@ -28,8 +26,8 @@ import { UserControl } from './user-control'
 import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
 import { cn } from '@/lib/utils'
+import { motion } from 'framer-motion'
 
-type UserMode = 'personal' | 'organization' | null
 
 type MenuItem = {
   title: string
@@ -91,8 +89,7 @@ const personalMenuSections: MenuSection[] = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
-  const { profile } = useUser()
+  const { profile, privacyMode } = useAppData()
   const { userMode } = useUserMode() // ✅ Usa contexto global (sem query)
   const { resolvedTheme } = useTheme()
   const { toggleSidebar } = useSidebar()
@@ -135,42 +132,66 @@ export function AppSidebar() {
           </button>
         </div>
       </SidebarHeader>
-      <SidebarContent>
-        {menuSections.map((section, index) => (
-          <div key={section.label}>
-            {index > 0 && <SidebarSeparator className="my-1 opacity-30" />}
+      <SidebarContent className="overflow-x-hidden">
+        {menuSections.map((section, sectionIndex) => (
+          <motion.div
+            key={section.label}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{
+              duration: 0.4,
+              delay: sectionIndex * 0.1,
+              ease: [0.23, 1, 0.32, 1],
+            }}
+          >
+            {sectionIndex > 0 && <SidebarSeparator className="my-1 opacity-30" />}
             <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
-                  {section.items.map((item) => (
-                    <SidebarMenuItem key={item.title} className="relative">
-                      <SidebarMenuButton asChild isActive={pathname === item.url || pathname === item.actionUrl}>
-                        <Link href={item.url}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      {item.actionUrl && (
-                        <Link
-                          href={item.actionUrl}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors"
-                          title="Nova Venda"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Link>
-                      )}
-                    </SidebarMenuItem>
+                  {section.items.map((item, itemIndex) => (
+                    <motion.div
+                      key={item.title}
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        duration: 0.3,
+                        delay: (sectionIndex * 0.1) + (itemIndex * 0.05),
+                        ease: [0.23, 1, 0.32, 1],
+                      }}
+                    >
+                      <SidebarMenuItem className="relative">
+                        <SidebarMenuButton asChild isActive={pathname === item.url || pathname === item.actionUrl}>
+                          <Link href={item.url}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        {item.actionUrl && (
+                          <Link
+                            href={item.actionUrl}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors"
+                            title="Nova Venda"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Link>
+                        )}
+                      </SidebarMenuItem>
+                    </motion.div>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          </div>
+          </motion.div>
         ))}
         
-        {/* Seção Admin - só visível para super admin */}
-        {isSuperAdmin && (
-          <>
+        {/* Seção Admin - só visível para super admin e quando NÃO está em modo privacidade */}
+        {isSuperAdmin && !privacyMode && (
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          >
             <SidebarSeparator className="my-1 opacity-30" />
             <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Admin</SidebarGroupLabel>
@@ -187,12 +208,16 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          </>
+          </motion.div>
         )}
         
-        {/* Seção Debug - só visível em localhost + DEBUG_MODE=true */}
-        {debugMode && (
-          <>
+        {/* Seção Debug - só visível em localhost + DEBUG_MODE=true e quando NÃO está em modo privacidade */}
+        {debugMode && !privacyMode && (
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
+          >
             <SidebarSeparator className="my-1 opacity-30" />
             <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Debug</SidebarGroupLabel>
@@ -217,7 +242,7 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          </>
+          </motion.div>
         )}
       </SidebarContent>
       <SidebarFooter>
