@@ -224,7 +224,7 @@ export default function MinhaContaPage() {
     }
   }
 
-  const name = privacyMode ? 'Nome Público' : (profile?.name || 'Sem nome')
+  const name = privacyMode ? 'John Doe' : (profile?.name || 'Sem nome')
   const initials = privacyMode 
     ? 'MH' 
     : (name
@@ -366,7 +366,7 @@ export default function MinhaContaPage() {
                               <Badge variant="secondary" className="text-xs">Admin</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{privacyMode ? 'public@ucomis.com.br' : profile?.email}</p>
+                          <p className="text-sm text-muted-foreground">{privacyMode ? 'john.doe@ucomis.com.br' : profile?.email}</p>
                         </div>
                       </div>
 

@@ -346,7 +346,7 @@ export default function VendasPage() {
   }
 
   return (
-    <div className="space-y-6 animate-page-in">
+    <div className="space-y-6">
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

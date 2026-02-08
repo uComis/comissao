@@ -27,7 +27,7 @@ function getAvatarColor(name: string): string {
 export function UserControl() {
   const { profile, privacyMode } = useAppData()
 
-  const name = privacyMode ? 'Nome Público' : (profile?.name || 'Usuário')
+  const name = privacyMode ? 'John Doe' : (profile?.name || 'Usuário')
   const initials = privacyMode 
     ? 'MH' 
     : (name
@@ -52,7 +52,7 @@ export function UserControl() {
             </Avatar>
             <div className="hidden md:grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-semibold">{name}</span>
-              <span className="truncate text-xs">{privacyMode ? 'public@ucomis.com.br' : profile?.email}</span>
+              <span className="truncate text-xs">{privacyMode ? 'john.doe@ucomis.com.br' : profile?.email}</span>
             </div>
           </Link>
         </SidebarMenuButton>

@@ -9,7 +9,6 @@ import { CurrentUserProvider } from '@/contexts/current-user-context'
 import { getCurrentUser } from '@/app/actions/user'
 import { PageHeaderProvider, LayoutPageHeader } from '@/components/layout'
 import { RoutePageHeader } from './route-page-header'
-import { PageTransition } from '@/components/layout/page-transition'
 import { cookies } from 'next/headers'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -40,9 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </BillingNotificationProvider>
               <main className="flex-1 pb-32 md:pb-6">
                 <div className="max-w-[1500px] mx-auto px-6 pt-6">
-                  <PageTransition>
-                    {children}
-                  </PageTransition>
+                  {children}
                 </div>
               </main>
               <BottomNav />

@@ -63,7 +63,7 @@ export default function AnalyticsPage() {
 
   if (isEmpty && !initialLoading) {
     return (
-      <div className="animate-page-in">
+      <div>
         <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0 mb-8">
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
         </div>

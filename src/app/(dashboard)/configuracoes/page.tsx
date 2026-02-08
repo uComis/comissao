@@ -254,7 +254,7 @@ function ConfiguracoesContent() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl animate-page-in">
+    <div className="space-y-6 max-w-2xl">
       {/* Seção CRM */}
       <Card>
         <CardHeader>
