@@ -51,18 +51,27 @@ export function Hero() {
             }`}
             style={{ transitionDuration: '700ms', transitionDelay: '0ms' }}
           >
-            A forma{' '}
-            <span
-              className={`inline-block min-w-[120px] xs:min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${
-                isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
-              }`}
-            >
-              <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
-                {palavras[palavraAtual]}
+            <span className="flex sm:inline-flex items-center justify-center gap-2 sm:gap-3">
+              <span>A forma</span>
+              <span className="relative inline-grid text-left">
+                {/* Stack invisível para garantir largura do maior item */}
+                <span className="invisible pointer-events-none col-start-1 row-start-1">
+                  {palavras.reduce((a, b) => (a.length > b.length ? a : b))}
+                </span>
+                <span
+                  className={`col-start-1 row-start-1 transition-all duration-[400ms] ease ${
+                    isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
+                  }`}
+                >
+                  <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
+                    {palavras[palavraAtual]}
+                  </span>
+                </span>
               </span>
             </span>
-            <br className="hidden sm:block" />
-            de calcular suas <span className="underline decoration-[rgb(99,33,255)] decoration-[4px] underline-offset-[14px]">comissões</span>
+            <span className="block sm:mt-2 lg:mt-0">
+              de calcular suas <span className="underline decoration-[rgb(99,33,255)] decoration-[4px] underline-offset-[14px]">comissões</span>
+            </span>
           </h1>
 
           {/* Descrição */}
