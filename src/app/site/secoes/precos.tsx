@@ -74,10 +74,10 @@ export function Precos({ plans }: PrecosProps) {
     <section id="precos" className="py-10 sm:py-20 bg-gray-50">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
-        <ScrollReveal className="text-center max-w-2xl mx-auto mb-12">
-          <p className="text-landing-primary font-medium mb-4">Preços</p>
+        <ScrollReveal className="text-center max-w-2xl mx-auto mb-12 space-y-4 sm:space-y-5">
+          <p className="text-landing-primary font-medium">Preços</p>
 
-          <h2 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight mb-6">
+          <h2 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
             Simples e transparente.
           </h2>
 
@@ -87,7 +87,7 @@ export function Precos({ plans }: PrecosProps) {
         </ScrollReveal>
 
         {/* Billing Interval Toggle */}
-        <ScrollReveal className="flex justify-center mb-10" delay={100}>
+        <ScrollReveal className="flex justify-center mb-6 sm:mb-10" delay={100}>
           <Card className="rounded-full p-2 w-fit border-gray-200">
             <div className="flex items-center gap-1.5">
               <button

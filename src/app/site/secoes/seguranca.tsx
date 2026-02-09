@@ -44,10 +44,10 @@ export function Seguranca() {
     <section id="seguranca" className="py-10 sm:py-20 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header centralizado */}
-        <ScrollReveal className="text-center max-w-2xl mx-auto mb-8 sm:mb-16">
-          <p className="text-[#3B82F6] font-medium mb-3 sm:mb-4">Seguro</p>
+        <ScrollReveal className="text-center max-w-2xl mx-auto mb-8 sm:mb-16 space-y-4 sm:space-y-5">
+          <p className="text-[#3B82F6] font-medium">Seguro</p>
 
-          <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight">
             Seus dados protegidos.<br />
             Sua paz garantida.
           </h1>

@@ -98,7 +98,7 @@ export function Hero() {
             >
               <Link href="/login">Comece agora</Link>
             </Button>
-            <div className="flex items-center justify-center gap-3 mt-[25px] text-xs text-gray-400 uppercase tracking-wide font-bold">
+            <div className="flex items-center justify-center gap-3 mt-6 text-xs text-gray-400 uppercase tracking-wide font-bold">
               <span>Sem cartão</span>
               <span>|</span>
               <span>14 dias grátis</span>
