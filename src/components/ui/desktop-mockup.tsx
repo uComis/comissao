@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 interface DesktopMockupProps {
   /** Path do vídeo demonstrativo (opcional) */
@@ -34,9 +32,9 @@ export function DesktopMockup({
 }: DesktopMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
-  const [videoPlayCount, setVideoPlayCount] = useState(0)
-  const { ref, isVisible } = useScrollReveal({ threshold: 0.1 })
-  
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+
   const sources = videoSources || (videoSrc ? [videoSrc] : [])
   const hasVideoSequence = sources.length > 0
 
@@ -51,27 +49,50 @@ export function DesktopMockup({
     return () => clearInterval(timer)
   }, [images, interval, hasVideoSequence])
 
-  const handleVideoEnded = () => {
-    if (sources.length <= 1) {
-      // Vídeo único: reiniciar em loop
-      const video = document.querySelector(`video[src="${sources[0]}"]`) as HTMLVideoElement | null
-      if (video) {
-        setTimeout(() => {
-          video.currentTime = 0
-          video.play()
-        }, videoPauseInterval * 1000)
-      }
-      return
-    }
+  const handleVideoEnded = useCallback(() => {
+    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
 
-    setTimeout(() => {
-      setCurrentVideoIndex((prev) => (prev + 1) % sources.length)
-      setVideoPlayCount((prev) => prev + 1)
+    pauseTimerRef.current = setTimeout(() => {
+      if (sources.length <= 1) {
+        // Vídeo único: reiniciar
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0
+          videoRef.current.play()
+        }
+      } else {
+        setCurrentVideoIndex((prev) => (prev + 1) % sources.length)
+      }
     }, videoPauseInterval * 1000)
-  }
+  }, [sources, videoPauseInterval])
+
+  // Attach ended event via ref (mais confiável que onEnded do React)
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.addEventListener('ended', handleVideoEnded)
+    return () => video.removeEventListener('ended', handleVideoEnded)
+  }, [handleVideoEnded, currentVideoIndex])
+
+  // Quando troca de vídeo, carregar e dar play
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !hasVideoSequence) return
+
+    video.src = sources[currentVideoIndex]
+    video.load()
+    video.play().catch(() => {})
+  }, [currentVideoIndex, hasVideoSequence, sources])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+    }
+  }, [])
 
   return (
-    <div ref={ref} className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
+    <div className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
       {/* Browser Window Header */}
       <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
         <div className="flex gap-2">
@@ -83,42 +104,33 @@ export function DesktopMockup({
           {url}
         </div>
       </div>
-      
+
       {/* Content Area */}
       <div className="relative aspect-[16/9] w-full bg-white overflow-hidden">
-        {isVisible && (
-          hasVideoSequence ? (
-            <AnimatePresence mode="wait">
-              <motion.video
-                key={`${currentVideoIndex}-${videoPlayCount}`}
-                src={sources[currentVideoIndex]}
-                autoPlay
-                muted
-                playsInline
-                onEnded={handleVideoEnded}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8 }}
-                className="w-full h-full object-cover object-top"
-              />
-            </AnimatePresence>
-          ) : (
-            images.map((src, i) => (
-              <Image
-                key={src}
-                src={src}
-                alt="Dashboard Preview"
-                fill
-                className={cn(
-                  'w-full h-full object-cover object-top transition-opacity duration-1000',
-                  i === currentIndex ? 'opacity-100' : 'opacity-0'
-                )}
-                sizes="(max-width: 1200px) 100vw, 1200px"
-                priority={i === 0}
-              />
-            ))
-          )
+        {hasVideoSequence ? (
+          <video
+            ref={videoRef}
+            src={sources[currentVideoIndex]}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover object-top"
+          />
+        ) : (
+          images.map((src, i) => (
+            <Image
+              key={src}
+              src={src}
+              alt="Dashboard Preview"
+              fill
+              className={cn(
+                'w-full h-full object-cover object-top transition-opacity duration-1000',
+                i === currentIndex ? 'opacity-100' : 'opacity-0'
+              )}
+              sizes="(max-width: 1200px) 100vw, 1200px"
+              priority={i === 0}
+            />
+          ))
         )}
       </div>
     </div>
