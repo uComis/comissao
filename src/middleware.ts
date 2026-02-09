@@ -33,13 +33,6 @@ export async function middleware(request: NextRequest) {
   const hostname = request.nextUrl.hostname
   const timer = startTimer(`MIDDLEWARE ${pathname}`)
 
-  // Redireciona www.ucomis.com para /
-  if (hostname === 'www.ucomis.com' && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
-    const url = request.nextUrl.clone()
-    url.hostname = 'ucomis.com'
-    return NextResponse.redirect(url)
-  }
-
   let supabaseResponse = NextResponse.next({
     request,
   })
