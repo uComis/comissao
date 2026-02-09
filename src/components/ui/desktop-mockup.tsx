@@ -34,6 +34,7 @@ export function DesktopMockup({
 }: DesktopMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [videoPlayCount, setVideoPlayCount] = useState(0)
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 })
   
   const sources = videoSources || (videoSrc ? [videoSrc] : [])
@@ -51,10 +52,21 @@ export function DesktopMockup({
   }, [images, interval, hasVideoSequence])
 
   const handleVideoEnded = () => {
-    if (sources.length <= 1 && !videoSources) return
-    
+    if (sources.length <= 1) {
+      // Vídeo único: reiniciar em loop
+      const video = document.querySelector(`video[src="${sources[0]}"]`) as HTMLVideoElement | null
+      if (video) {
+        setTimeout(() => {
+          video.currentTime = 0
+          video.play()
+        }, videoPauseInterval * 1000)
+      }
+      return
+    }
+
     setTimeout(() => {
       setCurrentVideoIndex((prev) => (prev + 1) % sources.length)
+      setVideoPlayCount((prev) => prev + 1)
     }, videoPauseInterval * 1000)
   }
 
@@ -78,7 +90,7 @@ export function DesktopMockup({
           hasVideoSequence ? (
             <AnimatePresence mode="wait">
               <motion.video
-                key={sources[currentVideoIndex]}
+                key={`${currentVideoIndex}-${videoPlayCount}`}
                 src={sources[currentVideoIndex]}
                 autoPlay
                 muted
