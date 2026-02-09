@@ -30,14 +30,14 @@ export function Confidence() {
               Tenha clareza e a certeza de que está recebendo corretamente por cada negócio fechado.
             </p>
 
-            {/* Features list - Horizontal on Desktop */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 mb-16">
+            {/* Features list - Horizontal Scroll on Mobile, Standard on Desktop */}
+            <div className="flex flex-row overflow-x-auto sm:overflow-visible items-center justify-start sm:justify-center gap-8 sm:gap-12 mb-16 pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-hide px-4 -mx-4">
               {features.map((feature) => (
-                <div key={feature.label} className="flex items-center gap-3">
+                <div key={feature.label} className="flex items-center gap-3 snap-center flex-shrink-0">
                   <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center">
                     <feature.icon className="w-5 h-5 text-[#6366F1]" />
                   </div>
-                  <span className="text-gray-900 font-medium">{feature.label}</span>
+                  <span className="text-gray-900 font-medium whitespace-nowrap">{feature.label}</span>
                 </div>
               ))}
             </div>

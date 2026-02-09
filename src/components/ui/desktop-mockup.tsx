@@ -106,7 +106,7 @@ export function DesktopMockup({
       </div>
 
       {/* Content Area */}
-      <div className="relative aspect-[16/9] w-full bg-white overflow-hidden">
+      <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full bg-white overflow-hidden">
         {hasVideoSequence ? (
           <video
             ref={videoRef}
@@ -114,7 +114,7 @@ export function DesktopMockup({
             autoPlay
             muted
             playsInline
-            className="w-full h-full object-cover object-top"
+            className="w-full h-full object-cover sm:object-top"
           />
         ) : (
           images.map((src, i) => (
@@ -124,7 +124,7 @@ export function DesktopMockup({
               alt="Dashboard Preview"
               fill
               className={cn(
-                'w-full h-full object-cover object-top transition-opacity duration-1000',
+                'w-full h-full object-cover sm:object-top transition-opacity duration-1000',
                 i === currentIndex ? 'opacity-100' : 'opacity-0'
               )}
               sizes="(max-width: 1200px) 100vw, 1200px"
