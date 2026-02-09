@@ -25,7 +25,7 @@ export function CtaFinal() {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
 
   return (
-    <section id="precos" className="py-20 sm:py-24 relative overflow-hidden bg-gradient-to-br from-[#1a1033] via-[#0f1a2e] to-[#0a0a0a]">
+    <section id="cta-final" className="py-10 sm:py-20 relative overflow-hidden bg-gradient-to-br from-[#1a1033] via-[#0f1a2e] to-[#0a0a0a]">
       {/* Padrão de pontos */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 h-full w-full bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,transparent_20%,#000_100%)] opacity-[0.25]" />

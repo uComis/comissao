@@ -45,7 +45,7 @@ export function FeaturesShowcase() {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
 
   return (
-    <section className="py-20 sm:py-24 bg-white relative overflow-hidden">
+    <section className="py-10 sm:py-20 bg-white relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <ScrollReveal>
@@ -92,8 +92,8 @@ export function FeaturesShowcase() {
                     }]}
                     visiblePercent={60}
                     anchor={index === 1 ? 'bottom' : 'top'}
-                    sizes="(max-width: 768px) 200px, 220px"
-                    className="w-[60%] drop-shadow-2xl"
+                    sizes="(max-width: 768px) 300px, 220px"
+                    className="w-[85%] sm:w-[60%] drop-shadow-2xl"
                   />
                 ) : (
                   <div

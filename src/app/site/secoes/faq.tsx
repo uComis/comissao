@@ -68,7 +68,7 @@ export function Faq() {
   }
 
   return (
-    <section id="faq" className="py-20 sm:py-24 bg-white">
+    <section id="faq" className="py-10 sm:py-20 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
           {/* Coluna esquerda - Título */}

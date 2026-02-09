@@ -46,14 +46,14 @@ export function Hero() {
         <div className="text-center max-w-4xl mx-auto space-y-5">
           {/* Título com palavras rotativas */}
           <h1
-            className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight transition-all ease-out ${
+            className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight transition-all ease-out ${
               mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
             }`}
             style={{ transitionDuration: '700ms', transitionDelay: '0ms' }}
           >
             A forma{' '}
             <span
-              className={`inline-block min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${
+              className={`inline-block min-w-[120px] xs:min-w-[140px] sm:min-w-[180px] md:min-w-[220px] lg:min-w-[280px] text-left transition-all duration-[400ms] ease ${
                 isChanging ? 'blur-[10px] opacity-0' : 'blur-0 opacity-100'
               }`}
             >
@@ -61,7 +61,7 @@ export function Hero() {
                 {palavras[palavraAtual]}
               </span>
             </span>
-            <br />
+            <br className="hidden sm:block" />
             de calcular suas <span className="underline decoration-[rgb(99,33,255)] decoration-[4px] underline-offset-[14px]">comissões</span>
           </h1>
 

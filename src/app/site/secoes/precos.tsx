@@ -71,7 +71,7 @@ export function Precos({ plans }: PrecosProps) {
   }
 
   return (
-    <section id="precos" className="py-20 sm:py-24 bg-gray-50">
+    <section id="precos" className="py-10 sm:py-20 bg-gray-50">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <ScrollReveal className="text-center max-w-2xl mx-auto mb-12">
@@ -128,7 +128,7 @@ export function Precos({ plans }: PrecosProps) {
               <ScrollReveal
                 key={plan.id}
                 delay={150 + index * 100}
-                className="min-w-[280px] max-w-[340px] flex-1"
+                className="w-full xs:min-w-[280px] sm:max-w-[340px] flex-1"
               >
                 <Card
                   className={`flex flex-col relative h-full transition-all duration-500 backdrop-blur-md ${isRecommended

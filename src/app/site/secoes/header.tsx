@@ -10,7 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -26,6 +26,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const pathname = usePathname();
 
@@ -242,17 +243,59 @@ export function Header() {
                   >
                     <Link href="/login">Login</Link>
                   </Button>
-                  <Button
-                    asChild
-                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
-                  >
-                    <Link href="/login">Comece agora</Link>
-                  </Button>
                 </>
               )}
+
+              {/* Botão Hambúrguer */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                aria-label="Abrir menu"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
 
           </div>
+        </div>
+
+        {/* Menu Mobile Expandido */}
+        <div
+          className={`md:hidden fixed inset-0 top-[inherit] bg-white z-40 transition-all duration-300 ease-in-out ${
+            mobileMenuOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-4 invisible pointer-events-none'
+          }`}
+          style={{ 
+            top: scrolled ? '56px' : '96px', 
+            height: `calc(100vh - ${scrolled ? '56px' : '96px'})` 
+          }}
+        >
+          <nav className="flex flex-col p-6 gap-6 bg-white border-t border-gray-100 shadow-xl">
+            {MENU_ITEMS.map((item) => {
+              const isAnchorLink = item.href.startsWith('#');
+              const isOnHomePage = pathname === '/' || pathname === '';
+
+              return (
+                <Link
+                  key={item.href}
+                  href={isAnchorLink && isOnHomePage ? item.href : (item.href.startsWith('#') ? `/${item.href}` : item.href)}
+                  className="text-lg font-semibold text-gray-700 hover:text-landing-primary transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <div className="pt-6 border-t border-gray-100">
+              <Button
+                asChild
+                className="w-full bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full py-6 text-lg font-bold"
+              >
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  Comece agora
+                </Link>
+              </Button>
+            </div>
+          </nav>
         </div>
       </div>
     </header>

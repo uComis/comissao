@@ -2,7 +2,7 @@ import { ScrollReveal } from '@/components/ui/scroll-reveal'
 
 export function Problema() {
   return (
-    <section className="py-20 sm:py-24 bg-white">
+    <section className="pt-20 sm:pt-40 pb-10 sm:pb-20 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header */}
         <ScrollReveal className="text-center space-y-4 max-w-3xl mx-auto">

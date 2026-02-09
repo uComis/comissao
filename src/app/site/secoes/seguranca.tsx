@@ -26,7 +26,7 @@ export function Seguranca() {
   const { ref, isVisible } = useScrollReveal({ threshold: 0.1 });
 
   return (
-    <section id="seguranca" className="py-20 sm:py-24 bg-white">
+    <section id="seguranca" className="py-10 sm:py-20 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         {/* Header centralizado */}
         <ScrollReveal className="text-center max-w-2xl mx-auto mb-16">

@@ -11,7 +11,7 @@ const features = [
 
 export function Simple() {
   return (
-    <section className="py-20 sm:py-24 bg-white">
+    <section className="py-10 sm:py-20 bg-white">
       <div className="container mx-auto px-6 max-w-[1200px]">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
           {/* Content - Left side */}
