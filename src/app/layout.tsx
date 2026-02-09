@@ -22,24 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                var p = window.location.pathname;
-                var s = ['/','/privacidade','/termos','/ajuda','/faq'];
-                if (s.indexOf(p) !== -1) {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.classList.add('light');
-                  document.documentElement.setAttribute('data-theme', 'light');
-                  document.documentElement.style.colorScheme = 'light';
-                }
-              })();
-            `,
-          }}
-        />
-      </head>
+      <head />
       <body className={`${inter.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
