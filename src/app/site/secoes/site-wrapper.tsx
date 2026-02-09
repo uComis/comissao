@@ -30,7 +30,15 @@ export function SiteWrapper({ children }: { children: React.ReactNode }) {
       attributeFilter: ['class', 'style'],
     })
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      // Limpa tudo que foi forçado no <html> para não interferir no dashboard
+      html.removeAttribute('data-site')
+      html.removeAttribute('data-theme')
+      html.style.colorScheme = ''
+      html.classList.remove('light')
+      // next-themes vai re-aplicar o tema correto automaticamente
+    }
   }, [])
 
   return (
