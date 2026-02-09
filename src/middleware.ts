@@ -28,10 +28,10 @@ const PUBLIC_AUTH_ROUTES = [
   '/faq',
 ]
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const hostname = request.nextUrl.hostname
-  const timer = startTimer(`PROXY ${pathname}`)
+  const timer = startTimer(`MIDDLEWARE ${pathname}`)
 
   // Redireciona www.ucomis.com para /
   if (hostname === 'www.ucomis.com' && !pathname.startsWith('/login') && !pathname.startsWith('/auth')) {
@@ -48,7 +48,7 @@ export async function proxy(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'proxy.ts:entry', message: 'Middleware iniciado', data: { pathname, cookies: request.cookies.getAll().map(c => c.name) }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C,D' }) }).catch(() => { });
+  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'middleware.ts:entry', message: 'Middleware iniciado', data: { pathname, cookies: request.cookies.getAll().map(c => c.name) }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C,D' }) }).catch(() => { });
   // #endregion
 
   const isAuthPage = pathname.startsWith('/login')
@@ -90,7 +90,7 @@ export async function proxy(request: NextRequest) {
   authTimer.end()
 
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'proxy.ts:getUser', message: 'Resultado getUser', data: { hasUser: !!user, userId: user?.id, userEmail: user?.email, pathname, isPublicAuthRoute }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C,D' }) }).catch(() => { });
+  fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'middleware.ts:getUser', message: 'Resultado getUser', data: { hasUser: !!user, userId: user?.id, userEmail: user?.email, pathname, isPublicAuthRoute }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C,D' }) }).catch(() => { });
   // #endregion
 
   // Rotas públicas do site (landing, legal, etc.) - acessíveis sem login
@@ -105,7 +105,7 @@ export async function proxy(request: NextRequest) {
   // Se não está logado e tenta acessar página protegida
   if (!user && !isPublicAuthRoute) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'proxy.ts:redirectToLogin', message: 'Redirecionando para login - sem usuario', data: { pathname }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C' }) }).catch(() => { });
+    fetch('http://127.0.0.1:7242/ingest/6c85f2db-ad14-45fb-be8d-7bd896d4680c', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'middleware.ts:redirectToLogin', message: 'Redirecionando para login - sem usuario', data: { pathname }, timestamp: Date.now(), sessionId: 'debug-session', hypothesisId: 'C' }) }).catch(() => { });
     // #endregion
     const url = request.nextUrl.clone()
     url.pathname = '/login'
