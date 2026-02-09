@@ -350,8 +350,18 @@
   body {
     min-height: 100vh;
   }
-}
 
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
 
 /* Inputs/controles no header de página - fundo sólido para contraste */
 .page-header-actions input,

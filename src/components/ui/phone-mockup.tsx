@@ -163,9 +163,11 @@ export function PhoneMockup({
                         alt=""
                         fill
                         className={cn(
-                          'object-cover object-top transition-opacity duration-700',
+                          'object-cover transition-opacity duration-700',
+                          anchor === 'top' ? 'object-top' : 'object-bottom',
                           i === currentIndex ? 'opacity-100' : 'opacity-0'
                         )}
+
                         sizes={sizes}
                         priority={priority && i === 0}
                       />
