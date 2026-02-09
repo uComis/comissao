@@ -129,7 +129,7 @@ export function FeaturesShowcase() {
           onScroll={handleScroll}
           onTouchStart={stopAutoplay}
           onMouseDown={stopAutoplay}
-          className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 lg:gap-12 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0"
+          className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 lg:gap-12 overflow-x-auto md:overflow-x-visible snap-x snap-mandatory scrollbar-hide -mx-6 px-[7.5vw] md:mx-0 md:px-0"
         >
 
           {FEATURES.map((feature, index) => (
@@ -139,7 +139,7 @@ export function FeaturesShowcase() {
                 index === 1 ? 'flex-col-reverse pt-0 pb-6' : 'pt-6 pb-0'
               }`}
               style={{
-                aspectRatio: '1 / 1.2',
+                aspectRatio: '1 / 1.1',
               }}
             >
               {/* Ícone e Palavra - Pequeno e Discreto */}
@@ -180,15 +180,10 @@ export function FeaturesShowcase() {
             </div>
           ))}
 
-
-
-
-
-
         </div>
 
         {/* Indicators (Dots) - Apenas Mobile */}
-        <div className="flex justify-center gap-2 mt-8 md:hidden">
+        <div className="flex justify-center gap-2 mt-8 md:hidden -mx-6 px-6">
           {FEATURES.map((_, i) => (
             <div
               key={i}
