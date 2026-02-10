@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
   // #endregion
 
   // Rotas públicas do site (landing, legal, etc.) - acessíveis sem login
-  const SITE_PAGES = ['/', '/privacidade', '/termos', '/ajuda', '/faq']
+  const SITE_PAGES = ['/', '/privacidade', '/termos', '/ajuda', '/faq', '/sitemap.xml', '/robots.txt', '/opengraph-image']
   const isSitePage = SITE_PAGES.includes(pathname)
 
   // Se não está logado e acessa página do site, deixa ver
