@@ -32,7 +32,7 @@ export function DesktopMockup({
 }: DesktopMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const sources = videoSources || (videoSrc ? [videoSrc] : [])
@@ -49,40 +49,53 @@ export function DesktopMockup({
     return () => clearInterval(timer)
   }, [images, interval, hasVideoSequence])
 
-  const handleVideoEnded = useCallback(() => {
+  const playNext = useCallback(() => {
     if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
 
     pauseTimerRef.current = setTimeout(() => {
       if (sources.length <= 1) {
         // Vídeo único: reiniciar
-        if (videoRef.current) {
-          videoRef.current.currentTime = 0
-          videoRef.current.play()
+        const video = videoRefs.current[0]
+        if (video) {
+          video.currentTime = 0
+          video.play()
         }
       } else {
-        setCurrentVideoIndex((prev) => (prev + 1) % sources.length)
+        setCurrentVideoIndex((prev) => {
+          const next = (prev + 1) % sources.length
+          // Play do próximo vídeo (já está carregado, sem novo download)
+          const nextVideo = videoRefs.current[next]
+          if (nextVideo) {
+            nextVideo.currentTime = 0
+            nextVideo.play()
+          }
+          return next
+        })
       }
     }, videoPauseInterval * 1000)
   }, [sources, videoPauseInterval])
 
-  // Attach ended event via ref (mais confiável que onEnded do React)
+  // Attach ended event em todos os vídeos
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
+    const cleanups: (() => void)[] = []
 
-    video.addEventListener('ended', handleVideoEnded)
-    return () => video.removeEventListener('ended', handleVideoEnded)
-  }, [handleVideoEnded, currentVideoIndex])
+    videoRefs.current.forEach((video) => {
+      if (!video) return
+      video.addEventListener('ended', playNext)
+      cleanups.push(() => video.removeEventListener('ended', playNext))
+    })
 
-  // Quando troca de vídeo, carregar e dar play
+    return () => cleanups.forEach((fn) => fn())
+  }, [playNext])
+
+  // Autoplay do primeiro vídeo
   useEffect(() => {
-    const video = videoRef.current
-    if (!video || !hasVideoSequence) return
-
-    video.src = sources[currentVideoIndex]
-    video.load()
-    video.play().catch(() => {})
-  }, [currentVideoIndex, hasVideoSequence, sources])
+    if (!hasVideoSequence) return
+    const first = videoRefs.current[0]
+    if (first) {
+      first.play().catch(() => {})
+    }
+  }, [hasVideoSequence])
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -108,14 +121,20 @@ export function DesktopMockup({
       {/* Content Area */}
       <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full bg-white overflow-hidden">
         {hasVideoSequence ? (
-          <video
-            ref={videoRef}
-            src={sources[currentVideoIndex]}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover sm:object-top"
-          />
+          sources.map((src, i) => (
+            <video
+              key={src}
+              ref={(el) => { videoRefs.current[i] = el }}
+              src={src}
+              muted
+              playsInline
+              preload="auto"
+              className={cn(
+                'absolute inset-0 w-full h-full object-cover sm:object-top transition-opacity duration-500',
+                i === currentVideoIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              )}
+            />
+          ))
         ) : (
           images.map((src, i) => (
             <Image
