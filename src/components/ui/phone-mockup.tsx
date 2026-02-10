@@ -39,7 +39,7 @@ export function PhoneMockup({
   visiblePercent = 100,
   anchor = 'top',
   statusBarMode = 'light',
-  sizes = '(max-width: 640px) 280px, 400px',
+  sizes = '(max-width: 640px) 250px, 357px',
   statusBarColor,
   priority = false,
   alt = '',

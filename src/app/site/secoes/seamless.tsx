@@ -23,7 +23,7 @@ export function Seamless() {
               visiblePercent={75}
               anchor="top"
               alt="Tela de cadastro de venda com cálculo automático de comissão"
-              sizes="(max-width: 640px) 280px, 320px"
+              sizes="(max-width: 640px) 250px, 286px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />
           </ScrollReveal>

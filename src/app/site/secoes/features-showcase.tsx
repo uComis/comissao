@@ -173,7 +173,7 @@ export function FeaturesShowcase() {
                   }]}
                   visiblePercent={70}
                   anchor={index === 1 ? 'bottom' : 'top'}
-                  sizes="(max-width: 768px) 200px, 240px"
+                  sizes="(max-width: 768px) 178px, 214px"
                   className="w-[60%] sm:w-[220px] lg:w-[240px] drop-shadow-2xl"
                 />
               </div>

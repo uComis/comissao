@@ -23,7 +23,7 @@ export function Understandable() {
               visiblePercent={75}
               anchor="top"
               alt="Tela de pastas de fornecedores para representante comercial"
-              sizes="(max-width: 640px) 280px, 320px"
+              sizes="(max-width: 640px) 250px, 286px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />
           </ScrollReveal>

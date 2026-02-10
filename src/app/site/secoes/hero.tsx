@@ -94,7 +94,7 @@ export function Hero() {
           visiblePercent={60}
           anchor="top"
           alt="App uComis mostrando controle de comissões e recebíveis"
-          sizes="(max-width: 640px) 300px, (max-width: 768px) 340px, (max-width: 1024px) 400px, 450px"
+          sizes="(max-width: 640px) 268px, (max-width: 768px) 304px, (max-width: 1024px) 357px, 402px"
           priority={true}
           className="w-[300px] sm:w-[340px] md:w-[400px] lg:w-[450px] drop-shadow-2xl"
         />
