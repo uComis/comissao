@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
 import { Providers } from '@/components/layout/providers'
 import './globals.css'
 
@@ -39,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head />
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.variable} ${GeistSans.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>
