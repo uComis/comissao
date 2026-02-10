@@ -93,7 +93,7 @@ export function Precos({ plans }: PrecosProps) {
               <button
                 onClick={() => setBillingInterval('month')}
                 className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] ${billingInterval === 'month'
-                  ? 'bg-landing-primary text-white shadow-sm'
+                  ? 'bg-landing-cta text-white shadow-sm'
                   : 'bg-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }`}
               >
@@ -102,7 +102,7 @@ export function Precos({ plans }: PrecosProps) {
               <button
                 onClick={() => setBillingInterval('year')}
                 className={`px-8 py-2 rounded-full text-sm font-medium transition-all flex-1 min-w-[140px] flex items-center justify-center gap-1 ${billingInterval === 'year'
-                  ? 'bg-landing-primary text-white shadow-sm'
+                  ? 'bg-landing-cta text-white shadow-sm'
                   : 'bg-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-700'
                   }`}
               >
@@ -185,7 +185,7 @@ export function Precos({ plans }: PrecosProps) {
                       className={`w-full font-bold py-6 transition-all duration-300 ${isRecommended
                         ? 'bg-zinc-900 text-white hover:bg-black'
                         : isUltra
-                          ? 'bg-landing-primary text-white hover:opacity-90'
+                          ? 'bg-landing-cta text-white hover:opacity-90'
                           : 'bg-transparent border-zinc-200 text-gray-700 hover:bg-zinc-50'
                         }`}
                       variant={isRecommended || isUltra ? 'default' : 'outline'}

@@ -13,6 +13,7 @@
   --color-light-foreground: var(--light-foreground);
   /* Landing Page Colors */
   --color-landing-primary: var(--landing-primary);
+  --color-landing-cta: var(--landing-cta);
   --color-landing-gradient-start: var(--landing-gradient-start);
   --color-landing-gradient-middle: var(--landing-gradient-middle);
   --color-landing-gradient-end: var(--landing-gradient-end);
@@ -233,6 +234,7 @@
   --danger: #f56c6c;
   /* Landing Page Colors */
   --landing-primary: #409eff;
+  --landing-cta: #0f62b9;
   --landing-gradient-start: #60a5fa;
   --landing-gradient-middle: #a78bfa;
   --landing-gradient-end: #1e40af;

@@ -22,6 +22,19 @@ Cores fixas para feedback e estados do sistema.
 | **Success** / **Cor de ação verde** | Verde | `#67C23A` | Confirmações, sucesso, status "Pago", "Concluído" |
 | **Danger** / **Cor de ação vermelha** | Vermelho Suave | `#F56C6C` | Erros, falhas, alertas críticos (Alternativa ao Destructive) |
 
+### Cores da Landing Page
+
+Sistema de duas cores para a landing page: a cor da **marca** (logo) e a cor de **ação** (CTAs).
+
+| Token | Hex | Contraste c/ branco | Classe Tailwind | Uso |
+|-------|-----|---------------------|-----------------|-----|
+| **landing-primary** | `#409EFF` | 2.76:1 | `text-landing-primary`, `bg-landing-primary` | Cor da **marca/logo**: ícones decorativos, labels, bordas, gradientes, tints (`/10`, `/20`), AvatarFallback |
+| **landing-cta** | `#0F62B9` | 6.05:1 (WCAG AA) | `bg-landing-cta`, `hover:bg-landing-cta/90` | Cor de **ação**: botões CTA com texto branco, toggles interativos |
+
+**Regra prática:** Se o elemento tem `text-white` sobre fundo colorido → usar `landing-cta`. Se é decorativo (ícone, borda, tint) → usar `landing-primary`.
+
+**Por que duas cores?** O azul da logo (`#409EFF`) é vibrante mas falha no contraste WCAG para texto branco (2.76:1 < 4.5:1). O `#0F62B9` é o mesmo hue (~210°) porém mais escuro, passando WCAG AA com folga (6.05:1).
+
 ## Tipografia
 Utilizamos a família de fontes padrão do sistema (Geist Sans / Geist Mono).
 
