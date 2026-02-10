@@ -460,3 +460,17 @@
     color: rgb(59 130 246) !important;
   }
 }
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+@keyframes heroFadeUpLg {
+  from {
+    opacity: 0;
+    transform: translateY(3rem);
+  }
+}

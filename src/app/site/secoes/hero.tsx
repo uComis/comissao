@@ -1,23 +1,8 @@
-'use client'
-
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { PhoneMockup } from '@/components/ui/phone-mockup'
-import { useEffect, useState } from 'react'
 
 export function Hero() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    const mountTimeout = setTimeout(() => {
-      setMounted(true)
-    }, 100)
-
-    return () => {
-      clearTimeout(mountTimeout)
-    }
-  }, [])
-
   return (
     <section
       className="relative overflow-hidden pt-32 sm:pt-40 pb-0"
@@ -32,10 +17,8 @@ export function Hero() {
         <div className="text-center max-w-4xl mx-auto space-y-5">
           {/* Título */}
           <h1
-            className={`font-bold leading-[1.1] tracking-tight transition-all ease-out ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
-            style={{ transitionDuration: '700ms', transitionDelay: '0ms' }}
+            className="font-bold leading-[1.1] tracking-tight"
+            style={{ animation: 'heroFadeUp 700ms ease-out backwards' }}
           >
             <span className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl">
               Saiba exatamente quanto e quando vai receber —{' '}
@@ -47,20 +30,16 @@ export function Hero() {
 
           {/* Descrição */}
           <p
-            className={`hidden sm:block text-lg sm:text-xl md:text-2xl text-gray-700 leading-relaxed max-w-2xl mx-auto transition-all ease-out ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
-            style={{ transitionDuration: '700ms', transitionDelay: '150ms' }}
+            className="hidden sm:block text-lg sm:text-xl md:text-2xl text-gray-700 leading-relaxed max-w-2xl mx-auto"
+            style={{ animation: 'heroFadeUp 700ms ease-out 150ms backwards' }}
           >
             Cadastre suas vendas, defina as regras do fornecedor e veja comissões e parcelas calculadas automaticamente.
           </p>
 
           {/* Botão CTA */}
           <div
-            className={`pt-2 transition-all ease-out ${
-              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
-            style={{ transitionDuration: '700ms', transitionDelay: '300ms' }}
+            className="pt-2"
+            style={{ animation: 'heroFadeUp 700ms ease-out 300ms backwards' }}
           >
             <Button
               asChild
@@ -80,10 +59,8 @@ export function Hero() {
 
       {/* Celular centralizado - cortado pela metade */}
       <div
-        className={`relative w-full flex justify-center mt-6 sm:mt-8 transition-all ease-out ${
-          mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-        }`}
-        style={{ transitionDuration: '1000ms', transitionDelay: '500ms' }}
+        className="relative w-full flex justify-center mt-6 sm:mt-8"
+        style={{ animation: 'heroFadeUpLg 1000ms ease-out 500ms backwards' }}
       >
         <PhoneMockup
           images={[
