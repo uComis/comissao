@@ -65,9 +65,7 @@ export function Hero() {
         <PhoneMockup
           images={[
             { src: '/images/site/home/home_light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
-            { src: '/images/site/home/home_escuro.png', statusBarMode: 'dark', statusBarColor: '#0a0a0a' },
           ]}
-          interval={5}
           visiblePercent={60}
           anchor="top"
           alt="App uComis mostrando controle de comissões e recebíveis"
