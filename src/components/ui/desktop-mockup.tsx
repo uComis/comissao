@@ -97,6 +97,17 @@ export function DesktopMockup({
     }
   }, [hasVideoSequence])
 
+  // Preload do próximo vídeo quando o atual começa a tocar
+  useEffect(() => {
+    if (sources.length <= 1) return
+    const nextIdx = (currentVideoIndex + 1) % sources.length
+    const nextVideo = videoRefs.current[nextIdx]
+    if (nextVideo && nextVideo.preload === 'none') {
+      nextVideo.preload = 'auto'
+      nextVideo.load()
+    }
+  }, [currentVideoIndex, sources.length])
+
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
@@ -128,7 +139,7 @@ export function DesktopMockup({
               src={src}
               muted
               playsInline
-              preload="auto"
+              preload={i === 0 ? 'auto' : 'none'}
               className={cn(
                 'absolute inset-0 w-full h-full object-cover sm:object-top transition-opacity duration-500',
                 i === currentVideoIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
