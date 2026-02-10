@@ -36,9 +36,9 @@ export function CtaFinal() {
           {/* Título */}
           <ScrollReveal className="space-y-6 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide text-white">
-              Previsibilidade real para suas{' '}
+              Controle de comissões de verdade.{' '}
               <span className="bg-gradient-to-r from-[#a78bfa] via-[#60a5fa] to-[#38bdf8] bg-clip-text text-transparent">
-                comissões
+                Grátis por 14 dias.
               </span>
             </h2>
             <p className="text-xl text-gray-300 leading-relaxed">
@@ -70,7 +70,7 @@ export function CtaFinal() {
               size="lg"
               className="bg-white hover:bg-gray-100 text-gray-900 text-lg px-8 py-3 h-auto font-bold shadow-xl rounded-full"
             >
-              <Link href="/login">Comece agora grátis</Link>
+              <Link href="/login">Cadastre sua primeira venda — é grátis</Link>
             </Button>
           </ScrollReveal>
         </div>

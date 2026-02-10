@@ -191,7 +191,7 @@ export function Precos({ plans }: PrecosProps) {
                       variant={isRecommended || isUltra ? 'default' : 'outline'}
                     >
                       <Link href="/login">
-                        {isFree ? 'Comece grátis' : 'Comece grátis por 14 dias'}
+                        {isFree ? 'Cadastre sua primeira venda' : 'Teste grátis por 14 dias'}
                       </Link>
                     </Button>
                   </CardFooter>

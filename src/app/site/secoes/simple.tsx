@@ -18,13 +18,13 @@ export function Simple() {
           <ScrollReveal variant="slide-right" className="flex-1 space-y-6">
             <p className="text-[#22C55E] font-medium">Visível</p>
 
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
               Saiba quanto vai<br />
               receber. Agora.
-            </h1>
+            </h2>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Abandone as planilhas manuais e sujeitas a erros. Tenha previsibilidade financeira com cálculos automáticos de todas as suas comissões.
+              Abandone a planilha de comissão. Tenha um dashboard com todos os seus recebíveis: quanto, quando e de qual fornecedor.
             </p>
 
             {/* Features list */}
@@ -42,7 +42,7 @@ export function Simple() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/site/minhas-vendas/minhas_vendas_dark.png"
-                  alt="Dashboard"
+                  alt="Dashboard de comissões e recebíveis do uComis"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
@@ -68,6 +68,7 @@ export function Simple() {
               ]}
               visiblePercent={75}
               anchor="top"
+              alt="Dashboard de comissões com recebíveis por fornecedor"
               sizes="(max-width: 640px) 280px, 320px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />

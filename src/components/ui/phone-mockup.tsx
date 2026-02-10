@@ -27,6 +27,8 @@ interface PhoneMockupProps {
   sizes?: string
   /** Se a primeira imagem deve carregar com prioridade (LCP) */
   priority?: boolean
+  /** Texto alt para as imagens (acessibilidade e SEO) */
+  alt?: string
   /** Classes extras para o container externo */
   className?: string
 }
@@ -40,6 +42,7 @@ export function PhoneMockup({
   sizes = '(max-width: 640px) 280px, 400px',
   statusBarColor,
   priority = false,
+  alt = '',
   className,
 }: PhoneMockupProps) {
   // Normaliza para PhoneImage[]
@@ -160,7 +163,7 @@ export function PhoneMockup({
                       <Image
                         key={img.src}
                         src={img.src}
-                        alt=""
+                        alt={alt}
                         fill
                         className={cn(
                           'object-cover transition-opacity duration-700',

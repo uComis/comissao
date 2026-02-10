@@ -47,14 +47,14 @@ export function Seguranca() {
         <ScrollReveal className="text-center max-w-2xl mx-auto mb-8 sm:mb-16 space-y-4 sm:space-y-5">
           <p className="text-[#3B82F6] font-medium">Seguro</p>
 
-          <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight">
+          <h2 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight">
             Seus dados protegidos.<br />
             Sua paz garantida.
-          </h1>
+          </h2>
 
           <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
-            Usamos a mesma infraestrutura de segurança de grandes empresas de tecnologia.
-            Seus dados estão criptografados e protegidos 24 horas por dia.
+            Criptografia bancária, infraestrutura auditada e total privacidade.
+            Só você vê seus dados de comissão — em conformidade com a LGPD.
           </p>
         </ScrollReveal>
 

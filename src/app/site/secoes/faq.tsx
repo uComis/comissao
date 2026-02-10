@@ -4,15 +4,30 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ScrollReveal } from '@/components/ui/scroll-reveal'
 
-// Perguntas resumidas sobre USO do produto (não sobre billing)
 const FAQ_ITEMS = [
   {
-    question: "Como cadastrar uma venda?",
-    answer: "Basta acessar a pasta do fornecedor, clicar em \"Nova venda\" e preencher os dados. O sistema calcula a comissão automaticamente com base nas regras configuradas."
+    question: "Como saber se minha comissão está certa?",
+    answer: "Cadastre suas vendas no uComis com as regras de comissão do fornecedor. O sistema calcula automaticamente quanto você deveria receber, permitindo conferir se os valores batem com o que a empresa pagou."
   },
   {
     question: "Como funciona o cálculo de comissões?",
-    answer: "Você configura as regras de comissão de cada fornecedor (percentuais, faixas, bonificações) e o sistema aplica automaticamente em cada venda cadastrada."
+    answer: "Você configura as regras de comissão de cada fornecedor (percentuais, faixas, bonificações) e o sistema aplica automaticamente em cada venda cadastrada, gerando o valor de comissão e as parcelas de recebimento."
+  },
+  {
+    question: "Como calcular comissão de vendas parceladas?",
+    answer: "Ao cadastrar uma venda, você informa a condição de pagamento (30/60/90 dias, por exemplo). O uComis gera automaticamente as parcelas de comissão com as datas previstas de recebimento."
+  },
+  {
+    question: "O uComis funciona para quem tem uma só representada?",
+    answer: "Sim! A maioria dos nossos usuários trabalha com uma empresa. O uComis resolve a dor principal: saber exatamente quanto você vai receber e quando, sem depender da planilha ou da confiança no financeiro."
+  },
+  {
+    question: "Preciso saber Excel para usar o uComis?",
+    answer: "Não. O uComis substitui a planilha. Você cadastra a venda em poucos campos e o sistema faz todo o cálculo. Se você sabe usar WhatsApp, sabe usar o uComis."
+  },
+  {
+    question: "Meus dados ficam visíveis para a empresa?",
+    answer: "Não. O uComis é uma ferramenta pessoal do vendedor. Seus dados são criptografados e só você tem acesso. Nem a gente consegue ver suas informações."
   },
   {
     question: "Posso ter mais de uma pasta de fornecedor?",
@@ -93,7 +108,7 @@ export function Faq() {
             ))}
 
             {/* Link "Ver mais" */}
-            <ScrollReveal delay={400}>
+            <ScrollReveal delay={100 + FAQ_ITEMS.length * 100}>
               <Link
                 href="/faq"
                 className="inline-flex items-center gap-1 font-medium hover:underline mt-6"

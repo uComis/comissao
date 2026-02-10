@@ -7,18 +7,18 @@ export function Problema() {
         {/* Header */}
         <ScrollReveal className="text-center space-y-4 max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
-            Você não deveria ter que auditar o {' '}
+            Comissão errada, estorno indevido, desconto fantasma — {' '}
             <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
-              próprio financeiro
+              e você conferindo na planilha
             </span>
           </h2>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            Horas perdidas em planilhas manuais. Erros que custam dinheiro.
+            Horas perdidas conferindo comissão em planilha. Erros que custam dinheiro.
             <br />
-            <strong className="font-semibold">Não faça do controle um segundo emprego {' '}
+            <strong className="font-semibold">Não faça do controle de comissões um segundo emprego {' '}
               <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
                 não remunerado
-              </span>.
+              </span>. Foque nas vendas.
             </strong>
           </p>
         </ScrollReveal>

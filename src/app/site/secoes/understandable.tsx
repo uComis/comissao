@@ -22,6 +22,7 @@ export function Understandable() {
               ]}
               visiblePercent={75}
               anchor="top"
+              alt="Tela de pastas de fornecedores para representante comercial"
               sizes="(max-width: 640px) 280px, 320px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />
@@ -31,13 +32,13 @@ export function Understandable() {
           <ScrollReveal variant="slide-left" delay={150} className="flex-1 space-y-6">
             <p className="text-[#F97316] font-medium">Consolidado</p>
 
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
               Todas as pastas.<br />
               Um só lugar.
-            </h1>
+            </h2>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Cada representada tem seu portal. Você não deveria precisar de 5 logins para saber quanto vai ganhar. Consolide tudo em uma única tela.
+              Representante comercial com várias empresas? Consolide comissões de todos os fornecedores em uma única tela. Sem 5 portais, 5 logins, 5 planilhas.
             </p>
 
             {/* Features list */}
@@ -55,7 +56,7 @@ export function Understandable() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/site/minhas-pastas/minhas-pastas-light.png"
-                  alt="Consolidação de pastas"
+                  alt="Consolidação de comissões de múltiplos fornecedores no uComis"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"

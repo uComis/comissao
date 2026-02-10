@@ -22,6 +22,7 @@ export function Seamless() {
               ]}
               visiblePercent={75}
               anchor="top"
+              alt="Tela de cadastro de venda com cálculo automático de comissão"
               sizes="(max-width: 640px) 280px, 320px"
               className="w-[280px] sm:w-[320px] drop-shadow-2xl"
             />
@@ -31,12 +32,12 @@ export function Seamless() {
           <ScrollReveal variant="slide-left" delay={150} className="flex-1 space-y-6">
             <p className="text-[#C9A227] font-medium">Rápido</p>
 
-            <h1 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
-              Cadastre uma venda<br />em 30 segundos.
-            </h1>
+            <h2 className="text-4xl sm:text-5xl font-bold leading-tight tracking-tight">
+              Lance suas vendas.<br />A comissão é calculada na hora.
+            </h2>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-md">
-              Sem formulários intermináveis. Você digita o essencial, o sistema calcula o resto. Comissão e parcelas geradas automaticamente.
+              Sem formulários intermináveis. Você digita o essencial, o sistema faz o cálculo de comissão e gera as parcelas automaticamente.
             </p>
 
             {/* Features list */}
@@ -54,7 +55,7 @@ export function Seamless() {
               <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100">
                 <Image
                   src="/images/site/venda/venda_light.png"
-                  alt="Cadastro de venda"
+                  alt="Cadastro de venda com cálculo automático de comissão no uComis"
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
