@@ -190,7 +190,7 @@ export function Precos({ plans }: PrecosProps) {
                         }`}
                       variant={isRecommended || isUltra ? 'default' : 'outline'}
                     >
-                      <Link href="/login">
+                      <Link href="/login" prefetch={false}>
                         {isFree ? 'Cadastre sua primeira venda' : 'Teste grátis por 14 dias'}
                       </Link>
                     </Button>

@@ -70,7 +70,7 @@ export function CtaFinal() {
               size="lg"
               className="bg-white hover:bg-gray-100 text-gray-900 text-lg px-8 py-3 h-auto font-bold shadow-xl rounded-full"
             >
-              <Link href="/login">Cadastre sua primeira venda — é grátis</Link>
+              <Link href="/login" prefetch={false}>Cadastre sua primeira venda — é grátis</Link>
             </Button>
           </ScrollReveal>
         </div>

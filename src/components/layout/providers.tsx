@@ -1,18 +1,25 @@
 'use client'
 
+import { useState, useEffect, type ComponentType, type ReactNode } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { usePathname } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/sonner'
 import { BackgroundPattern } from '@/components/ui/background-pattern'
 
-const AppProviders = dynamic(() => import('./app-providers'))
-
 const SITE_PAGES = ['/', '/privacidade', '/termos', '/ajuda', '/faq']
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isSitePage = SITE_PAGES.includes(pathname)
+  const [AppProviders, setAppProviders] = useState<ComponentType<{ children: ReactNode }> | null>(null)
+
+  useEffect(() => {
+    if (!isSitePage) {
+      import('./app-providers').then((mod) => {
+        setAppProviders(() => mod.default)
+      })
+    }
+  }, [isSitePage])
 
   return (
     <ThemeProvider
@@ -22,11 +29,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <BackgroundPattern />
-      {isSitePage ? (
-        children
-      ) : (
-        <AppProviders>{children}</AppProviders>
-      )}
+      {isSitePage ? children : AppProviders ? <AppProviders>{children}</AppProviders> : null}
       <Toaster />
     </ThemeProvider>
   )

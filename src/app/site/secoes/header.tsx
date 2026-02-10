@@ -195,7 +195,7 @@ export function Header() {
                     asChild
                     className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
-                    <Link href="/home">Ir para o app</Link>
+                    <Link href="/home" prefetch={false}>Ir para o app</Link>
                   </Button>
                 </>
               ) : (
@@ -205,13 +205,13 @@ export function Header() {
                     variant="ghost"
                     className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
-                    <Link href="/login">Login</Link>
+                    <Link href="/login" prefetch={false}>Login</Link>
                   </Button>
                   <Button
                     asChild
                     className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
-                    <Link href="/login">Comece agora</Link>
+                    <Link href="/login" prefetch={false}>Comece agora</Link>
                   </Button>
                 </>
               )}
@@ -231,7 +231,7 @@ export function Header() {
                     asChild
                     className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
                   >
-                    <Link href="/home">Ir para o app</Link>
+                    <Link href="/home" prefetch={false}>Ir para o app</Link>
                   </Button>
                 </>
               ) : (
@@ -241,7 +241,7 @@ export function Header() {
                     variant="ghost"
                     className="text-gray-700 hover:text-gray-900 rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
-                    <Link href="/login">Login</Link>
+                    <Link href="/login" prefetch={false}>Login</Link>
                   </Button>
                 </>
               )}
@@ -290,7 +290,7 @@ export function Header() {
                 asChild
                 className="w-full bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full py-6 text-lg font-bold"
               >
-                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   Comece agora
                 </Link>
               </Button>
