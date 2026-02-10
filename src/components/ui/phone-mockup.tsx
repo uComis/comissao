@@ -166,7 +166,7 @@ export function PhoneMockup({
                         alt={alt}
                         fill
                         className={cn(
-                          'object-cover transition-opacity duration-700',
+                          'object-contain transition-opacity duration-700',
                           anchor === 'top' ? 'object-top' : 'object-bottom',
                           i === currentIndex ? 'opacity-100' : 'opacity-0'
                         )}

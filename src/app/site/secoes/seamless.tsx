@@ -18,7 +18,7 @@ export function Seamless() {
           <ScrollReveal variant="slide-right" className="flex-1 flex justify-center">
             <PhoneMockup
               images={[
-                { src: '/images/site/venda/venda_light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+                { src: '/images/site/venda/venda_light_cropped.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
               ]}
               visiblePercent={75}
               anchor="top"

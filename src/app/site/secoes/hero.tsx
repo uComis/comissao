@@ -64,7 +64,7 @@ export function Hero() {
       >
         <PhoneMockup
           images={[
-            { src: '/images/site/home/home_light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+            { src: '/images/site/home/home_light_cropped.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
           ]}
           visiblePercent={60}
           anchor="top"
