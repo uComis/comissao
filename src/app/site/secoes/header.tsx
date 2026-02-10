@@ -193,7 +193,7 @@ export function Header() {
                   </Popover>
                   <Button
                     asChild
-                    className="bg-[#3944AA] hover:bg-[#2d3690] text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
                     <Link href="/home" prefetch={false}>Ir para o app</Link>
                   </Button>
@@ -209,7 +209,7 @@ export function Header() {
                   </Button>
                   <Button
                     asChild
-                    className="bg-[#3944AA] hover:bg-[#2d3690] text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
                   >
                     <Link href="/login" prefetch={false}>Comece agora</Link>
                   </Button>
@@ -229,7 +229,7 @@ export function Header() {
                   </Avatar>
                   <Button
                     asChild
-                    className="bg-[#3944AA] hover:bg-[#2d3690] text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
+                    className="bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
                   >
                     <Link href="/home" prefetch={false}>Ir para o app</Link>
                   </Button>
@@ -288,7 +288,7 @@ export function Header() {
             <div className="pt-6 border-t border-gray-100">
               <Button
                 asChild
-                className="w-full bg-[#3944AA] hover:bg-[#2d3690] text-white rounded-full py-6 text-lg font-bold"
+                className="w-full bg-landing-primary hover:bg-landing-primary/90 text-white rounded-full py-6 text-lg font-bold"
               >
                 <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   Comece agora

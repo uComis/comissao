@@ -7,7 +7,7 @@ export function Hero() {
     <section
       className="relative overflow-hidden pt-32 sm:pt-40 pb-0"
       style={{
-        background: 'radial-gradient(at 49.5% 46.4%, rgb(255, 255, 255) 0px, transparent 50%), radial-gradient(at 43% 53.3%, rgb(99 33 255 / 15%) 0px, transparent 50%), radial-gradient(at 56.1% 53.3%, rgb(32 158 254 / 25%) 0px, transparent 50%) rgb(255, 255, 255)',
+        background: 'radial-gradient(at 49.5% 46.4%, rgb(255, 255, 255) 0px, transparent 50%), radial-gradient(at 43% 53.3%, rgb(30 64 175 / 15%) 0px, transparent 50%), radial-gradient(at 56.1% 53.3%, rgb(64 158 255 / 25%) 0px, transparent 50%) rgb(255, 255, 255)',
         mixBlendMode: 'normal'
       }}
     >
@@ -44,7 +44,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-[#3944AA] hover:bg-[#2d3690] text-white border-2 border-[#3944AA] rounded-full transition-all duration-300 text-lg px-8 py-6 font-semibold shadow-xl hover:shadow-2xl"
+              className="bg-landing-primary hover:bg-landing-primary/90 text-white border-2 border-landing-primary rounded-full transition-all duration-300 text-lg px-8 py-6 font-semibold shadow-xl hover:shadow-2xl"
             >
               <Link href="/login" prefetch={false}>Veja quanto você tem a receber</Link>
             </Button>
