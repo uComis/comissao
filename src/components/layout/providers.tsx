@@ -1,13 +1,12 @@
 'use client'
 
-import { Suspense } from 'react'
 import { ThemeProvider } from 'next-themes'
 import { usePathname } from 'next/navigation'
-import { AuthProvider } from '@/contexts/auth-context'
-import { AppDataProvider } from '@/contexts/app-data-context'
+import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/sonner'
-import { AuthErrorWatcher } from '@/components/auth/auth-error-watcher'
 import { BackgroundPattern } from '@/components/ui/background-pattern'
+
+const AppProviders = dynamic(() => import('./app-providers'))
 
 const SITE_PAGES = ['/', '/privacidade', '/termos', '/ajuda', '/faq']
 
@@ -23,15 +22,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <BackgroundPattern />
-      <AuthProvider>
-        <AppDataProvider>
-          <Suspense fallback={null}>
-            <AuthErrorWatcher />
-          </Suspense>
-          {children}
-          <Toaster />
-        </AppDataProvider>
-      </AuthProvider>
+      {isSitePage ? (
+        children
+      ) : (
+        <AppProviders>{children}</AppProviders>
+      )}
+      <Toaster />
     </ThemeProvider>
   )
 }
