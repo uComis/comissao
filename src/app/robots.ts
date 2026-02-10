@@ -33,6 +33,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://ucomis.com.br/sitemap.xml',
+    sitemap: 'https://ucomis.com/sitemap.xml',
   }
 }

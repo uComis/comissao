@@ -21,7 +21,7 @@ const jsonLd = {
       '@type': 'SoftwareApplication',
       name: 'uComis',
       description: 'Controle de comissões para vendedores. Cadastre vendas, defina regras de comissão e saiba quanto vai receber e quando.',
-      url: 'https://ucomis.com.br',
+      url: 'https://ucomis.com',
       applicationCategory: 'FinanceApplication',
       operatingSystem: 'Web',
       offers: {
@@ -34,7 +34,7 @@ const jsonLd = {
     {
       '@type': 'Organization',
       name: 'uComis',
-      url: 'https://ucomis.com.br',
+      url: 'https://ucomis.com',
       description: 'Controle de comissões para vendedores e representantes comerciais.',
     },
     {

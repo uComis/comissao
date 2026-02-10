@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'uComis — Controle de Comissões para Vendedores',
     description: 'Cadastre suas vendas, defina regras de comissão e saiba exatamente quanto vai receber e quando.',
-    url: 'https://ucomis.com.br',
+    url: 'https://ucomis.com',
     siteName: 'uComis',
     type: 'website',
     locale: 'pt_BR',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     description: 'Saiba exatamente quanto vai receber de comissão e quando.',
   },
   alternates: {
-    canonical: 'https://ucomis.com.br',
+    canonical: 'https://ucomis.com',
   },
 }
 
