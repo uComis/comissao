@@ -44,7 +44,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-white hover:bg-white/90 text-landing-primary border-2 border-white rounded-full transition-all duration-300 text-lg px-8 py-6 font-semibold shadow-xl hover:shadow-2xl"
+              className="bg-gray-900 hover:bg-black text-white border-2 border-gray-900 rounded-full transition-all duration-300 text-lg px-8 py-6 font-semibold shadow-xl hover:shadow-2xl"
             >
               <Link href="/login" prefetch={false}>Veja quanto você tem a receber</Link>
             </Button>
