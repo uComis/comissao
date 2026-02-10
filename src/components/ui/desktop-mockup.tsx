@@ -32,11 +32,29 @@ export function DesktopMockup({
 }: DesktopMockupProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [isVisible, setIsVisible] = useState(false)
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const sources = videoSources || (videoSrc ? [videoSrc] : [])
   const hasVideoSequence = sources.length > 0
+
+  // Lazy load: só carrega vídeos quando o componente fica visível
+  useEffect(() => {
+    if (!hasVideoSequence || !containerRef.current) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [hasVideoSequence])
 
   // Lógica para carrossel de IMAGENS
   useEffect(() => {
@@ -88,14 +106,16 @@ export function DesktopMockup({
     return () => cleanups.forEach((fn) => fn())
   }, [playNext])
 
-  // Autoplay do primeiro vídeo
+  // Autoplay do primeiro vídeo — só quando visível
   useEffect(() => {
-    if (!hasVideoSequence) return
+    if (!hasVideoSequence || !isVisible) return
     const first = videoRefs.current[0]
     if (first) {
+      first.preload = 'auto'
+      first.load()
       first.play().catch(() => {})
     }
-  }, [hasVideoSequence])
+  }, [hasVideoSequence, isVisible])
 
   // Preload do próximo vídeo quando o atual começa a tocar
   useEffect(() => {
@@ -116,7 +136,7 @@ export function DesktopMockup({
   }, [])
 
   return (
-    <div className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
+    <div ref={containerRef} className={cn('relative max-w-5xl mx-auto shadow-2xl rounded-t-xl overflow-hidden border border-gray-200/60 bg-white', className)}>
       {/* Browser Window Header */}
       <div className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex items-center gap-2">
         <div className="flex gap-2">
@@ -139,7 +159,7 @@ export function DesktopMockup({
               src={src}
               muted
               playsInline
-              preload={i === 0 ? 'auto' : 'none'}
+              preload="none"
               className={cn(
                 'absolute inset-0 w-full h-full object-cover sm:object-top transition-opacity duration-500',
                 i === currentVideoIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
