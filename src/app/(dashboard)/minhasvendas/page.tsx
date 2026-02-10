@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Rocket, PlusCircle } from 'lucide-react'
-import { getPersonalSalesPaginated } from '@/app/actions/personal-sales'
+import { getPersonalSalesPaginated, getDistinctSaleMonths } from '@/app/actions/personal-sales'
 import { getPersonalSuppliers } from '@/app/actions/personal-suppliers'
 import { getPersonalClients } from '@/app/actions/personal-clients'
 import { MinhasVendasActions } from './page-header-setter'
@@ -12,10 +12,11 @@ import { FadeIn } from '@/components/ui/fade-in'
 
 async function SalesContent() {
   // Buscar dados em paralelo
-  const [initialData, suppliersData, clientsData] = await Promise.all([
+  const [initialData, suppliersData, clientsData, months] = await Promise.all([
     getPersonalSalesPaginated({ page: 1, pageSize: 10 }),
     getPersonalSuppliers(),
     getPersonalClients(),
+    getDistinctSaleMonths(),
   ])
 
   // Extrair apenas id e name para os selects
@@ -52,6 +53,7 @@ async function SalesContent() {
         initialData={initialData}
         suppliers={suppliers}
         clients={clients}
+        months={months}
       />
     </FadeIn>
   )

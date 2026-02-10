@@ -52,6 +52,7 @@ export type PaginatedSalesParams = {
   search?: string
   supplierId?: string
   clientId?: string
+  month?: string // formato 'YYYY-MM'
 }
 
 export type PaginatedSalesResult = {
@@ -73,6 +74,7 @@ export async function getPersonalSalesPaginated(
     search,
     supplierId,
     clientId,
+    month,
   } = params
 
   // Aplicar filtro de retenção
@@ -108,6 +110,16 @@ export async function getPersonalSalesPaginated(
     query = query.ilike('client_name', `%${search.trim()}%`)
   }
 
+  // Filtro por mês (YYYY-MM)
+  if (month) {
+    const [year, mon] = month.split('-').map(Number)
+    const startDate = `${year}-${String(mon).padStart(2, '0')}-01`
+    const endDate = mon === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(mon + 1).padStart(2, '0')}-01`
+    query = query.gte('sale_date', startDate).lt('sale_date', endDate)
+  }
+
   // Ordenar por data (mais recentes primeiro), desempate por criação mais recente
   query = query.order('sale_date', { ascending: false }).order('created_at', { ascending: false })
 
@@ -124,6 +136,55 @@ export async function getPersonalSalesPaginated(
     data: data || [],
     total: count || 0,
   }
+}
+
+export type SaleMonthOption = {
+  value: string // 'YYYY-MM'
+  label: string // 'Fevereiro 2026'
+}
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+]
+
+export async function getDistinctSaleMonths(): Promise<SaleMonthOption[]> {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('User not authenticated')
+
+  const minDate = await getDataRetentionFilter(user.id)
+
+  let query = supabase
+    .from('personal_sales')
+    .select('sale_date')
+    .eq('user_id', user.id)
+
+  if (minDate) {
+    query = query.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+
+  const { data, error } = await query
+
+  if (error) throw error
+  if (!data || data.length === 0) return []
+
+  // Extrair meses únicos e ordenar do mais recente ao mais antigo
+  const monthSet = new Set<string>()
+  for (const row of data) {
+    if (row.sale_date) {
+      const d = row.sale_date as string
+      monthSet.add(d.substring(0, 7)) // 'YYYY-MM'
+    }
+  }
+
+  return Array.from(monthSet)
+    .sort((a, b) => b.localeCompare(a)) // mais recente primeiro
+    .map(value => {
+      const [year, mon] = value.split('-').map(Number)
+      return { value, label: `${MONTH_NAMES[mon - 1]} ${year}` }
+    })
 }
 
 export async function getPersonalSales(): Promise<PersonalSale[]> {

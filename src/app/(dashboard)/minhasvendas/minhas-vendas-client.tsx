@@ -25,9 +25,9 @@ import { AnimatedTableContainer } from '@/components/ui/animated-table-container
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
 import { Fab } from '@/components/ui/fab'
-import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter, Loader2 } from 'lucide-react'
+import { ShoppingBag, TrendingUp, Target, DollarSign, Plus, Filter, Loader2, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { getPersonalSalesPaginated, type PaginatedSalesResult } from '@/app/actions/personal-sales'
+import { getPersonalSalesPaginated, type PaginatedSalesResult, type SaleMonthOption } from '@/app/actions/personal-sales'
 import type { PersonalSale } from '@/types'
 
 const PAGE_SIZE_DEFAULT = 10
@@ -39,9 +39,10 @@ type Props = {
   initialData: PaginatedSalesResult
   suppliers: Supplier[]
   clients: Client[]
+  months: SaleMonthOption[]
 }
 
-export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
+export function MinhasVendasClient({ initialData, suppliers, clients, months }: Props) {
   const [isPending, startTransition] = useTransition()
 
   // Data state
@@ -50,8 +51,9 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
 
   // Filter state
   const [search, setSearch] = useState('')
-  const [supplierId, setSupplierId] = useState<string>('all')
-  const [clientId, setClientId] = useState<string>('all')
+  const [month, setMonth] = useState('')
+  const [supplierId, setSupplierId] = useState('')
+  const [clientId, setClientId] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Pagination state
@@ -59,8 +61,8 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT)
   const [mobileVisible, setMobileVisible] = useState(PAGE_SIZE_DEFAULT)
 
-  const selectFilterCount = (supplierId !== 'all' ? 1 : 0) + (clientId !== 'all' ? 1 : 0)
-  const drawerFilterCount = selectFilterCount + (search ? 1 : 0)
+  const selectFilterCount = (supplierId ? 1 : 0) + (clientId ? 1 : 0)
+  const drawerFilterCount = selectFilterCount + (search ? 1 : 0) + (month ? 1 : 0)
 
   // Fetch data from server - atualiza página só quando dados chegam
   const fetchData = useCallback((newPage: number, newPageSize: number, updatePageTo?: number) => {
@@ -70,8 +72,9 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
           page: newPage,
           pageSize: newPageSize,
           search: search || undefined,
-          supplierId: supplierId !== 'all' ? supplierId : undefined,
-          clientId: clientId !== 'all' ? clientId : undefined,
+          supplierId: supplierId || undefined,
+          clientId: clientId || undefined,
+          month: month || undefined,
         })
         // Atualiza dados E página juntos para sincronizar com a animação
         setSales(result.data)
@@ -83,7 +86,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
         console.error('Error fetching sales:', error)
       }
     })
-  }, [search, supplierId, clientId])
+  }, [search, month, supplierId, clientId])
 
   // Fetch when filters change (reset to page 1)
   // Skip first render — initialData already has the data from the server
@@ -95,7 +98,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
     }
     setMobileVisible(PAGE_SIZE_DEFAULT)
     fetchData(1, pageSize, 1)
-  }, [search, supplierId, clientId, pageSize, fetchData])
+  }, [search, month, supplierId, clientId, pageSize, fetchData])
 
   // Fetch when page changes (desktop) - não atualiza page imediatamente
   const handlePageChange = (newPage: number) => {
@@ -121,8 +124,9 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
             page: 1,
             pageSize: newVisible,
             search: search || undefined,
-            supplierId: supplierId !== 'all' ? supplierId : undefined,
-            clientId: clientId !== 'all' ? clientId : undefined,
+            supplierId: supplierId || undefined,
+            clientId: clientId || undefined,
+            month: month || undefined,
           })
           setSales(result.data)
           setTotal(result.total)
@@ -147,41 +151,86 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
   }, [])
 
   function clearFilters() {
-    setSupplierId('all')
-    setClientId('all')
+    setSupplierId('')
+    setClientId('')
   }
 
   function clearAllFilters() {
     setSearch('')
+    setMonth('')
     clearFilters()
   }
 
   const supplierSelect = (
-    <Select value={supplierId} onValueChange={setSupplierId}>
-      <SelectTrigger className="h-8 text-sm w-full">
-        <SelectValue placeholder="Pasta" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Todas as pastas</SelectItem>
-        {suppliers.map((s) => (
-          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="relative">
+      <Select value={supplierId} onValueChange={setSupplierId}>
+        <SelectTrigger className="h-8 text-sm w-full">
+          <SelectValue placeholder="Todas as pastas" />
+        </SelectTrigger>
+        <SelectContent>
+          {suppliers.map((s) => (
+            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {supplierId && (
+        <button
+          type="button"
+          onClick={() => setSupplierId('')}
+          className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center justify-center h-4 w-4 rounded-sm hover:bg-muted-foreground/20"
+        >
+          <X className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
   )
 
   const clientSelect = (
-    <Select value={clientId} onValueChange={setClientId}>
-      <SelectTrigger className="h-8 text-sm w-full">
-        <SelectValue placeholder="Cliente" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Todos os clientes</SelectItem>
-        {clients.map((c) => (
-          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="relative">
+      <Select value={clientId} onValueChange={setClientId}>
+        <SelectTrigger className="h-8 text-sm w-full">
+          <SelectValue placeholder="Todos os clientes" />
+        </SelectTrigger>
+        <SelectContent>
+          {clients.map((c) => (
+            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {clientId && (
+        <button
+          type="button"
+          onClick={() => setClientId('')}
+          className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center justify-center h-4 w-4 rounded-sm hover:bg-muted-foreground/20"
+        >
+          <X className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
+  )
+
+  const monthSelect = (
+    <div className="relative">
+      <Select value={month} onValueChange={setMonth}>
+        <SelectTrigger className="h-8 text-sm w-full">
+          <SelectValue placeholder="Todos os meses" />
+        </SelectTrigger>
+        <SelectContent>
+          {months.map((m) => (
+            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {month && (
+        <button
+          type="button"
+          onClick={() => setMonth('')}
+          className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center justify-center h-4 w-4 rounded-sm hover:bg-muted-foreground/20"
+        >
+          <X className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+    </div>
   )
 
   // Mobile: paginated data
@@ -223,6 +272,27 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
               {clientSelect}
             </FilterPopoverField>
           </FilterPopover>
+          <div className="relative">
+            <Select value={month} onValueChange={setMonth}>
+              <SelectTrigger className="h-8 text-sm w-[180px]">
+                <SelectValue placeholder="Todos os meses" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {month && (
+              <button
+                type="button"
+                onClick={() => setMonth('')}
+                className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center justify-center h-4 w-4 rounded-sm hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
           <div className="flex-1" />
           {isPending && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -267,6 +337,10 @@ export function MinhasVendasClient({ initialData, suppliers, clients }: Props) {
               <DrawerDescription className="sr-only">Filtrar vendas</DrawerDescription>
             </DrawerHeader>
             <div className="px-4 pb-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Mês</label>
+                {monthSelect}
+              </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Busca</label>
                 <ExpandableSearch
