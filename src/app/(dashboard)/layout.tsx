@@ -11,6 +11,7 @@ import { PageHeaderProvider, LayoutPageHeader } from '@/components/layout'
 import { RoutePageHeader } from './route-page-header'
 import { PageTransition } from '@/components/layout/page-transition'
 import { cookies } from 'next/headers'
+import { inter } from '@/lib/fonts'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Task 3: Chamada única no servidor
@@ -19,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   return (
+    <div className={inter.variable}>
     <CurrentUserProvider initialData={currentUser}>
       <AiChatProvider>
         <SidebarProvider defaultOpen={defaultOpen}>
@@ -51,5 +53,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </SidebarProvider>
       </AiChatProvider>
     </CurrentUserProvider>
+    </div>
   )
 }

@@ -2,7 +2,6 @@
 
 import Script from 'next/script'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
 import { useAuth } from '@/contexts/auth-context'
 
 declare global {
@@ -21,37 +20,41 @@ declare global {
 export function GoogleOneTap() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const supabase = createClient()
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
-  if (loading || user || !clientId || !supabase) {
+  if (loading || user || !clientId) {
     return null
   }
 
   const handleScriptReady = () => {
     if (!window.google) return
 
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: async (response: { credential: string }) => {
-        const { error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: response.credential,
-        })
+    import('@/lib/supabase').then(({ createClient }) => {
+      const supabase = createClient()
+      if (!supabase || !window.google) return
 
-        if (error) {
-          console.error('[GoogleOneTap] Erro ao autenticar:', error.message)
-          return
-        }
+      window.google.accounts.id.initialize({
+        client_id: clientId!,
+        callback: async (response: { credential: string }) => {
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: response.credential,
+          })
 
-        router.refresh()
-      },
-      auto_select: false,
-      cancel_on_tap_outside: true,
-      use_fedcm_for_prompt: false,
+          if (error) {
+            console.error('[GoogleOneTap] Erro ao autenticar:', error.message)
+            return
+          }
+
+          router.refresh()
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        use_fedcm_for_prompt: false,
+      })
+
+      window.google.accounts.id.prompt()
     })
-
-    window.google.accounts.id.prompt()
   }
 
   return (
