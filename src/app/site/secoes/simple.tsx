@@ -64,7 +64,7 @@ export function Simple() {
           <ScrollReveal variant="slide-left" delay={150} className="flex-1 flex justify-center">
             <PhoneMockup
               images={[
-                { src: '/images/site/minhas-vendas/minhas_vendas_dark_cropped.png', statusBarMode: 'dark', statusBarColor: '#0a0a0a' },
+                { src: '/images/site/minhas-vendas/minhas_vendas_dark.png', statusBarMode: 'dark', statusBarColor: '#0a0a0a' },
               ]}
               visiblePercent={75}
               anchor="top"
