@@ -1,0 +1,84 @@
+[GET] https://www.ucomis.com/ => [200] 
+[GET] https://www.ucomis.com/_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2 => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/8db6f22f14c17818.css => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/aa1251e85f9b4b45.css => [200] 
+[GET] https://www.ucomis.com/images/logo/uComis_black.svg => [200] 
+[GET] https://www.ucomis.com/_next/image?url=%2Fimages%2Fsite%2Fhome%2Fhome_light.png&w=750&q=75 => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/f8cb777736b5fc0f.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/ef3c6828489be065.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/cf0aad1aef31db4e.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/f116dc912b2ffba2.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/d85498f20e59bb7c.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/55d172ab8901fb59.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/turbopack-53a67e33e0e582d4.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/eb4bc925994affcc.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/7b108debec849d1e.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/fc91be7c0a7fbd17.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/d96012bcfc98706a.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/d80b3790a119a285.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/173dde74da891150.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/f96ccce46bcbe35e.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/d9be4a360ab9f399.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/0ffcfcb8cf621469.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/b8c666155702c12e.js => [200] 
+[GET] https://www.ucomis.com/fonts/GoogleSans-VariableFont_GRAD,opsz,wght.ttf => [200] 
+[GET] https://www.ucomis.com/_next/image?url=%2Fimages%2Fsite%2Fhome%2Fhome_escuro.png&w=750&q=75 => [200] 
+[GET] https://www.ucomis.com/_next/image?url=%2Fimages%2Fsite%2Fvenda%2Fvenda_light.png&w=640&q=75 => [200] 
+[GET] https://www.ucomis.com/_next/image?url=%2Fimages%2Fsite%2Fvenda%2Fvenda_light.png&w=128&q=75 => [200] 
+[GET] https://www.ucomis.com/_next/image?url=%2Fimages%2Fsite%2Fminhas-vendas%2Fminhas_vendas_dark.png&w=640&q=75 => [200] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/login?_rsc=1r34m => [200] 
+[GET] https://www.ucomis.com/ajuda?_rsc=1r34m => [200] 
+[GET] https://www.ucomis.com/?_rsc=1r34m => [200] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/?_rsc=p37cr => [200] 
+[GET] https://www.ucomis.com/login?_rsc=1pn8p => [200] 
+[GET] https://www.ucomis.com/login?_rsc=nn07o => [200] 
+[GET] https://www.ucomis.com/login?_rsc=15qaw => [200] 
+[GET] https://www.ucomis.com/login?_rsc=1f8nk => [200] 
+[GET] https://www.ucomis.com/login?_rsc=21zia => [200] 
+[GET] https://www.ucomis.com/ajuda?_rsc=1pn8p => [200] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/icon.svg?icon.354b54a0.svg => [200] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/ajuda?_rsc=wrjde => [200] 
+[GET] https://www.ucomis.com/ajuda?_rsc=ztoja => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/f506e04bd2e6a832.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/adda66c38882bd43.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/47bb97e18fbf04f4.js => [200] 
+[GET] https://www.ucomis.com/_next/static/chunks/e4d43a1fd1e366e6.js => [200] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-dark-1080p.mp4 => [206] 
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [FAILED] net::ERR_ABORTED
+[GET] https://www.ucomis.com/images/site/desktop/dash-light-1080p.mp4 => [206] 
