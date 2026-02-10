@@ -18,7 +18,7 @@ export function Understandable() {
           <ScrollReveal variant="slide-right" className="flex-1 flex justify-center">
             <PhoneMockup
               images={[
-                { src: '/images/site/minhas-pastas/minhas-pastas-light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+                { src: '/images/site/minhas-pastas/minhas-pastas-light_cropped.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
               ]}
               visiblePercent={75}
               anchor="top"

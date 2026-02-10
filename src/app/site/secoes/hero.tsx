@@ -60,11 +60,11 @@ export function Hero() {
       {/* Celular centralizado - cortado pela metade */}
       <div
         className="relative w-full flex justify-center mt-6 sm:mt-8"
-        style={{ animation: 'heroFadeUpLg 1000ms ease-out 500ms backwards' }}
+        style={{ animation: 'heroFadeUpLg 700ms ease-out backwards' }}
       >
         <PhoneMockup
           images={[
-            { src: '/images/site/home/home_light.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
+            { src: '/images/site/home/home_light_cropped.png', statusBarMode: 'light', statusBarColor: '#f9f9f9' },
           ]}
           visiblePercent={60}
           anchor="top"

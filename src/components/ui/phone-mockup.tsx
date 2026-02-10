@@ -173,6 +173,7 @@ export function PhoneMockup({
 
                         sizes={sizes}
                         priority={priority && i === 0}
+                        {...(priority && i === 0 ? { fetchPriority: 'high' } : {})}
                       />
                     ))}
                   </div>
