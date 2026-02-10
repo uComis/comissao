@@ -47,7 +47,7 @@ export function Footer() {
           <div className="flex gap-12 md:gap-16">
             {/* Coluna Produto */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Produto</h4>
+              <span className="block text-sm font-semibold text-foreground">Produto</span>
               <nav className="flex flex-col gap-2">
                 {LINKS_PRODUTO.map((link) => {
                   const isAnchorLink = link.href.startsWith('#');
@@ -79,7 +79,7 @@ export function Footer() {
 
             {/* Coluna Legal */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Legal</h4>
+              <span className="block text-sm font-semibold text-foreground">Legal</span>
               <nav className="flex flex-col gap-2">
                 {LINKS_LEGAL.map((link) => (
                   <Link
