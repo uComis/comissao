@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   return (
-    <div className={inter.variable}>
+    <div className={`${inter.variable} h-full overflow-hidden`}>
     <CurrentUserProvider initialData={currentUser}>
       <AiChatProvider>
         <SidebarProvider defaultOpen={defaultOpen}>

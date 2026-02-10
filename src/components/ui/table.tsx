@@ -7,10 +7,26 @@ import { cn } from '@/lib/utils'
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   const hasNoBorder = className?.includes('border-0') || className?.includes('no-border')
   const cleanClassName = className?.replace('border-0', '').replace('no-border', '').trim()
-  
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault()
+        el.scrollLeft += e.deltaY
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   return (
-    <div 
-      data-slot="table-container" 
+    <div
+      ref={containerRef}
+      data-slot="table-container"
       className={cn(
         'relative w-full overflow-x-auto rounded-md bg-card',
         !hasNoBorder && 'border shadow-sm'
