@@ -164,7 +164,9 @@ export function DesktopMockup({
                 'absolute inset-0 w-full h-full object-cover sm:object-top transition-opacity duration-500',
                 i === currentVideoIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
               )}
-            />
+            >
+              <track kind="captions" src="/captions/empty.vtt" srcLang="pt-BR" label="Português" default />
+            </video>
           ))
         ) : (
           images.map((src, i) => (

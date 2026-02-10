@@ -68,7 +68,7 @@ export function Understandable() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Consolidação de pastas</h5>
+                <span className="font-semibold text-gray-900">Consolidação de pastas</span>
                 <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>

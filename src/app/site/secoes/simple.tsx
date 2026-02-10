@@ -54,7 +54,7 @@ export function Simple() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Dashboard em tempo real</h5>
+                <span className="font-semibold text-gray-900">Dashboard em tempo real</span>
                 <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>

@@ -67,7 +67,7 @@ export function Seamless() {
                 </div>
               </div>
               <div className="text-left">
-                <h5 className="font-semibold text-gray-900">Cadastro de venda</h5>
+                <span className="font-semibold text-gray-900">Cadastro de venda</span>
                 <p className="text-gray-500 text-sm">Veja como funciona</p>
               </div>
             </button>
