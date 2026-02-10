@@ -30,6 +30,65 @@ export function Header() {
   const { user, loading, signOut } = useAuth();
   const pathname = usePathname();
 
+  // Lightweight auth check for site pages (AuthProvider isn't loaded for performance)
+  const [siteUser, setSiteUser] = useState<{ email?: string; avatar_url?: string; full_name?: string } | null>(null);
+
+  useEffect(() => {
+    if (user || loading) return;
+    try {
+      // Supabase SSR stores session in chunked cookies: sb-*-auth-token.0, .1, etc.
+      const cookies = document.cookie.split('; ');
+      const chunks: Record<number, string> = {};
+      let prefix = '';
+      for (const cookie of cookies) {
+        const [name, ...rest] = cookie.split('=');
+        if (name.startsWith('sb-') && name.includes('-auth-token.')) {
+          const idx = parseInt(name.split('.').pop() || '0', 10);
+          chunks[idx] = rest.join('=');
+          if (!prefix) prefix = name.replace(/\.\d+$/, '');
+        }
+      }
+      if (Object.keys(chunks).length === 0) return;
+      // Concatenate chunks in order and decode
+      const sorted = Object.keys(chunks).map(Number).sort((a, b) => a - b);
+      let encoded = sorted.map(i => chunks[i]).join('');
+      if (encoded.startsWith('base64-')) encoded = encoded.slice(7);
+      const json = atob(encoded);
+      const data = JSON.parse(json);
+      if (data?.user) {
+        setSiteUser({
+          email: data.user.email,
+          avatar_url: data.user.user_metadata?.avatar_url,
+          full_name: data.user.user_metadata?.full_name,
+        });
+      }
+    } catch { /* empty */ }
+  }, [user, loading]);
+
+  const effectiveUser = user ?? (siteUser ? {
+    email: siteUser.email,
+    user_metadata: { avatar_url: siteUser.avatar_url || '', full_name: siteUser.full_name || '' },
+  } : null);
+
+  const handleSignOut = async () => {
+    setUserMenuOpen(false);
+    if (user) {
+      await signOut();
+    } else {
+      // Site page - clear Supabase auth cookies and reload
+      try {
+        const cookies = document.cookie.split('; ');
+        for (const cookie of cookies) {
+          const name = cookie.split('=')[0];
+          if (name.startsWith('sb-') && name.includes('-auth-token')) {
+            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+          }
+        }
+      } catch { /* empty */ }
+      setSiteUser(null);
+    }
+  };
+
   useEffect(() => {
     // Pequeno delay para garantir que o estado inicial seja renderizado
     const timeout = setTimeout(() => {
@@ -150,101 +209,70 @@ export function Header() {
                 transform: 'translateY(-8px)'
               }}
             >
-              {!loading && user ? (
-                <>
-                  <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
-                    <PopoverTrigger asChild>
-                      <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email || ''} />
-                          <AvatarFallback className="bg-landing-primary text-white text-xs">
-                            {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      side="bottom"
-                      align="end"
-                      className="w-[200px] p-2 bg-white border-gray-200 shadow-lg"
-                      sideOffset={8}
+              {!loading && effectiveUser ? (
+                <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={effectiveUser?.user_metadata?.avatar_url} alt={effectiveUser?.user_metadata?.full_name || effectiveUser?.email || ''} />
+                        <AvatarFallback className="bg-landing-primary text-white text-xs">
+                          {(effectiveUser?.user_metadata?.full_name || effectiveUser?.email || '?')[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="bottom"
+                    align="end"
+                    className="w-[200px] p-2 bg-white border-gray-200 shadow-lg"
+                    sideOffset={8}
+                  >
+                    <div className="px-2 py-1.5 text-sm text-gray-500 truncate border-b border-gray-100 mb-1">
+                      {effectiveUser?.email}
+                    </div>
+                    <Link
+                      href="/home"
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
                     >
-                      <div className="px-2 py-1.5 text-sm text-gray-500 truncate border-b border-gray-100 mb-1">
-                        {user.email}
-                      </div>
-                      <Link
-                        href="/home"
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Ir para o app
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          signOut();
-                        }}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors w-full"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Sair
-                      </button>
-                    </PopoverContent>
-                  </Popover>
-                  <Button
-                    asChild
-                    className="bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
-                  >
-                    <Link href="/home" prefetch={false}>Ir para o app</Link>
-                  </Button>
-                </>
+                      Meu painel
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleSignOut();
+                      }}
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors w-full"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair
+                    </button>
+                  </PopoverContent>
+                </Popover>
               ) : (
-                <>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all duration-300 px-3 text-sm h-8"
-                  >
-                    <Link href="/login" prefetch={false}>Login</Link>
-                  </Button>
-                  <Button
-                    asChild
-                    className="bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
-                  >
-                    <Link href="/login" prefetch={false}>Comece agora</Link>
-                  </Button>
-                </>
+                <Button
+                  asChild
+                  className="bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full transition-all duration-300 px-3 text-sm h-8"
+                >
+                  <Link href="/login" prefetch={false}>Comece agora</Link>
+                </Button>
               )}
             </div>
 
             {/* CTA Mobile - botões no header */}
             <div className="flex items-center gap-2 md:hidden">
-              {!loading && user ? (
-                <>
+              {!loading && effectiveUser ? (
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="flex items-center hover:opacity-80 transition-opacity"
+                >
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.user_metadata?.full_name || user.email || ''} />
+                    <AvatarImage src={effectiveUser?.user_metadata?.avatar_url} alt={effectiveUser?.user_metadata?.full_name || effectiveUser?.email || ''} />
                     <AvatarFallback className="bg-landing-primary text-white text-xs">
-                      {(user.user_metadata?.full_name || user.email || '?')[0].toUpperCase()}
+                      {(effectiveUser?.user_metadata?.full_name || effectiveUser?.email || '?')[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <Button
-                    asChild
-                    className="bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full transition-all duration-300 px-2 text-xs h-7"
-                  >
-                    <Link href="/home" prefetch={false}>Ir para o app</Link>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="text-gray-700 hover:text-gray-900 rounded-full transition-all duration-300 px-3 text-sm h-8"
-                  >
-                    <Link href="/login" prefetch={false}>Login</Link>
-                  </Button>
-                </>
-              )}
+                </button>
+              ) : null}
 
               {/* Botão Hambúrguer */}
               <button
@@ -286,14 +314,34 @@ export function Header() {
               );
             })}
             <div className="pt-6 border-t border-gray-100">
-              <Button
-                asChild
-                className="w-full bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full py-6 text-lg font-bold"
-              >
-                <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
-                  Comece agora
-                </Link>
-              </Button>
+              {!loading && effectiveUser ? (
+                <>
+                  <Button
+                    asChild
+                    className="w-full bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full py-6 text-lg font-bold"
+                  >
+                    <Link href="/home" onClick={() => setMobileMenuOpen(false)}>
+                      Meu painel
+                    </Link>
+                  </Button>
+                  <button
+                    onClick={() => { handleSignOut(); setMobileMenuOpen(false); }}
+                    className="flex items-center justify-center gap-2 w-full mt-3 py-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <Button
+                  asChild
+                  className="w-full bg-landing-cta hover:bg-landing-cta/90 text-white rounded-full py-6 text-lg font-bold"
+                >
+                  <Link href="/login" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
+                    Comece agora
+                  </Link>
+                </Button>
+              )}
             </div>
           </nav>
         </div>

@@ -17,12 +17,23 @@ declare global {
   }
 }
 
+/** Check Supabase session cookies (for site pages where AuthProvider isn't loaded) */
+function hasSessionCookie(): boolean {
+  try {
+    return document.cookie.split('; ').some(
+      (c) => c.split('=')[0].startsWith('sb-') && c.includes('-auth-token')
+    )
+  } catch {
+    return false
+  }
+}
+
 export function GoogleOneTap() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
-  if (loading || user || !clientId) {
+  if (loading || user || !clientId || hasSessionCookie()) {
     return null
   }
 

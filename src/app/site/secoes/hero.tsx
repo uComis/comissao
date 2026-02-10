@@ -20,7 +20,7 @@ export function Hero() {
             className="font-bold leading-[1.1] tracking-tight"
             style={{ animation: 'heroFadeUp 700ms ease-out backwards' }}
           >
-            <span className="text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl">
+            <span className="text-[clamp(1.75rem,10vw,2.5rem)] sm:text-5xl md:text-6xl lg:text-7xl">
               Saiba exatamente quanto e quando vai receber —{' '}
               <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
                 controle suas comissões
@@ -44,7 +44,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="bg-landing-cta hover:bg-landing-cta/90 text-white border-2 border-landing-cta rounded-full transition-all duration-300 text-lg px-8 py-6 font-semibold shadow-xl hover:shadow-2xl"
+              className="bg-landing-cta hover:bg-landing-cta/90 text-white border-2 border-landing-cta rounded-full transition-all duration-300 text-base px-6 py-5 sm:text-lg sm:px-8 sm:py-6 font-semibold shadow-xl hover:shadow-2xl"
             >
               <Link href="/login" prefetch={false}>Veja quanto você tem a receber</Link>
             </Button>
