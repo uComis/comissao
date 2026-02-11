@@ -32,20 +32,23 @@ O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Usa 
 src/
 ├── lib/
 │   ├── clients/ai/                  # Client AI genérico (sem domínio)
-│   │   ├── types.ts                 # AiClient, AiMessage, AiStreamChunk
-│   │   ├── gemini-provider.ts       # Implementação Gemini
+│   │   ├── types.ts                 # AiClient, AiMessage, AiStreamChunk, AiToolCall
+│   │   ├── gemini-provider.ts       # Implementação Gemini (com suporte a tools)
 │   │   ├── kai-knowledge.ts         # Knowledge base estática do sistema
+│   │   ├── kai-tools.ts             # Declarações de function calling (create_sale)
 │   │   └── index.ts                 # Factory createAiClient() + re-exports
 │   │
 │   └── services/
-│       └── ai-context-service.ts    # Agrega dados reais para o prompt
+│       ├── ai-context-service.ts    # Agrega dados reais para o prompt
+│       └── ai-name-resolver.ts     # Resolve nomes de clientes/pastas por busca fuzzy
 │
 ├── components/
 │   ├── ai-assistant/
 │   │   ├── index.ts                 # Re-exports
-│   │   ├── ai-chat-context.tsx      # Context + Provider (state global do chat)
+│   │   ├── ai-chat-context.tsx      # Context + Provider (state global do chat + tool calls)
 │   │   ├── ai-chat-button.tsx       # Botão flutuante (renderizado pelo Provider)
-│   │   └── ai-chat-window.tsx       # Janela de chat com streaming + markdown
+│   │   ├── ai-chat-window.tsx       # Janela de chat com streaming + markdown + tool cards
+│   │   └── sale-confirmation-card.tsx # Card de preview/confirmação de venda via Kai
 │   │
 │   └── layout/
 │       ├── sidebar-kai-history.tsx   # Histórico de conversas na sidebar (desktop)
@@ -53,7 +56,9 @@ src/
 │
 └── app/api/ai/
     ├── chat/
-    │   └── route.ts                 # Orquestrador: auth → persist → dados → prompt → AI → SSE
+    │   └── route.ts                 # Orquestrador: auth → persist → dados → prompt → AI → SSE + tool calls
+    ├── tool-execute/
+    │   └── route.ts                 # Executa tool call confirmado (chama createPersonalSale)
     └── conversations/
         ├── route.ts                 # GET lista conversas | POST cria conversa vazia
         └── [id]/messages/
@@ -66,10 +71,13 @@ src/
 |--------|------------------|-----------|
 | `clients/ai/` | HTTP wrapper genérico | Apenas a API do provedor (Gemini) |
 | `clients/ai/kai-knowledge.ts` | Conhecimento estático do sistema | Funcionalidades, conceitos, regras, menus, como fazer |
+| `clients/ai/kai-tools.ts` | Declarações de function calling | Schema das tools (create_sale) para o Gemini |
 | `services/ai-context-service.ts` | Agregar dados do domínio | Supabase, DashboardService, recebíveis, pastas, preferências |
-| `route.ts` (chat) | Orquestrar o fluxo | Auth, persistência, context service, knowledge, AI client, SSE |
+| `services/ai-name-resolver.ts` | Resolver nomes fuzzy | Busca clientes/pastas por ilike, match exato prioritário |
+| `route.ts` (chat) | Orquestrar o fluxo | Auth, persistência, context service, knowledge, AI client, SSE, tool calls |
+| `route.ts` (tool-execute) | Executar tool call confirmado | Chama createPersonalSale(), persiste resultado |
 | `route.ts` (conversations) | CRUD de conversas | Supabase, auth |
-| `ai-chat-context.tsx` | Estado global do chat | Conversas, mensagens, open/close, load/save |
+| `ai-chat-context.tsx` | Estado global do chat | Conversas, mensagens, tool call status, open/close, load/save |
 
 ### Fluxo
 
@@ -92,15 +100,25 @@ src/
 │    5. Busca dados reais (6 fontes em paralelo, timeout 8s cada)  │
 │    6. Monta system prompt:                                        │
 │       [Identidade] + [Knowledge Base] + [Dados Reais]             │
-│    7. Chama AI client (Gemini 2.5 Flash, streaming)               │
-│    8. Retorna SSE: {conversation_id} → {text}... → [DONE]        │
-│    9. Fire-and-forget: salva resposta do assistente no banco      │
+│    7. Chama AI client (Gemini 2.5 Flash, streaming, tools)        │
+│    8. Loop do stream:                                             │
+│       - chunk.type === 'text' → SSE {text}                        │
+│       - chunk.type === 'tool_call' → captura para processar       │
+│    9. Se houve tool call (ex: create_sale):                       │
+│       a. Resolve nomes (ai-name-resolver: ilike + match exato)    │
+│       b. Se erro → envia como texto SSE (Kai explica)             │
+│       c. Se OK → busca regra → calcula comissão → SSE {tool_call} │
+│       d. Salva [TOOL_CALL:create_sale]{preview} no banco          │
+│   10. SSE [DONE] + fire-and-forget: salva texto no banco          │
 │         │                                                         │
 │         ▼                                                         │
 │  AiChatWindow                                                     │
 │    Captura conversation_id do 1º evento SSE                       │
 │    Exibe resposta com efeito de digitação (8ms/char)              │
 │    Renderiza markdown (react-markdown + prose)                    │
+│    Se SSE {tool_call} → renderiza SaleConfirmationCard            │
+│      → "Confirmar" → POST /api/ai/tool-execute → createSale()    │
+│      → "Cancelar" → atualiza status local para 'cancelled'       │
 │    Atualiza lista de conversas na sidebar                         │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -286,6 +304,7 @@ Context React que gerencia todo o estado do chat. Renderiza o `AiChatWindow` con
 toggle()                       // Abre/fecha o chat
 addMessage(msg)                // Adiciona mensagem local
 updateMessage(id, content)     // Atualiza durante streaming
+updateToolCallStatus(id, status, result?, error?)  // Atualiza estado do tool call
 startNewConversation()         // Reseta para chat em branco
 loadConversation(id)           // Busca mensagens da API e abre o chat
 refreshConversations()         // Atualiza lista de conversas (sidebar)
@@ -367,11 +386,89 @@ A seção `app/site/secoes/kai.tsx` apresenta o assistente na landing page com a
 - Placeholder para vídeo screencast demonstrativo
 - Ainda não conectado à implementação real do chat
 
+## Tool Calling — Cadastro de Vendas
+
+O Kai pode criar vendas via conversa natural usando function calling nativo do Gemini.
+
+### Fluxo
+
+```
+Usuário: "registra uma venda de R$ 5.000 pro cliente João na pasta Acme"
+→ Gemini retorna functionCall (não texto)
+→ Backend resolve nomes → calcula comissão → envia preview via SSE
+→ Chat exibe SaleConfirmationCard com dados completos
+→ Usuário clica "Confirmar"
+→ POST /api/ai/tool-execute → chama createPersonalSale()
+→ Card atualiza para "Venda criada!" com link
+```
+
+### Tool: `create_sale`
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `client_name` | string | Sim | Nome do cliente como informado |
+| `supplier_name` | string | Sim | Nome da pasta/fornecedor como informado |
+| `gross_value` | number | Sim | Valor bruto em reais |
+| `sale_date` | string | Não | Data YYYY-MM-DD (default: hoje) |
+| `notes` | string | Não | Observações |
+
+### Resolução de Nomes (`ai-name-resolver.ts`)
+
+Busca clientes/pastas com `ilike('%nome%')`:
+- **Match exato** (case-insensitive) → aceita automaticamente
+- **1 resultado** → aceita automaticamente
+- **0 resultados** → erro: "Nenhum cliente/pasta encontrado"
+- **2+ resultados** sem match exato → erro listando candidatos para o usuário escolher
+
+### Formato SSE
+
+| Evento | JSON | Descrição |
+|--------|------|-----------|
+| Conversation ID | `{conversation_id: "uuid"}` | Primeiro evento |
+| Texto | `{text: "..."}` | Streaming de texto |
+| **Tool call** | `{tool_call: {name, preview}}` | Preview da venda para confirmação |
+| Erro | `{error: "..."}` | Erro genérico |
+| Done | `[DONE]` | Fim do stream |
+
+### Persistência (sem schema change)
+
+- Tool call: `[TOOL_CALL:create_sale]{"supplier_name":"Acme",...}`
+- Resultado: `[TOOL_RESULT:create_sale]{"success":true,"sale_id":"..."}`
+- Ao recarregar, `parsePersistedMessages()` reconhece prefixos e hidrata `toolCall` na Message
+
+### Execução (`/api/ai/tool-execute`)
+
+- **Não é Edge** — rota Node.js padrão (precisa de `createPersonalSale()` que usa `revalidatePath`)
+- Chama `createPersonalSale()` diretamente — **zero duplicação de lógica** (billing, comissão, cache, revalidação)
+- Salva `[TOOL_RESULT:...]` em `ai_messages` (fire-and-forget)
+
+### SaleConfirmationCard
+
+Card renderizado dentro da bolha do assistente:
+- **Header:** icone ShoppingCart + "Nova Venda"
+- **Dados:** Pasta, Cliente, Data, Valor bruto, Taxa, Valor líquido, Comissão (valor + %)
+- **Status pending:** botões "Confirmar" + "Cancelar"
+- **Status confirmed:** texto verde "Venda criada!" + link para `/minhasvendas/{id}`
+- **Status cancelled:** texto "Venda cancelada."
+- **Status error:** texto com mensagem de erro
+
+### Tratamento de Erros
+
+| Cenário | Resposta |
+|---------|----------|
+| Cliente não encontrado | Kai responde como texto |
+| Múltiplos clientes | Kai lista candidatos |
+| Pasta não encontrada | Idem cliente |
+| Pasta sem regra de comissão | Preview mostra comissão 0% |
+| Limite de vendas atingido | Erro no confirm |
+| Pasta bloqueada | Erro no confirm |
+| Erro de rede no confirm | Card mostra erro, user pode tentar de novo |
+
 ## Limitações Atuais
 
 | Limitação | Descrição |
 |-----------|-----------|
-| Sem tool calling | O modelo não executa ações (criar venda, consultar recebível). Apenas conversa. |
+| Apenas create_sale | Tool calling implementado apenas para criação de vendas. |
 | Sem rate limiting | Não há controle de uso por usuário. |
 | Sem vínculo com plano | Qualquer usuário logado pode usar, independente do plano. |
 | Sem busca em conversas | Não há search dentro do histórico de conversas. |
@@ -383,7 +480,7 @@ A seção `app/site/secoes/kai.tsx` apresenta o assistente na landing page com a
 
 A landing page (seção Kai) já vende a visão futura:
 
-1. **Tool calling** — Executar ações como criar venda, gerar relatório
+1. **Mais tools** — Consultar recebíveis, gerar relatório, marcar recebimento
 2. **Input por texto livre** — Colar texto do WhatsApp e o Kai estruturar em venda
 3. **Vínculo com plano** — Limitar uso por tier de assinatura
 4. **Busca e gestão de conversas** — Buscar, renomear e deletar conversas
