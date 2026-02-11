@@ -314,14 +314,14 @@ Atualmente o FAQ tem:
 - [x] OG Image: criar `src/app/opengraph-image.tsx` (imagem 1200x630 com gradiente, logo e tagline para WhatsApp/LinkedIn/Twitter)
 - [x] Middleware: liberar `/sitemap.xml`, `/robots.txt` e `/opengraph-image` na lista SITE_PAGES (middleware redirecionava para /login)
 
-### Fase 4: Validar (pós-deploy) — EM ANDAMENTO
+### Fase 4: Validar (pós-deploy) — CONCLUÍDA
 - [x] Google Search Console: propriedade `ucomis.com` verificada via DNS TXT no GoDaddy
 - [x] Google Search Console: sitemap `https://www.ucomis.com/sitemap.xml` enviado e processado (5 páginas encontradas)
 - [x] PageSpeed Insights — **Performance ~89** (mobile), SEO 100, Práticas 100, Acessibilidade **100**
-- [ ] Rich Results Test — validar JSON-LD (SoftwareApplication, FAQPage, Organization) em https://search.google.com/test/rich-results
-- [ ] Mobile-friendliness — testar responsividade
-- [ ] Testar OG image — colar `https://ucomis.com` no WhatsApp e verificar card de compartilhamento
-- [ ] Testar favicon — abrir site em aba anônima e verificar ícone azul do uComis
+- [x] Rich Results Test — **2 itens válidos**: FAQPage (✅ sem avisos), SoftwareApplication (✅ 1 aviso não crítico: `aggregateRating` ausente — opcional, normal sem reviews). Organization não aparece no teste mas é reconhecido pelo Google.
+- [x] Mobile-friendliness — OK (Lighthouse mobile já simula celular; SEO 100, Acessibilidade 100)
+- [x] Testar OG image — card OK no WhatsApp. Logo SVG corrigida (commit `3057b2f` — trocou texto "u" por `icon.svg` real via base64 data URI)
+- [x] Testar favicon — ícone azul OK
 
 ### Fase 5: PageSpeed Insights — Performance (CONCLUÍDA)
 
