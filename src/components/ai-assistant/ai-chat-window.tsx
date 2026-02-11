@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Send, Bot, User, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -278,13 +279,18 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                              : 'bg-primary text-primary-foreground'
                          )}
                        >
-                         <p className="text-sm whitespace-pre-wrap">
-                           {message.content}
-                           {/* Typing cursor for streaming messages */}
-                           {isStreaming && message.role === 'assistant' && message.id === messages[messages.length - 1]?.id && (
-                             <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse" />
-                           )}
-                         </p>
+                         {message.role === 'assistant' ? (
+                           <div className="text-sm prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-sm prose-strong:text-foreground">
+                             <ReactMarkdown>{message.content}</ReactMarkdown>
+                             {isStreaming && message.id === messages[messages.length - 1]?.id && (
+                               <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse align-text-bottom" />
+                             )}
+                           </div>
+                         ) : (
+                           <p className="text-sm whitespace-pre-wrap">
+                             {message.content}
+                           </p>
+                         )}
                        </div>
                 </div>
               ))}

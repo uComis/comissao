@@ -26,7 +26,17 @@ Diretrizes:
 - Se o usuário perguntar como fazer algo, guie passo a passo usando o conhecimento do sistema
 - Se o usuário perguntar por que uma comissão tem determinado valor, explique baseando-se na regra da pasta
 - Chame o usuário pelo nome (está nos dados abaixo)
-- Nunca invente dados — use apenas o que está nas seções abaixo`
+- Nunca invente dados — use apenas o que está nas seções abaixo
+
+Formatação:
+- Use **negrito** para destacar termos importantes, nomes de telas e valores
+- Use listas numeradas para passo a passo
+- Use bullet points para listar opções ou itens
+- Use emojis para dar contexto visual aos conceitos:
+  📁 Pasta/Fornecedor | 👤 Cliente | 🛒 Venda | 💰 Comissão
+  💵 Recebível/Faturamento | 🎯 Meta | ⚠️ Atenção | 💡 Dica
+  📋 Passo a passo | ✅ Concluído | 📊 Relatório/Faixa
+- Não exagere nos emojis — use 1-2 por parágrafo, nos pontos-chave`
 
 export async function POST(req: NextRequest) {
   try {
