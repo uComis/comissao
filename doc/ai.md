@@ -4,7 +4,7 @@ Documentação da implementação de Inteligência Artificial no uComis.
 
 ## Visão Geral
 
-O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Atualmente funciona como um chatbot conversacional contextualizado com dados básicos do usuário, usando o modelo Gemini 2.5 Flash do Google.
+O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Usa o modelo Gemini 2.5 Flash do Google com acesso a dados reais do usuário (comissões, vendas, recebíveis).
 
 ## Stack
 
@@ -24,15 +24,32 @@ O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Atua
 
 ```
 src/
+├── lib/
+│   ├── clients/ai/                  # Client AI genérico (sem domínio)
+│   │   ├── types.ts                 # AiClient, AiMessage, AiStreamChunk
+│   │   ├── gemini-provider.ts       # Implementação Gemini
+│   │   └── index.ts                 # Factory createAiClient() + re-exports
+│   │
+│   └── services/
+│       └── ai-context-service.ts    # Agrega dados reais para o prompt
+│
 ├── components/ai-assistant/
-│   ├── index.ts                  # Re-exports
-│   ├── ai-chat-context.tsx       # Context + Provider (controla open/close)
-│   ├── ai-chat-button.tsx        # Botão flutuante (não utilizado)
-│   └── ai-chat-window.tsx        # Janela de chat com streaming
+│   ├── index.ts                     # Re-exports
+│   ├── ai-chat-context.tsx          # Context + Provider (controla open/close)
+│   ├── ai-chat-button.tsx           # Botão flutuante (não utilizado)
+│   └── ai-chat-window.tsx           # Janela de chat com streaming
 │
 └── app/api/ai/chat/
-    └── route.ts                  # API Route (Edge) → Gemini 2.5 Flash
+    └── route.ts                     # Orquestrador: auth → dados → prompt → AI → SSE
 ```
+
+### Separação de Responsabilidades
+
+| Camada | Responsabilidade | Sabe sobre |
+|--------|------------------|-----------|
+| `clients/ai/` | HTTP wrapper genérico | Apenas a API do provedor (Gemini) |
+| `services/ai-context-service.ts` | Agregar dados do domínio | Supabase, DashboardService, recebíveis |
+| `route.ts` | Orquestrar o fluxo | Auth, context service, AI client, SSE |
 
 ### Fluxo
 
@@ -48,14 +65,55 @@ src/
 │  API Route (Edge)                                            │
 │    1. Autentica usuário (Supabase)                           │
 │    2. Busca profile + organization                           │
-│    3. Monta system prompt com contexto do usuário            │
-│    4. Chama Gemini 2.5 Flash (streaming)                     │
-│    5. Retorna SSE chunks para o frontend                     │
+│    3. Busca dados reais (dashboard + recebíveis)             │
+│    4. Monta system prompt com contexto completo              │
+│    5. Chama AI client (Gemini 2.5 Flash, streaming)          │
+│    6. Retorna SSE chunks para o frontend                     │
 │         │                                                    │
 │         ▼                                                    │
 │  AiChatWindow                                                │
 │    Exibe resposta com efeito de digitação (8ms/caractere)    │
 └──────────────────────────────────────────────────────────────┘
+```
+
+## Dados Reais no Prompt
+
+O `ai-context-service.ts` busca dados de duas fontes em paralelo:
+
+| Fonte | Dados | Uso |
+|-------|-------|-----|
+| `DashboardService.getHomeAnalytics()` | Comissão do mês, vendas, financeiro, rankings top 5 | Métricas mensais, clientes e fornecedores |
+| Query `v_receivables` | Pendentes, vencidos, recebidos (totais gerais) | Visão geral de recebíveis |
+
+**Resiliência:**
+- Cada fonte tem `.catch(() => null)` — se uma falhar, a outra ainda é usada
+- Timeout de 8s para busca de dados — garante que o AI responde mesmo com DB lento
+- Se nenhum dado carregar, o AI informa que não tem dados disponíveis
+
+**Seções do prompt:**
+1. Usuário (nome, email, org, cargo)
+2. Comissão do Mês (total, meta, progresso)
+3. Vendas do Mês (quantidade, valor bruto, tendência)
+4. Financeiro do Mês (recebido, pendente, vencido)
+5. Top Clientes (ranking mensal)
+6. Top Pastas/Fornecedores (ranking mensal)
+7. Recebíveis gerais (totais e contagens)
+
+## AI Client — Trocar Provider
+
+O client AI segue o mesmo padrão factory do Pipedrive. Para trocar de provider:
+
+1. Criar novo arquivo (ex: `src/lib/clients/ai/openai-provider.ts`)
+2. Implementar a interface `AiClient` (método `chat()` retornando `ReadableStream<AiStreamChunk>`)
+3. Adicionar `case 'openai'` no switch de `createAiClient()` em `index.ts`
+4. Mudar a config no `route.ts`:
+
+```typescript
+const client = createAiClient({
+  provider: 'openai',  // ← troca aqui
+  apiKey: process.env.OPENAI_API_KEY!,
+  defaultModel: 'gpt-4o',
+})
 ```
 
 ## Onde é Chamado
@@ -72,16 +130,9 @@ O `AiChatProvider` vive no layout do dashboard, garantindo que o estado open/clo
 
 O backend monta um prompt contextualizado com:
 
-- **Nome** do usuário (via `profiles`)
-- **Email** (via Supabase Auth)
-- **Organização** (via `organizations`)
-- **Cargo** (via `profiles.role`)
-
-Diretrizes do prompt:
-- Responder sobre vendas, comissões e recebíveis
-- Ajudar a interpretar relatórios e métricas
-- Sugerir ações para melhorar resultados
-- Usar português brasileiro e formatar valores em R$
+- **Identidade:** Kai, assistente do uComis
+- **Dados reais:** comissão, vendas, recebíveis, rankings (via ai-context-service)
+- **Diretrizes:** usar R$, português brasileiro, ser direto, admitir quando não tem dados
 
 ## Componentes
 
@@ -119,7 +170,6 @@ A seção `app/site/secoes/kai.tsx` apresenta o assistente na landing page com a
 
 | Limitação | Descrição |
 |-----------|-----------|
-| Sem acesso a dados reais | O agente não consulta vendas, comissões ou recebíveis do usuário. É um chatbot genérico contextualizado apenas com nome/email/org. |
 | Sem histórico persistido | Conversas vivem só no state React. Fechar o chat perde tudo. |
 | Sem tool calling | O modelo não executa ações (criar venda, consultar recebível). Apenas conversa. |
 | Sem rate limiting | Não há controle de uso por usuário. |
@@ -129,8 +179,7 @@ A seção `app/site/secoes/kai.tsx` apresenta o assistente na landing page com a
 
 A landing page (seção Kai) já vende a visão futura:
 
-1. **Acesso a dados reais** — Consultar vendas, comissões, recebíveis do usuário
-2. **Tool calling** — Executar ações como criar venda, gerar relatório
-3. **Input por texto livre** — Colar texto do WhatsApp e o Kai estruturar em venda
-4. **Histórico persistido** — Salvar conversas no banco
-5. **Vínculo com plano** — Limitar uso por tier de assinatura
+1. **Tool calling** — Executar ações como criar venda, gerar relatório
+2. **Input por texto livre** — Colar texto do WhatsApp e o Kai estruturar em venda
+3. **Histórico persistido** — Salvar conversas no banco
+4. **Vínculo com plano** — Limitar uso por tier de assinatura
