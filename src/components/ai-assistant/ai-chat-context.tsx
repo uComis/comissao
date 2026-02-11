@@ -3,10 +3,33 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { AiChatWindow } from './ai-chat-window'
 
+export type SalePreview = {
+  supplier_id: string
+  supplier_name: string
+  client_id: string
+  client_name: string
+  sale_date: string
+  gross_value: number
+  tax_rate: number
+  net_value: number
+  commission_rate: number
+  commission_value: number
+  notes: string | null
+}
+
+export type ToolCallData = {
+  name: string
+  preview: SalePreview
+  status: 'pending' | 'confirmed' | 'cancelled' | 'error'
+  result?: { sale_id: string }
+  error?: string
+}
+
 export interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  toolCall?: ToolCallData
 }
 
 export type ConversationSummary = {
@@ -25,6 +48,12 @@ type AiChatContextValue = {
   setConversationId: (id: string | null) => void
   addMessage: (msg: Message) => void
   updateMessage: (id: string, content: string) => void
+  updateToolCallStatus: (
+    messageId: string,
+    status: ToolCallData['status'],
+    result?: { sale_id: string },
+    error?: string
+  ) => void
   startNewConversation: () => void
   loadConversation: (id: string) => Promise<void>
   refreshConversations: () => Promise<void>
@@ -36,6 +65,62 @@ export function useAiChat() {
   const ctx = useContext(AiChatContext)
   if (!ctx) throw new Error('useAiChat must be inside AiChatProvider')
   return ctx
+}
+
+// Parse persisted messages with [TOOL_CALL:...] and [TOOL_RESULT:...] prefixes
+function parsePersistedMessages(
+  dbMessages: { id: string; role: 'user' | 'assistant'; content: string }[]
+): Message[] {
+  const messages: Message[] = []
+  // Track tool results to update tool call statuses
+  const toolResults = new Map<string, { success: boolean; sale_id?: string; error?: string }>()
+
+  // First pass: collect tool results
+  for (const m of dbMessages) {
+    const resultMatch = m.content.match(/^\[TOOL_RESULT:(\w+)\](.+)$/)
+    if (resultMatch) {
+      try {
+        const data = JSON.parse(resultMatch[2])
+        toolResults.set(resultMatch[1], data)
+      } catch { /* ignore parse errors */ }
+    }
+  }
+
+  // Second pass: build messages
+  for (const m of dbMessages) {
+    const toolCallMatch = m.content.match(/^\[TOOL_CALL:(\w+)\](.+)$/)
+    const resultMatch = m.content.match(/^\[TOOL_RESULT:(\w+)\]/)
+
+    if (toolCallMatch) {
+      try {
+        const toolName = toolCallMatch[1]
+        const preview = JSON.parse(toolCallMatch[2]) as SalePreview
+        const result = toolResults.get(toolName)
+
+        messages.push({
+          id: m.id,
+          role: m.role,
+          content: '',
+          toolCall: {
+            name: toolName,
+            preview,
+            status: result?.success ? 'confirmed' : result ? 'error' : 'pending',
+            result: result?.sale_id ? { sale_id: result.sale_id } : undefined,
+            error: result?.error,
+          },
+        })
+      } catch {
+        messages.push({ id: m.id, role: m.role, content: m.content })
+      }
+    } else if (resultMatch) {
+      // Skip standalone tool result messages — already merged into tool call
+      continue
+    } else {
+      messages.push({ id: m.id, role: m.role, content: m.content })
+    }
+  }
+
+  return messages
 }
 
 export function AiChatProvider({ children }: { children: ReactNode }) {
@@ -57,6 +142,26 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       prev.map(msg => msg.id === id ? { ...msg, content } : msg)
     )
   }, [])
+
+  const updateToolCallStatus = useCallback(
+    (
+      messageId: string,
+      status: ToolCallData['status'],
+      result?: { sale_id: string },
+      error?: string
+    ) => {
+      setMessages(prev =>
+        prev.map(msg => {
+          if (msg.id !== messageId || !msg.toolCall) return msg
+          return {
+            ...msg,
+            toolCall: { ...msg.toolCall, status, result, error },
+          }
+        })
+      )
+    },
+    []
+  )
 
   const startNewConversation = useCallback(() => {
     setConversationId(null)
@@ -84,13 +189,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       if (!res.ok) return
       const dbMessages = await res.json()
       if (dbMessages?.length) {
-        setMessages(
-          dbMessages.map((m: { id: string; role: 'user' | 'assistant'; content: string }) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-          }))
-        )
+        setMessages(parsePersistedMessages(dbMessages))
       } else {
         setMessages([])
       }
@@ -123,13 +222,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
 
         const dbMessages = await msgsRes.json()
         if (dbMessages?.length) {
-          setMessages(
-            dbMessages.map((m: { id: string; role: 'user' | 'assistant'; content: string }) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-            }))
-          )
+          setMessages(parsePersistedMessages(dbMessages))
         }
       } catch (err) {
         console.error('Failed to load last conversation:', err)
@@ -154,6 +247,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
         setConversationId,
         addMessage,
         updateMessage,
+        updateToolCallStatus,
         startNewConversation,
         loadConversation,
         refreshConversations,

@@ -7,12 +7,27 @@ export type AiMessage = {
   content: string
 }
 
-export type AiStreamChunk = { text: string }
+export type AiToolCall = {
+  name: string
+  args: Record<string, unknown>
+}
+
+export type AiFunctionDeclaration = {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+// Discriminated union: texto ou tool call
+export type AiStreamChunk =
+  | { type: 'text'; text: string }
+  | { type: 'tool_call'; toolCall: AiToolCall }
 
 export type AiChatOptions = {
   model: string
   systemPrompt: string
   messages: AiMessage[]
+  tools?: AiFunctionDeclaration[]
 }
 
 export type AiClient = {

@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
 import { useAiChat } from './ai-chat-context'
+import { SaleConfirmationCard } from './sale-confirmation-card'
+import type { SalePreview } from './ai-chat-context'
 
 const AVATAR_COLORS = [
   '#E11D48', '#9333EA', '#2563EB', '#0891B2',
@@ -66,6 +68,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
     setConversationId,
     addMessage,
     updateMessage,
+    updateToolCallStatus,
     startNewConversation,
     refreshConversations,
   } = useAiChat()
@@ -89,6 +92,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [executingToolId, setExecutingToolId] = useState<string | null>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -96,6 +100,40 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
       scrollRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
+
+  const handleToolConfirm = async (messageId: string) => {
+    const msg = messages.find(m => m.id === messageId)
+    if (!msg?.toolCall) return
+
+    setExecutingToolId(messageId)
+    try {
+      const res = await fetch('/api/ai/tool-execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool_name: msg.toolCall.name,
+          preview: msg.toolCall.preview,
+          conversation_id: conversationId,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.success && data.sale_id) {
+        updateToolCallStatus(messageId, 'confirmed', { sale_id: data.sale_id })
+      } else {
+        updateToolCallStatus(messageId, 'error', undefined, data.error || 'Erro ao criar venda')
+      }
+    } catch {
+      updateToolCallStatus(messageId, 'error', undefined, 'Erro de conexão. Tente novamente.')
+    } finally {
+      setExecutingToolId(null)
+    }
+  }
+
+  const handleToolCancel = (messageId: string) => {
+    updateToolCallStatus(messageId, 'cancelled')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,6 +173,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
       let fullText = ''
       let displayedText = ''
       let assistantMessageId: string | null = null
+      let receivedToolCall = false
 
       while (true) {
         const { done, value } = await reader.read()
@@ -159,6 +198,23 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               if (parsed.conversation_id) {
                 setConversationId(parsed.conversation_id)
                 refreshConversations()
+                continue
+              }
+
+              // Handle tool_call event
+              if (parsed.tool_call) {
+                receivedToolCall = true
+                const toolCallMsg = {
+                  id: (Date.now() + 2).toString(),
+                  role: 'assistant' as const,
+                  content: '',
+                  toolCall: {
+                    name: parsed.tool_call.name as string,
+                    preview: parsed.tool_call.preview as SalePreview,
+                    status: 'pending' as const,
+                  },
+                }
+                addMessage(toolCallMsg)
                 continue
               }
 
@@ -191,7 +247,8 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
         }
       }
 
-      if (!assistantMessageId || !displayedText) {
+      // Allow empty text responses when there was a tool call
+      if (!assistantMessageId && !displayedText && !receivedToolCall) {
         throw new Error('Resposta vazia do servidor')
       }
     } catch (err) {
@@ -315,19 +372,38 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                        {/* Message Bubble */}
                        <div
                          className={cn(
-                           'rounded-lg px-4 py-2 max-w-[80%]',
+                           'max-w-[80%]',
                            message.role === 'assistant'
-                             ? 'bg-muted'
-                             : 'bg-primary text-primary-foreground'
+                             ? ''
+                             : 'rounded-lg px-4 py-2 bg-primary text-primary-foreground'
                          )}
                        >
                          {message.role === 'assistant' ? (
-                           <div className="text-sm prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-sm prose-strong:text-foreground">
-                             <ReactMarkdown>{message.content}</ReactMarkdown>
-                             {isStreaming && message.id === messages[messages.length - 1]?.id && (
-                               <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse align-text-bottom" />
+                           <>
+                             {/* Text content */}
+                             {message.content && (
+                               <div className="rounded-lg px-4 py-2 bg-muted">
+                                 <div className="text-sm prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-headings:text-sm prose-strong:text-foreground">
+                                   <ReactMarkdown>{message.content}</ReactMarkdown>
+                                   {isStreaming && message.id === messages[messages.length - 1]?.id && (
+                                     <span className="inline-block w-1 h-4 ml-1 bg-current animate-pulse align-text-bottom" />
+                                   )}
+                                 </div>
+                               </div>
                              )}
-                           </div>
+
+                             {/* Tool call card */}
+                             {message.toolCall && (
+                               <div className={message.content ? 'mt-2' : ''}>
+                                 <SaleConfirmationCard
+                                   toolCall={message.toolCall}
+                                   isExecuting={executingToolId === message.id}
+                                   onConfirm={() => handleToolConfirm(message.id)}
+                                   onCancel={() => handleToolCancel(message.id)}
+                                 />
+                               </div>
+                             )}
+                           </>
                          ) : (
                            <p className="text-sm whitespace-pre-wrap">
                              {message.content}

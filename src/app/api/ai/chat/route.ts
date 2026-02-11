@@ -2,7 +2,10 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { createAiClient } from '@/lib/clients/ai'
 import { KAI_KNOWLEDGE } from '@/lib/clients/ai/kai-knowledge'
+import { KAI_TOOLS } from '@/lib/clients/ai/kai-tools'
 import { getUserContext, formatForPrompt } from '@/lib/services/ai-context-service'
+import { resolveNames } from '@/lib/services/ai-name-resolver'
+import { commissionEngine } from '@/lib/commission-engine'
 
 export const runtime = 'edge'
 export const maxDuration = 30
@@ -16,6 +19,7 @@ Suas funções:
 - Explicar regras de comissão configuradas
 - Guiar o usuário sobre como usar qualquer funcionalidade do sistema
 - Explicar conceitos do domínio (pasta, representada, recebível, etc.)
+- **Registrar vendas** quando o usuário pedir (usar a função create_sale)
 
 Diretrizes:
 - Seja direto e objetivo nas respostas
@@ -27,6 +31,12 @@ Diretrizes:
 - Se o usuário perguntar por que uma comissão tem determinado valor, explique baseando-se na regra da pasta
 - Chame o usuário pelo nome (está nos dados abaixo)
 - Nunca invente dados — use apenas o que está nas seções abaixo
+
+Ações disponíveis:
+- Quando o usuário pedir para registrar/cadastrar/criar uma venda, use a função create_sale.
+- Antes de chamar create_sale, certifique-se de ter: nome do cliente, nome da pasta e valor bruto.
+- Se faltar algum dado obrigatório, pergunte ao usuário antes de chamar a função.
+- Nunca invente nomes de clientes ou pastas — use exatamente o que o usuário informar.
 
 Formatação:
 - Use **negrito** para destacar termos importantes, nomes de telas e valores
@@ -109,6 +119,7 @@ export async function POST(req: NextRequest) {
       model: 'gemini-2.5-flash',
       systemPrompt,
       messages,
+      tools: KAI_TOOLS,
     })
 
     // Convert AiStreamChunk → SSE text
@@ -126,25 +137,131 @@ export async function POST(req: NextRequest) {
 
           const reader = aiStream.getReader()
           let fullAssistantText = ''
+          let toolCall: { name: string; args: Record<string, unknown> } | null = null
 
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
-            fullAssistantText += value.text
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
+
+            if (value.type === 'text') {
+              fullAssistantText += value.text
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
+              )
+            } else if (value.type === 'tool_call') {
+              toolCall = value.toolCall
+            }
+          }
+
+          // Process tool call after stream completes
+          if (toolCall && toolCall.name === 'create_sale') {
+            const args = toolCall.args as {
+              client_name: string
+              supplier_name: string
+              gross_value: number
+              sale_date?: string
+              notes?: string
+            }
+
+            // Resolve names
+            const resolution = await resolveNames(
+              supabase,
+              user.id,
+              args.client_name,
+              args.supplier_name
             )
+
+            if (resolution.errors.length > 0) {
+              // Send resolution errors as text
+              const errorText = resolution.errors.join('\n')
+              fullAssistantText += errorText
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: errorText })}\n\n`)
+              )
+            } else if (resolution.client && resolution.supplier) {
+              // Fetch commission rule for preview
+              const saleDate = args.sale_date || new Date().toISOString().split('T')[0]
+              const grossValue = args.gross_value
+              let taxRate = 0
+              let commissionRate = 0
+              let commissionValue = 0
+              let netValue = grossValue
+
+              if (resolution.supplier.commission_rule_id) {
+                const { data: rule } = await supabase
+                  .from('commission_rules')
+                  .select('type, percentage, tiers, tax_percentage')
+                  .eq('id', resolution.supplier.commission_rule_id)
+                  .single()
+
+                if (rule) {
+                  taxRate = rule.tax_percentage || 0
+                  const taxAmount = grossValue * (taxRate / 100)
+                  netValue = grossValue - taxAmount
+
+                  const result = commissionEngine.calculate({
+                    netValue,
+                    rule: {
+                      type: rule.type as 'fixed' | 'tiered',
+                      percentage: rule.percentage,
+                      tiers: rule.tiers,
+                    },
+                  })
+                  commissionValue = result.amount
+                  commissionRate = result.percentageApplied
+                }
+              }
+
+              const preview = {
+                supplier_id: resolution.supplier.id,
+                supplier_name: resolution.supplier.name,
+                client_id: resolution.client.id,
+                client_name: resolution.client.name,
+                sale_date: saleDate,
+                gross_value: grossValue,
+                tax_rate: taxRate,
+                net_value: netValue,
+                commission_rate: commissionRate,
+                commission_value: commissionValue,
+                notes: args.notes || null,
+              }
+
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ tool_call: { name: 'create_sale', preview } })}\n\n`
+                )
+              )
+
+              // Save tool call as special message
+              if (finalConvId) {
+                const toolContent = `[TOOL_CALL:create_sale]${JSON.stringify(preview)}`
+                supabase
+                  .from('ai_messages')
+                  .insert({ conversation_id: finalConvId, role: 'assistant', content: toolContent })
+                  .then(({ error }) => { if (error) console.error('Save tool call msg error:', error) })
+              }
+            }
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
 
-          // Save assistant message (fire-and-forget)
-          if (finalConvId && fullAssistantText) {
+          // Save assistant text message (if any, and not already saved as tool call)
+          if (finalConvId && fullAssistantText && !toolCall) {
             supabase
               .from('ai_messages')
               .insert({ conversation_id: finalConvId, role: 'assistant', content: fullAssistantText })
               .then(({ error }) => { if (error) console.error('Save assistant msg error:', error) })
+          }
 
+          // Save text that came before a tool call (rare but possible)
+          if (finalConvId && fullAssistantText && toolCall) {
+            supabase
+              .from('ai_messages')
+              .insert({ conversation_id: finalConvId, role: 'assistant', content: fullAssistantText })
+              .then(({ error }) => { if (error) console.error('Save pre-tool text error:', error) })
+          }
+
+          if (finalConvId) {
             supabase
               .from('ai_conversations')
               .update({ updated_at: new Date().toISOString() })

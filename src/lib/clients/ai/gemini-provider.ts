@@ -21,9 +21,24 @@ export function createGeminiProvider(apiKey: string): AiClient {
         })),
       ]
 
+      // Montar config com tools opcionais
+      const config: Record<string, unknown> = {}
+      if (options.tools && options.tools.length > 0) {
+        config.tools = [
+          {
+            functionDeclarations: options.tools.map((t) => ({
+              name: t.name,
+              description: t.description,
+              parameters: t.parameters,
+            })),
+          },
+        ]
+      }
+
       const response = ai.models.generateContentStream({
         model: options.model,
         contents,
+        config: Object.keys(config).length > 0 ? config : undefined,
       })
 
       // Transforma o async iterator do Gemini em ReadableStream genérico
@@ -32,10 +47,21 @@ export function createGeminiProvider(apiKey: string): AiClient {
           try {
             const result = await response
             for await (const chunk of result) {
-              const text =
-                chunk.candidates?.[0]?.content?.parts?.[0]?.text || ''
-              if (text) {
-                controller.enqueue({ text })
+              const parts = chunk.candidates?.[0]?.content?.parts
+              if (!parts) continue
+
+              for (const part of parts) {
+                if (part.functionCall) {
+                  controller.enqueue({
+                    type: 'tool_call',
+                    toolCall: {
+                      name: part.functionCall.name!,
+                      args: (part.functionCall.args as Record<string, unknown>) || {},
+                    },
+                  })
+                } else if (part.text) {
+                  controller.enqueue({ type: 'text', text: part.text })
+                }
               }
             }
             controller.close()
