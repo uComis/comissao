@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase-server'
 import { commissionEngine } from '@/lib/commission-engine'
+import { CacheService } from '@/lib/services/cache-service'
 import { checkLimit, incrementUsage, decrementUsage, getDataRetentionFilter, getBlockedSuppliers } from './billing'
 import type { PersonalSale, PersonalSaleWithItems, CreatePersonalSaleInput } from '@/types'
 
@@ -465,8 +466,13 @@ export async function createPersonalSale(
     // Incrementar uso
     await incrementUsage(user.id, 'sales')
 
+    // Invalidar cache do dashboard para refletir a nova venda imediatamente
+    const monthKey = `home_analytics_${sale_date.substring(0, 7)}`
+    await CacheService.invalidate(monthKey)
+
     revalidatePath('/minhasvendas')
     revalidatePath('/recebiveis')
+    revalidatePath('/home')
     return {
       success: true,
       data: {
@@ -655,9 +661,14 @@ export async function updatePersonalSale(
     // Recebíveis são calculados on-the-fly via view v_receivables
     // Ao editar a venda, as parcelas atualizam automaticamente
 
+    // Invalidar cache do dashboard para refletir a edição imediatamente
+    const monthKey = `home_analytics_${sale_date.substring(0, 7)}`
+    await CacheService.invalidate(monthKey)
+
     revalidatePath('/minhasvendas')
     revalidatePath(`/minhasvendas/${id}`)
     revalidatePath('/recebiveis')
+    revalidatePath('/home')
     return {
       success: true,
       data: {
@@ -692,7 +703,13 @@ export async function deletePersonalSale(id: string): Promise<ActionResult<void>
     // Decrementar uso
     await decrementUsage(user.id, 'sales')
 
+    // Invalidar todo o cache do dashboard (não sabemos o mês exato aqui)
+    const now = new Date()
+    const monthKey = `home_analytics_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    await CacheService.invalidate(monthKey)
+
     revalidatePath('/minhasvendas')
+    revalidatePath('/home')
     return { success: true, data: undefined }
   } catch (err) {
     console.error('Error deleting sale:', err)
