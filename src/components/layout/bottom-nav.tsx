@@ -1,17 +1,12 @@
 'use client'
 
-import { TrendingUp, Receipt, Plus, Wallet, FolderOpen, Users, Building2 } from 'lucide-react'
+import { TrendingUp, Receipt, Plus, Wallet, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
-
-const gestaoItems = [
-  { title: 'Meus Clientes', url: '/clientes', icon: Users },
-  { title: 'Minhas Pastas', url: '/fornecedores', icon: Building2 },
-]
+import { useAiChat } from '@/components/ai-assistant'
 
 type BottomNavPhase = 'visible' | 'hiding' | 'hidden' | 'showing'
 
@@ -19,7 +14,7 @@ const ANIM_DURATION = 250
 
 export function BottomNav() {
   const pathname = usePathname()
-  const [gestaoOpen, setGestaoOpen] = useState(false)
+  const { isOpen: isAiChatOpen, toggle: toggleAiChat } = useAiChat()
   const { taskMode } = usePageHeader()
   const actions = usePageHeaderActions()
   const [mounted, setMounted] = useState(false)
@@ -71,7 +66,6 @@ export function BottomNav() {
   }, [taskMode, phase])
 
   const isPathActive = useCallback((url: string) => pathname === url || pathname.startsWith(`${url}/`), [pathname])
-  const isGestaoActive = gestaoItems.some(item => isPathActive(item.url))
 
   const translateClass = (phase === 'visible' || phase === 'showing')
     ? 'translate-y-0'
@@ -132,49 +126,17 @@ export function BottomNav() {
             isActive={isPathActive('/faturamento')}
           />
 
-          {/* Menu com Popover */}
-          <Popover open={gestaoOpen} onOpenChange={setGestaoOpen}>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                suppressHydrationWarning
-                className={cn(
-                  'flex flex-col items-center justify-center gap-1 transition-all active:scale-90',
-                  isGestaoActive ? 'text-[#409eff]' : 'text-muted-foreground'
-                )}
-              >
-                <FolderOpen className={cn('h-5 w-5', isGestaoActive && 'stroke-[2.5px]')} />
-                <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">Menu</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              side="top"
-              align="end"
-              className="w-52 p-1.5 mb-2 rounded-2xl bg-secondary/95 backdrop-blur-xl border-border/40 shadow-2xl"
-              sideOffset={8}
-            >
-              <div className="flex flex-col gap-0.5">
-                {gestaoItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = isPathActive(item.url)
-                  return (
-                    <Link
-                      key={item.title}
-                      href={item.url}
-                      onClick={() => setGestaoOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors',
-                        isActive ? 'bg-[#409eff]/10 text-[#409eff]' : 'hover:bg-muted'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{item.title}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
+          <button
+            type="button"
+            onClick={toggleAiChat}
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 transition-all active:scale-90',
+              isAiChatOpen ? 'text-[#409eff]' : 'text-muted-foreground'
+            )}
+          >
+            <Sparkles className={cn('h-5 w-5', isAiChatOpen && 'stroke-[2.5px]')} />
+            <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">Kai</span>
+          </button>
         </div>
       </div>
     </nav>
