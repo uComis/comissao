@@ -12,7 +12,7 @@ import { DashedActionButton } from '@/components/ui/dashed-action-button'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { Loader2, Plus, Package, Pencil, X } from 'lucide-react'
+import { Loader2, Plus, Package, Pencil, X, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useSetPageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
@@ -64,6 +64,10 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   // Estados de controle
   const [loading, setLoading] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
+
+  // Animação de faixas
+  const [animatingIndex, setAnimatingIndex] = useState<number | null>(null)
+  const [removingIndex, setRemovingIndex] = useState<number | null>(null)
 
   // Verificar se já tem comissão configurada
   const hasExistingCommission = !!(
@@ -157,9 +161,22 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   async function handleSaveCommission() {
     if (!supplier) return
 
-    if (showCommissionSection && ruleType === 'tiered' && commissionTiers.length === 0) {
-      toast.error('Adicione pelo menos uma faixa de comissão')
-      return
+    if (showCommissionSection && ruleType === 'tiered') {
+      if (commissionTiers.length === 0) {
+        toast.error('Adicione pelo menos uma faixa de comissão')
+        return
+      }
+      for (let i = 0; i < commissionTiers.length; i++) {
+        const tier = commissionTiers[i]
+        if (tier.percentage <= 0) {
+          toast.error(`Faixa ${i + 1}: comissão deve ser maior que 0%`)
+          return
+        }
+        if (tier.max !== null && tier.max <= tier.min) {
+          toast.error(`Faixa ${i + 1}: valor máximo deve ser maior que o mínimo`)
+          return
+        }
+      }
     }
 
     setSavingCommission(true)
@@ -204,27 +221,45 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   // Funções para gerenciar faixas
   function addTier() {
     const lastTier = commissionTiers[commissionTiers.length - 1]
-    const newMin = lastTier.max ?? 0
-    setCommissionTiers([
+    const newMax = lastTier.max ?? Math.max(lastTier.min + 1000, 1000)
+    const newTiers = [
       ...commissionTiers.slice(0, -1),
-      { ...lastTier, max: newMin },
-      { min: newMin, max: null, percentage: 0 },
-    ])
+      { ...lastTier, max: newMax },
+      { min: newMax + 1, max: null, percentage: 0 },
+    ]
+    setCommissionTiers(newTiers)
+    setAnimatingIndex(newTiers.length - 1)
+    setTimeout(() => setAnimatingIndex(null), 400)
   }
 
   function removeTier(index: number) {
-    if (commissionTiers.length <= 1) return
-    const newTiers = commissionTiers.filter((_, i) => i !== index)
-    if (newTiers.length > 0) {
-      newTiers[newTiers.length - 1].max = null
-    }
-    setCommissionTiers(newTiers)
+    if (commissionTiers.length <= 1 || removingIndex !== null) return
+    setRemovingIndex(index)
+    setTimeout(() => {
+      setCommissionTiers(prev => {
+        const newTiers = prev.filter((_, i) => i !== index)
+        // Recalcular mins baseados no max anterior
+        for (let i = 1; i < newTiers.length; i++) {
+          newTiers[i] = { ...newTiers[i], min: (newTiers[i - 1].max ?? 0) + 1 }
+        }
+        // Última faixa sempre tem max = null (ilimitado)
+        newTiers[newTiers.length - 1] = { ...newTiers[newTiers.length - 1], max: null }
+        return newTiers
+      })
+      setRemovingIndex(null)
+    }, 200)
   }
 
   function updateTier(index: number, field: keyof CommissionTier, value: number | null) {
-    const newTiers = [...commissionTiers]
-    newTiers[index] = { ...newTiers[index], [field]: value }
-    setCommissionTiers(newTiers)
+    setCommissionTiers(prev => {
+      const newTiers = prev.map(t => ({ ...t }))
+      newTiers[index] = { ...newTiers[index], [field]: value }
+      // Propagar max → min da próxima faixa
+      if (field === 'max' && value !== null && index < newTiers.length - 1) {
+        newTiers[index + 1] = { ...newTiers[index + 1], min: value + 1 }
+      }
+      return newTiers
+    })
   }
 
   useSetPageHeader({
@@ -270,9 +305,22 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     }
 
     // Validar faixas se for regra por faixa
-    if (showCommissionSection && ruleType === 'tiered' && commissionTiers.length === 0) {
-      toast.error('Adicione pelo menos uma faixa de comissão')
-      return
+    if (showCommissionSection && ruleType === 'tiered') {
+      if (commissionTiers.length === 0) {
+        toast.error('Adicione pelo menos uma faixa de comissão')
+        return
+      }
+      for (let i = 0; i < commissionTiers.length; i++) {
+        const tier = commissionTiers[i]
+        if (tier.percentage <= 0) {
+          toast.error(`Faixa ${i + 1}: comissão deve ser maior que 0%`)
+          return
+        }
+        if (tier.max !== null && tier.max <= tier.min) {
+          toast.error(`Faixa ${i + 1}: valor máximo deve ser maior que o mínimo`)
+          return
+        }
+      }
     }
 
     setLoading(true)
@@ -617,64 +665,83 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
 
                     {/* Campos para faixas */}
                     {ruleType === 'tiered' && (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {commissionTiers.map((tier, index) => (
-                          <div key={index} className="p-3 border rounded-lg space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Faixa {index + 1}
-                              </span>
+                          <div
+                            key={index}
+                            className={cn(
+                              'relative rounded-lg border bg-muted/30 transition-all duration-200',
+                              removingIndex === index && 'opacity-0 scale-95 -translate-y-1',
+                              animatingIndex === index && 'animate-in fade-in-0 slide-in-from-top-2 duration-300',
+                            )}
+                          >
+                            {/* Header da faixa */}
+                            <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center justify-center h-5 w-5 rounded-full bg-primary/10 text-primary text-[11px] font-semibold">
+                                  {index + 1}
+                                </span>
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  R$ {tier.min.toLocaleString('pt-BR')}
+                                  {' — '}
+                                  {tier.max !== null ? `R$ ${tier.max.toLocaleString('pt-BR')}` : 'em diante'}
+                                </span>
+                              </div>
                               {commissionTiers.length > 1 && (
                                 <Button
                                   type="button"
                                   variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 text-destructive hover:text-destructive"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10"
                                   onClick={() => removeTier(index)}
+                                  disabled={removingIndex !== null}
                                 >
-                                  Remover
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               )}
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
+                            {/* Campos */}
+                            <div className="grid grid-cols-3 gap-2 px-3 pb-3">
                               <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground">Mínimo (R$)</Label>
+                                <Label className="text-[11px] text-muted-foreground">Mínimo (R$)</Label>
                                 <Input
                                   type="number"
-                                  inputMode="decimal"
-                                  min="0"
-                                  step="0.01"
+                                  inputMode="numeric"
                                   value={tier.min}
-                                  onChange={(e) => updateTier(index, 'min', parseFloat(e.target.value) || 0)}
+                                  disabled
+                                  className="bg-muted/50 cursor-default tabular-nums h-8 text-sm"
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground">
-                                  {index === commissionTiers.length - 1 ? 'Máximo' : 'Máximo (R$)'}
-                                </Label>
+                                <Label className="text-[11px] text-muted-foreground">Máximo (R$)</Label>
                                 <Input
                                   type="number"
-                                  inputMode="decimal"
-                                  min="0"
-                                  step="0.01"
+                                  inputMode="numeric"
+                                  min={tier.min + 1}
+                                  step="1"
                                   value={tier.max ?? ''}
                                   onChange={(e) =>
-                                    updateTier(index, 'max', e.target.value ? parseFloat(e.target.value) : null)
+                                    updateTier(index, 'max', e.target.value ? Math.round(parseFloat(e.target.value)) : null)
                                   }
                                   disabled={index === commissionTiers.length - 1}
                                   placeholder={index === commissionTiers.length - 1 ? '∞' : ''}
+                                  className={cn(
+                                    'tabular-nums h-8 text-sm',
+                                    index === commissionTiers.length - 1 && 'bg-muted/50 cursor-default'
+                                  )}
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs text-muted-foreground">Comissão (%)</Label>
+                                <Label className="text-[11px] text-muted-foreground">Comissão (%)</Label>
                                 <Input
                                   type="number"
                                   inputMode="decimal"
                                   min="0"
                                   max="100"
-                                  step="0.01"
+                                  step="0.5"
                                   value={tier.percentage}
                                   onChange={(e) => updateTier(index, 'percentage', parseFloat(e.target.value) || 0)}
+                                  className="tabular-nums h-8 text-sm"
                                 />
                               </div>
                             </div>
@@ -689,7 +756,7 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                         </DashedActionButton>
 
                         <p className="text-xs text-muted-foreground">
-                          A última faixa sempre terá valor máximo ilimitado
+                          A última faixa sempre terá valor máximo ilimitado. O mínimo de cada faixa é calculado automaticamente.
                         </p>
                       </div>
                     )}
