@@ -67,6 +67,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
     addMessage,
     updateMessage,
     startNewConversation,
+    refreshConversations,
   } = useAiChat()
 
   const userName = profile?.name || 'Usuário'
@@ -157,6 +158,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               // Handle conversation_id event (first SSE event)
               if (parsed.conversation_id) {
                 setConversationId(parsed.conversation_id)
+                refreshConversations()
                 continue
               }
 

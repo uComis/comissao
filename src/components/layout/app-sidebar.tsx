@@ -27,6 +27,7 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import { SidebarKaiHistory } from './sidebar-kai-history'
 
 
 type MenuItem = {
@@ -145,7 +146,7 @@ export function AppSidebar() {
             }}
           >
             {sectionIndex > 0 && <SidebarSeparator className="my-1 opacity-30" />}
-            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+            <SidebarGroup className="py-1">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">{section.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
@@ -185,6 +186,10 @@ export function AppSidebar() {
           </motion.div>
         ))}
         
+        {/* Kai - Histórico de conversas */}
+        <SidebarSeparator className="my-1 opacity-30" />
+        <SidebarKaiHistory />
+
         {/* Seção Admin - só visível para super admin e quando NÃO está em modo privacidade */}
         {isSuperAdmin && !privacyMode && (
           <motion.div
@@ -193,7 +198,7 @@ export function AppSidebar() {
             transition={{ duration: 0.4, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
           >
             <SidebarSeparator className="my-1 opacity-30" />
-            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+            <SidebarGroup className="py-1">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Admin</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
@@ -219,7 +224,7 @@ export function AppSidebar() {
             transition={{ duration: 0.4, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
           >
             <SidebarSeparator className="my-1 opacity-30" />
-            <SidebarGroup className="py-[clamp(0.5rem,2vh,1.5rem)]">
+            <SidebarGroup className="py-1">
               <SidebarGroupLabel className="h-8 mb-1 text-[9px]">Debug</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-1">
