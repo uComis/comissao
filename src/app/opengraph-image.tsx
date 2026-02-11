@@ -1,10 +1,19 @@
 import { ImageResponse } from 'next/og'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 export const alt = 'uComis — Controle de Comissões para Vendedores'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
 export default async function Image() {
+  const svgContent = readFileSync(
+    join(process.cwd(), 'src/app/icon.svg'),
+    'utf-8'
+  )
+  const svgBase64 = Buffer.from(svgContent).toString('base64')
+  const svgDataUri = `data:image/svg+xml;base64,${svgBase64}`
+
   return new ImageResponse(
     (
       <div
@@ -26,22 +35,13 @@ export default async function Image() {
             marginBottom: '32px',
           }}
         >
-          <div
-            style={{
-              width: '72px',
-              height: '72px',
-              borderRadius: '18px',
-              background: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '42px',
-              fontWeight: 800,
-              color: 'white',
-            }}
-          >
-            u
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={svgDataUri}
+            width={72}
+            height={72}
+            alt=""
+          />
           <div
             style={{
               fontSize: '72px',
