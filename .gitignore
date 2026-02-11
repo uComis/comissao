@@ -49,6 +49,10 @@ next-env.d.ts
 # Cursor IDE
 .cursor/
 
+# Claude Code (keep .claude/commands/ versioned)
+.claude/settings.local.json
+.claude/worktrees/
+
 # temp (contexto local de desenvolvimento)
 /temp/
 .playwright-mcp/
