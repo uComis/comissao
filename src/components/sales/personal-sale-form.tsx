@@ -307,19 +307,25 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     let defaultCommissionRate = ''
 
     if (selectedSupplier) {
-      const supplierTax = selectedSupplier.default_tax_rate || 0
-      const supplierComm = selectedSupplier.default_commission_rate || 0
-      const tieredRule = selectedSupplier.commission_rules.find((r) => r.type === 'tiered' && r.is_default)
-      if (tieredRule || supplierTax) defaultTaxRate = String(tieredRule ? 0 : supplierTax)
-      if (tieredRule || supplierComm) defaultCommissionRate = String(tieredRule ? 0 : supplierComm)
+      const tieredRule = selectedSupplier.commission_rules.find(
+        (r) => r.type === 'tiered' && r.is_default
+      )
+      if (tieredRule) {
+        defaultTaxRate = '0'
+        defaultCommissionRate = '0'
+      } else {
+        if (selectedSupplier.default_commission_rate > 0)
+          defaultCommissionRate = String(selectedSupplier.default_commission_rate)
+        if (selectedSupplier.default_tax_rate > 0)
+          defaultTaxRate = String(selectedSupplier.default_tax_rate)
+      }
     }
 
-    if (!defaultTaxRate && !defaultCommissionRate) {
-      const lastWithValue = [...valueEntries].reverse().find((e) => parseFloat(e.grossValue) > 0)
-      if (lastWithValue) {
-        defaultTaxRate = lastWithValue.taxRate
-        defaultCommissionRate = lastWithValue.commissionRate
-      }
+    // Fallback independente por campo
+    const lastWithValue = [...valueEntries].reverse().find((e) => parseFloat(e.grossValue) > 0)
+    if (lastWithValue) {
+      if (!defaultTaxRate) defaultTaxRate = lastWithValue.taxRate
+      if (!defaultCommissionRate) defaultCommissionRate = lastWithValue.commissionRate
     }
 
     setValueEntries((prev) => [

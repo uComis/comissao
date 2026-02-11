@@ -12,7 +12,7 @@ import { DashedActionButton } from '@/components/ui/dashed-action-button'
 import { CompactNumberInput } from '@/components/ui/compact-number-input'
 import { createPersonalSupplierWithRule, updatePersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
 import { toast } from 'sonner'
-import { Loader2, Plus, Package, Pencil } from 'lucide-react'
+import { Loader2, Plus, Package, Pencil, X } from 'lucide-react'
 import Link from 'next/link'
 import { useSetPageHeader } from '@/components/layout'
 import type { PersonalSupplier } from '@/app/actions/personal-suppliers'
@@ -82,6 +82,17 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
   const [originalName] = useState(supplier?.name || '')
   const [originalCnpj] = useState(formatCnpj(supplier?.cnpj || ''))
 
+  // Edição da comissão (independente dos dados do fornecedor)
+  const [isEditingCommission, setIsEditingCommission] = useState(!isEditing)
+  const [savingCommission, setSavingCommission] = useState(false)
+  const [origCommission, setOrigCommission] = useState<{
+    ruleType: 'fixed' | 'tiered'
+    defaultCommission: number
+    defaultTax: number
+    commissionTiers: CommissionTier[]
+    showCommissionSection: boolean
+  } | null>(null)
+
   function handleCancelSupplierEdit() {
     setName(originalName)
     setCnpj(originalCnpj)
@@ -100,24 +111,9 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     try {
       const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
 
-      // Montar regra padrão
-      const defaultRule = {
-        id: existingDefaultRule?.id,
-        name: 'Regra Padrão',
-        type: ruleType,
-        commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
-        tax_percentage: ruleType === 'fixed' ? defaultTax : null,
-        commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
-        is_default: true,
-      }
-
       const result = await updatePersonalSupplierWithRules(supplier.id, {
         name,
         cnpj: cleanCnpj,
-        default_rule_id: existingDefaultRule?.id || undefined,
-        default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
-        default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
-        rules: [defaultRule],
       })
 
       if (result.success) {
@@ -130,6 +126,78 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
       toast.error('Erro ao salvar')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // --- Edição da comissão ---
+
+  function handleStartEditCommission() {
+    setOrigCommission({
+      ruleType,
+      defaultCommission,
+      defaultTax,
+      commissionTiers: commissionTiers.map(t => ({ ...t })),
+      showCommissionSection,
+    })
+    setIsEditingCommission(true)
+  }
+
+  function handleCancelCommissionEdit() {
+    if (origCommission) {
+      setRuleType(origCommission.ruleType)
+      setDefaultCommission(origCommission.defaultCommission)
+      setDefaultTax(origCommission.defaultTax)
+      setCommissionTiers(origCommission.commissionTiers)
+      setShowCommissionSection(origCommission.showCommissionSection)
+    }
+    setIsEditingCommission(false)
+    setOrigCommission(null)
+  }
+
+  async function handleSaveCommission() {
+    if (!supplier) return
+
+    if (showCommissionSection && ruleType === 'tiered' && commissionTiers.length === 0) {
+      toast.error('Adicione pelo menos uma faixa de comissão')
+      return
+    }
+
+    setSavingCommission(true)
+    try {
+      const commissionActive = showCommissionSection
+      const effectiveCommission = commissionActive && ruleType === 'fixed' ? defaultCommission : 0
+      const effectiveTax = commissionActive && ruleType === 'fixed' ? defaultTax : 0
+
+      const rules = commissionActive || existingDefaultRule
+        ? [{
+            id: existingDefaultRule?.id,
+            name: 'Regra Padrão',
+            type: commissionActive ? ruleType : 'fixed' as const,
+            commission_percentage: commissionActive && ruleType === 'fixed' ? defaultCommission : 0,
+            tax_percentage: commissionActive && ruleType === 'fixed' ? defaultTax : 0,
+            commission_tiers: commissionActive && ruleType === 'tiered' ? commissionTiers : null,
+            is_default: true,
+          }]
+        : []
+
+      const result = await updatePersonalSupplierWithRules(supplier.id, {
+        default_rule_id: existingDefaultRule?.id || undefined,
+        default_commission_rate: effectiveCommission,
+        default_tax_rate: effectiveTax,
+        rules,
+      })
+
+      if (result.success) {
+        toast.success('Comissão atualizada')
+        setIsEditingCommission(false)
+        setOrigCommission(null)
+      } else {
+        toast.error(result.error)
+      }
+    } catch {
+      toast.error('Erro ao salvar')
+    } finally {
+      setSavingCommission(false)
     }
   }
 
@@ -191,7 +259,7 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     setProducts(prev => prev.filter(p => p.id !== productId))
   }
 
-  // --- Submit Principal ---
+  // --- Submit Principal (apenas create mode) ---
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -202,7 +270,7 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     }
 
     // Validar faixas se for regra por faixa
-    if (ruleType === 'tiered' && commissionTiers.length === 0) {
+    if (showCommissionSection && ruleType === 'tiered' && commissionTiers.length === 0) {
       toast.error('Adicione pelo menos uma faixa de comissão')
       return
     }
@@ -212,25 +280,31 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     try {
       const cleanCnpj = cnpj.replace(/\D/g, '') || undefined
 
-      // Montar regra padrão
-      const defaultRule = {
-        id: existingDefaultRule?.id,
-        name: 'Regra Padrão',
-        type: ruleType,
-        commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
-        tax_percentage: ruleType === 'fixed' ? defaultTax : null,
-        commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
-        is_default: true,
-      }
+      // Comissão desativada (seção fechada)
+      const commissionActive = showCommissionSection
+      const effectiveCommission = commissionActive && ruleType === 'fixed' ? defaultCommission : 0
+      const effectiveTax = commissionActive && ruleType === 'fixed' ? defaultTax : 0
 
       if (isEditing && supplier) {
+        const rules = commissionActive || existingDefaultRule
+          ? [{
+              id: existingDefaultRule?.id,
+              name: 'Regra Padrão',
+              type: commissionActive ? ruleType : 'fixed' as const,
+              commission_percentage: commissionActive && ruleType === 'fixed' ? defaultCommission : 0,
+              tax_percentage: commissionActive && ruleType === 'fixed' ? defaultTax : 0,
+              commission_tiers: commissionActive && ruleType === 'tiered' ? commissionTiers : null,
+              is_default: true,
+            }]
+          : []
+
         const result = await updatePersonalSupplierWithRules(supplier.id, {
           name,
           cnpj: cleanCnpj,
           default_rule_id: existingDefaultRule?.id || undefined,
-          default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
-          default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
-          rules: [defaultRule],
+          default_commission_rate: effectiveCommission,
+          default_tax_rate: effectiveTax,
+          rules,
         })
 
         if (result.success) {
@@ -241,18 +315,23 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
           toast.error(result.error)
         }
       } else {
+        // Criar — só cria regra se comissão estiver ativa
+        const rule = commissionActive
+          ? {
+              name: 'Regra Padrão',
+              type: ruleType,
+              commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
+              tax_percentage: ruleType === 'fixed' ? defaultTax : null,
+              commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
+            }
+          : undefined
+
         const result = await createPersonalSupplierWithRule({
           name,
           cnpj: cleanCnpj,
-          rule: {
-            name: 'Regra Padrão',
-            type: ruleType,
-            commission_percentage: ruleType === 'fixed' ? defaultCommission : null,
-            tax_percentage: ruleType === 'fixed' ? defaultTax : null,
-            commission_tiers: ruleType === 'tiered' ? commissionTiers : null,
-          },
-          default_commission_rate: ruleType === 'fixed' ? defaultCommission : 0,
-          default_tax_rate: ruleType === 'fixed' ? defaultTax : 0,
+          rule,
+          default_commission_rate: effectiveCommission,
+          default_tax_rate: effectiveTax,
         })
 
         if (result.success) {
@@ -271,13 +350,17 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
     }
   }
 
+  // Helper: edição habilitada para campos de comissão
+  const commissionEditable = isEditingCommission || !isEditing
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Grid 2 colunas no desktop */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Coluna 1: Dados Básicos + Regra Padrão */}
+          {/* Coluna 1: Dados Básicos + Comissão */}
           <div className="space-y-6">
+            {/* Card 1: Dados do Fornecedor */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -300,193 +383,31 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Dados básicos */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome da Empresa/Fábrica {isEditingSupplierData && '*'}</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Ex: Tintas Coral"
-                      required
-                      disabled={!isEditingSupplierData}
-                      className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="cnpj">CNPJ</Label>
-                    <Input
-                      id="cnpj"
-                      value={cnpj}
-                      onChange={(e) => handleCnpjChange(e.target.value)}
-                      placeholder="00.000.000/0000-00"
-                      disabled={!isEditingSupplierData}
-                      className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
-                    />
-                  </div>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome da Empresa/Fábrica {isEditingSupplierData && '*'}</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Tintas Coral"
+                    required
+                    disabled={!isEditingSupplierData}
+                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
+                  />
                 </div>
 
-                {/* Comissão Padrão */}
-                {!showCommissionSection ? (
-                  <DashedActionButton
-                    icon={<Plus className="h-4 w-4" />}
-                    onClick={() => setShowCommissionSection(true)}
-                  >
-                    Comissão padrão
-                  </DashedActionButton>
-                ) : (
-                  <>
-                    <div className="border-t" />
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-base font-medium">Comissão Padrão</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Aplicada a todos os produtos, exceto os que têm override
-                        </p>
-                      </div>
-
-                      {/* Toggle tipo de regra */}
-                      <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setRuleType('fixed')}
-                          className={cn(
-                            'py-2.5 text-sm font-medium rounded-md transition-all',
-                            ruleType === 'fixed'
-                              ? 'bg-background shadow-sm text-foreground'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          Percentual Fixo
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRuleType('tiered')}
-                          className={cn(
-                            'py-2.5 text-sm font-medium rounded-md transition-all',
-                            ruleType === 'tiered'
-                              ? 'bg-background shadow-sm text-foreground'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          Por Faixa de Valor
-                        </button>
-                      </div>
-
-                      {/* Campos para percentual fixo */}
-                      {ruleType === 'fixed' && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Comissão (%)</Label>
-                            <CompactNumberInput
-                              value={defaultCommission}
-                              onChange={setDefaultCommission}
-                              min={0}
-                              max={100}
-                              step={0.5}
-                              decimals={2}
-                              suffix="%"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Taxa/Imposto (%)</Label>
-                            <CompactNumberInput
-                              value={defaultTax}
-                              onChange={setDefaultTax}
-                              min={0}
-                              max={100}
-                              step={0.5}
-                              decimals={2}
-                              suffix="%"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                  {/* Campos para faixas */}
-                  {ruleType === 'tiered' && (
-                    <div className="space-y-3">
-                      {commissionTiers.map((tier, index) => (
-                        <div key={index} className="p-3 border rounded-lg space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-muted-foreground">
-                              Faixa {index + 1}
-                            </span>
-                            {commissionTiers.length > 1 && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-destructive hover:text-destructive"
-                                onClick={() => removeTier(index)}
-                              >
-                                Remover
-                              </Button>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">Mínimo (R$)</Label>
-                              <Input
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                step="0.01"
-                                value={tier.min}
-                                onChange={(e) => updateTier(index, 'min', parseFloat(e.target.value) || 0)}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">
-                                {index === commissionTiers.length - 1 ? 'Máximo' : 'Máximo (R$)'}
-                              </Label>
-                              <Input
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                step="0.01"
-                                value={tier.max ?? ''}
-                                onChange={(e) =>
-                                  updateTier(index, 'max', e.target.value ? parseFloat(e.target.value) : null)
-                                }
-                                disabled={index === commissionTiers.length - 1}
-                                placeholder={index === commissionTiers.length - 1 ? '∞' : ''}
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs text-muted-foreground">Comissão (%)</Label>
-                              <Input
-                                type="number"
-                                inputMode="decimal"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                value={tier.percentage}
-                                onChange={(e) => updateTier(index, 'percentage', parseFloat(e.target.value) || 0)}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-
-                      <DashedActionButton
-                        icon={<Plus className="h-4 w-4" />}
-                        onClick={addTier}
-                      >
-                        Adicionar faixa
-                      </DashedActionButton>
-
-                      <p className="text-xs text-muted-foreground">
-                        A última faixa sempre terá valor máximo ilimitado
-                      </p>
-                    </div>
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ</Label>
+                  <Input
+                    id="cnpj"
+                    value={cnpj}
+                    onChange={(e) => handleCnpjChange(e.target.value)}
+                    placeholder="00.000.000/0000-00"
+                    disabled={!isEditingSupplierData}
+                    className={!isEditingSupplierData ? 'bg-muted/50 cursor-default' : ''}
+                  />
                 </div>
-                  </>
-                )}
 
                 {/* Botões de ação inline (modo edição) */}
                 <div
@@ -512,6 +433,293 @@ export function SupplierFormPage({ supplier, products: initialProducts = [] }: P
                     disabled={loading}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Comissão Padrão */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Comissão Padrão</CardTitle>
+                    <CardDescription>
+                      Preenche automaticamente ao criar vendas
+                    </CardDescription>
+                  </div>
+                  {isEditing && showCommissionSection && !isEditingCommission && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleStartEditCommission}
+                      className="h-8 w-8"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!showCommissionSection ? (
+                  /* Sem comissão configurada */
+                  <DashedActionButton
+                    icon={<Plus className="h-4 w-4" />}
+                    onClick={() => {
+                      setShowCommissionSection(true)
+                      if (isEditing) {
+                        setOrigCommission({
+                          ruleType,
+                          defaultCommission,
+                          defaultTax,
+                          commissionTiers: commissionTiers.map(t => ({ ...t })),
+                          showCommissionSection: false,
+                        })
+                        setIsEditingCommission(true)
+                      }
+                    }}
+                  >
+                    Adicionar comissão padrão
+                  </DashedActionButton>
+                ) : !commissionEditable ? (
+                  /* Modo leitura (edit mode, não editando) */
+                  <div className="space-y-3">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      {ruleType === 'fixed' ? 'Percentual Fixo' : 'Por Faixa de Valor'}
+                    </span>
+                    {ruleType === 'fixed' ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Comissão</p>
+                          <p className="text-lg font-semibold">{defaultCommission.toFixed(2).replace('.', ',')}%</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Taxa/Imposto</p>
+                          <p className="text-lg font-semibold">{defaultTax.toFixed(2).replace('.', ',')}%</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {commissionTiers.map((tier, index) => (
+                          <div key={index} className="flex items-center justify-between text-sm py-1.5 px-3 rounded-md bg-muted/50">
+                            <span className="text-muted-foreground">
+                              R$ {tier.min} {tier.max !== null ? `— R$ ${tier.max}` : 'em diante'}
+                            </span>
+                            <span className="font-medium">{tier.percentage}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Modo edição */
+                  <div className="space-y-4">
+                    {/* Botão remover comissão */}
+                    {isEditing && (
+                      <div className="flex justify-end -mt-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            setShowCommissionSection(false)
+                            setDefaultCommission(0)
+                            setDefaultTax(0)
+                            setRuleType('fixed')
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          Remover
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Botão X para create mode */}
+                    {!isEditing && (
+                      <div className="flex justify-end -mt-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setShowCommissionSection(false)
+                            setDefaultCommission(0)
+                            setDefaultTax(0)
+                            setRuleType('fixed')
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Toggle tipo de regra */}
+                    <div className="grid grid-cols-2 gap-1 p-1 bg-muted/50 rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => setRuleType('fixed')}
+                        className={cn(
+                          'py-2.5 text-sm font-medium rounded-md transition-all',
+                          ruleType === 'fixed'
+                            ? 'bg-background shadow-sm text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        Percentual Fixo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRuleType('tiered')}
+                        className={cn(
+                          'py-2.5 text-sm font-medium rounded-md transition-all',
+                          ruleType === 'tiered'
+                            ? 'bg-background shadow-sm text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        Por Faixa de Valor
+                      </button>
+                    </div>
+
+                    {/* Campos para percentual fixo */}
+                    {ruleType === 'fixed' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Comissão (%)</Label>
+                          <CompactNumberInput
+                            value={defaultCommission}
+                            onChange={setDefaultCommission}
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            decimals={2}
+                            suffix="%"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Taxa/Imposto (%)</Label>
+                          <CompactNumberInput
+                            value={defaultTax}
+                            onChange={setDefaultTax}
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            decimals={2}
+                            suffix="%"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Campos para faixas */}
+                    {ruleType === 'tiered' && (
+                      <div className="space-y-3">
+                        {commissionTiers.map((tier, index) => (
+                          <div key={index} className="p-3 border rounded-lg space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Faixa {index + 1}
+                              </span>
+                              {commissionTiers.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-destructive hover:text-destructive"
+                                  onClick={() => removeTier(index)}
+                                >
+                                  Remover
+                                </Button>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">Mínimo (R$)</Label>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  step="0.01"
+                                  value={tier.min}
+                                  onChange={(e) => updateTier(index, 'min', parseFloat(e.target.value) || 0)}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  {index === commissionTiers.length - 1 ? 'Máximo' : 'Máximo (R$)'}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  step="0.01"
+                                  value={tier.max ?? ''}
+                                  onChange={(e) =>
+                                    updateTier(index, 'max', e.target.value ? parseFloat(e.target.value) : null)
+                                  }
+                                  disabled={index === commissionTiers.length - 1}
+                                  placeholder={index === commissionTiers.length - 1 ? '∞' : ''}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">Comissão (%)</Label>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                  value={tier.percentage}
+                                  onChange={(e) => updateTier(index, 'percentage', parseFloat(e.target.value) || 0)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        <DashedActionButton
+                          icon={<Plus className="h-4 w-4" />}
+                          onClick={addTier}
+                        >
+                          Adicionar faixa
+                        </DashedActionButton>
+
+                        <p className="text-xs text-muted-foreground">
+                          A última faixa sempre terá valor máximo ilimitado
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Botões de ação inline para comissão (edit mode) */}
+                <div
+                  className={`flex justify-end gap-2 pt-2 overflow-hidden transition-all duration-200 ease-out ${
+                    isEditingCommission && isEditing
+                      ? 'max-h-12 opacity-100'
+                      : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelCommissionEdit}
+                    disabled={savingCommission}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveCommission}
+                    disabled={savingCommission}
+                  >
+                    {savingCommission && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar
                   </Button>
                 </div>
