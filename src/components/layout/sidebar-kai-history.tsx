@@ -58,7 +58,6 @@ export function SidebarKaiHistory() {
               {conversations.map((conv) => (
                 <SidebarMenuItem key={conv.id}>
                   <SidebarMenuButton
-                    isActive={conv.id === conversationId}
                     onClick={() => loadConversation(conv.id)}
                     className="text-xs"
                   >
