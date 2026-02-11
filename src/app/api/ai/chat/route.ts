@@ -1,18 +1,21 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { createAiClient } from '@/lib/clients/ai'
+import { KAI_KNOWLEDGE } from '@/lib/clients/ai/kai-knowledge'
 import { getUserContext, formatForPrompt } from '@/lib/services/ai-context-service'
 
 export const runtime = 'edge'
 export const maxDuration = 30
 
-const SYSTEM_PROMPT_BASE = `Você é Kai, assistente inteligente do uComis — plataforma de controle de comissões para vendedores.
+const SYSTEM_PROMPT_BASE = `Você é Kai, assistente inteligente do uComis.
 
 Suas funções:
 - Responder perguntas sobre vendas, comissões e recebíveis do usuário
 - Ajudar a interpretar relatórios e métricas
 - Sugerir ações para melhorar resultados
 - Explicar regras de comissão configuradas
+- Guiar o usuário sobre como usar qualquer funcionalidade do sistema
+- Explicar conceitos do domínio (pasta, representada, recebível, etc.)
 
 Diretrizes:
 - Seja direto e objetivo nas respostas
@@ -20,7 +23,10 @@ Diretrizes:
 - Formate valores como moeda brasileira (R$)
 - Quando tiver dados reais, use-os para responder com precisão
 - Quando NÃO tiver dados sobre algo específico, diga que não tem essa informação disponível
-- Se precisar de informações específicas, peça ao usuário`
+- Se o usuário perguntar como fazer algo, guie passo a passo usando o conhecimento do sistema
+- Se o usuário perguntar por que uma comissão tem determinado valor, explique baseando-se na regra da pasta
+- Chame o usuário pelo nome (está nos dados abaixo)
+- Nunca invente dados — use apenas o que está nas seções abaixo`
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,9 +52,9 @@ export async function POST(req: NextRequest) {
     // 3. Real data context
     const context = await getUserContext(supabase, user, profile)
 
-    // 4. System prompt with real data
+    // 4. System prompt: identity + knowledge + real data
     const dataBlock = formatForPrompt(context)
-    const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n# Dados do Usuário\n\n${dataBlock}`
+    const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${KAI_KNOWLEDGE}\n\n# Dados Reais do Usuário\n\n${dataBlock}`
 
     // 5. Stream via AI client
     const client = createAiClient({

@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { Send, Bot, User, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { useAppData } from '@/contexts'
 
 interface Message {
   id: string
@@ -17,13 +18,48 @@ interface AiChatWindowProps {
   onClose: () => void
 }
 
+const WELCOME_MESSAGES = [
+  (n: string) =>
+    `Oi ${n}! Sou o Kai, seu assistente no uComis. Pode me perguntar qualquer coisa — desde como cadastrar uma venda até quanto falta pra bater sua meta.`,
+  (n: string) =>
+    `E aí ${n}, tudo certo? Sou o Kai! Tô por dentro das suas comissões, vendas e de como tudo funciona por aqui. O que precisa?`,
+  (n: string) =>
+    `Oi ${n}! Aqui é o Kai. Posso te ajudar com dúvidas sobre o sistema, suas vendas, comissões ou recebíveis. Manda ver!`,
+  (n: string) =>
+    `Fala ${n}! Sou o Kai, e conheço bem suas pastas, vendas e recebíveis. Quer saber alguma coisa?`,
+  (n: string) =>
+    `Olá ${n}! Eu sou o Kai. Precisa de ajuda com alguma funcionalidade ou quer dar uma olhada nos seus números?`,
+  (n: string) =>
+    `Oi ${n}, aqui é o Kai! Sei tudo sobre suas comissões e como o uComis funciona. Como posso te ajudar?`,
+  (n: string) =>
+    `${n}, beleza? Sou o Kai! Pode perguntar sobre suas vendas, recebíveis, regras de comissão ou qualquer dúvida do sistema.`,
+  (n: string) =>
+    `Oi ${n}! Sou o Kai, seu parceiro de comissões. Me pergunta qualquer coisa — dos seus números até como usar cada tela.`,
+  (n: string) =>
+    `E aí ${n}! Kai aqui. Quer saber como anda sua meta do mês, tirar dúvida sobre uma regra, ou precisa de ajuda com alguma tela?`,
+  (n: string) =>
+    `Oi ${n}! Sou o Kai. Posso te mostrar seus resultados, explicar como funciona qualquer parte do sistema ou te guiar passo a passo. O que vai ser?`,
+]
+
+function getWelcomeMessage(name: string): string {
+  const firstName = name.split(' ')[0]
+  const idx = Math.floor(Math.random() * WELCOME_MESSAGES.length)
+  return WELCOME_MESSAGES[idx](firstName)
+}
+
 export function AiChatWindow({ onClose }: AiChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const { profile } = useAppData()
+  const welcomeText = useMemo(
+    () => getWelcomeMessage(profile?.name || 'pessoal'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: 'Olá! Sou seu assistente de comissões. Como posso ajudar você hoje?',
+      content: welcomeText,
     },
   ])
   const [input, setInput] = useState('')
@@ -188,7 +224,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               <Bot className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h3 className="font-semibold text-base">Assistente AI</h3>
+              <h3 className="font-semibold text-base">Kai</h3>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 Online

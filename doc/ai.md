@@ -4,7 +4,10 @@ Documentação da implementação de Inteligência Artificial no uComis.
 
 ## Visão Geral
 
-O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Usa o modelo Gemini 2.5 Flash do Google com acesso a dados reais do usuário (comissões, vendas, recebíveis).
+O uComis possui um assistente de IA integrado ao dashboard chamado **Kai**. Usa o modelo Gemini 2.5 Flash do Google com:
+- **Conhecimento do sistema** — sabe como funciona cada tela, conceito, regra de negócio
+- **Dados reais do usuário** — comissões, vendas, recebíveis, pastas, regras, preferências
+- **Guia interativo** — pode orientar passo a passo sobre qualquer funcionalidade
 
 ## Stack
 
@@ -28,6 +31,7 @@ src/
 │   ├── clients/ai/                  # Client AI genérico (sem domínio)
 │   │   ├── types.ts                 # AiClient, AiMessage, AiStreamChunk
 │   │   ├── gemini-provider.ts       # Implementação Gemini
+│   │   ├── kai-knowledge.ts         # Knowledge base estática do sistema
 │   │   └── index.ts                 # Factory createAiClient() + re-exports
 │   │
 │   └── services/
@@ -48,8 +52,9 @@ src/
 | Camada | Responsabilidade | Sabe sobre |
 |--------|------------------|-----------|
 | `clients/ai/` | HTTP wrapper genérico | Apenas a API do provedor (Gemini) |
-| `services/ai-context-service.ts` | Agregar dados do domínio | Supabase, DashboardService, recebíveis |
-| `route.ts` | Orquestrar o fluxo | Auth, context service, AI client, SSE |
+| `clients/ai/kai-knowledge.ts` | Conhecimento estático do sistema | Funcionalidades, conceitos, regras, menus, como fazer |
+| `services/ai-context-service.ts` | Agregar dados do domínio | Supabase, DashboardService, recebíveis, pastas, preferências |
+| `route.ts` | Orquestrar o fluxo | Auth, context service, knowledge, AI client, SSE |
 
 ### Fluxo
 
@@ -65,8 +70,9 @@ src/
 │  API Route (Edge)                                            │
 │    1. Autentica usuário (Supabase)                           │
 │    2. Busca profile + organization                           │
-│    3. Busca dados reais (dashboard + recebíveis)             │
-│    4. Monta system prompt com contexto completo              │
+│    3. Busca dados reais (6 fontes em paralelo)               │
+│    4. Monta system prompt:                                   │
+│       [Identidade] + [Knowledge Base] + [Dados Reais]        │
 │    5. Chama AI client (Gemini 2.5 Flash, streaming)          │
 │    6. Retorna SSE chunks para o frontend                     │
 │         │                                                    │
@@ -76,28 +82,65 @@ src/
 └──────────────────────────────────────────────────────────────┘
 ```
 
+## System Prompt — 3 Camadas
+
+O prompt que o Kai recebe é composto por 3 blocos:
+
+### 1. Identidade + Diretrizes
+Definido em `route.ts`. Quem o Kai é, o que pode fazer, e como deve se comportar (tom direto, português BR, chamar pelo nome, nunca inventar dados).
+
+### 2. Knowledge Base (`kai-knowledge.ts`)
+Conhecimento estático sobre o sistema. Injetado como constante TypeScript (não lê arquivo em runtime — Edge não suporta `fs`).
+
+**Conteúdo:**
+- O que o uComis faz e NÃO faz (não é CRM, não emite NF, etc.)
+- Conceitos do domínio: pasta, cliente, venda, recebível, regra de comissão
+- Todos os menus com caminhos e descrições
+- Guias passo a passo: como registrar venda, cliente, pasta, regra, recebimento
+- Regras de comissão em detalhe (fixa e escalonada com exemplos numéricos)
+- Status de recebíveis e o que cada um significa
+- Condições de pagamento com exemplos
+- Preferências do usuário
+- Limites por plano
+
+**Para editar:** altere `src/lib/clients/ai/kai-knowledge.ts` — é uma string template exportada.
+
+### 3. Dados Reais (`ai-context-service.ts`)
+Dados dinâmicos buscados em tempo real a cada mensagem do usuário.
+
 ## Dados Reais no Prompt
 
-O `ai-context-service.ts` busca dados de duas fontes em paralelo:
+O `ai-context-service.ts` busca dados de **6 fontes** em paralelo:
 
 | Fonte | Dados | Uso |
 |-------|-------|-----|
-| `DashboardService.getHomeAnalytics()` | Comissão do mês, vendas, financeiro, rankings top 5 | Métricas mensais, clientes e fornecedores |
-| Query `v_receivables` | Pendentes, vencidos, recebidos (totais gerais) | Visão geral de recebíveis |
+| `DashboardService.getHomeAnalytics()` | Comissão do mês, vendas, financeiro, rankings top 5 | Métricas mensais |
+| Query `v_receivables` (totais) | Pendentes, vencidos, recebidos (totais gerais) | Visão geral financeira |
+| Query `personal_suppliers` + `commission_rules` | Todas as pastas com regra padrão | Saber quais pastas o usuário tem e qual comissão |
+| Query `personal_clients` (count) | Total de clientes ativos | Contexto do cadastro |
+| Query `user_preferences` | Meta de comissão, modo (pessoal/org) | Preferências e meta |
+| Query `v_receivables` (próximos 14 dias) | Até 20 parcelas pendentes/atrasadas mais próximas | Alertas de vencimento |
 
 **Resiliência:**
-- Cada fonte tem `.catch(() => null)` — se uma falhar, a outra ainda é usada
+- Cada fonte tem `.catch(() => null)` — se uma falhar, as outras ainda são usadas
 - Timeout de 8s para busca de dados — garante que o AI responde mesmo com DB lento
 - Se nenhum dado carregar, o AI informa que não tem dados disponíveis
 
-**Seções do prompt:**
+**Seções geradas no prompt:**
 1. Usuário (nome, email, org, cargo)
-2. Comissão do Mês (total, meta, progresso)
-3. Vendas do Mês (quantidade, valor bruto, tendência)
-4. Financeiro do Mês (recebido, pendente, vencido)
-5. Top Clientes (ranking mensal)
-6. Top Pastas/Fornecedores (ranking mensal)
-7. Recebíveis gerais (totais e contagens)
+2. Preferências (meta, modo)
+3. Comissão do Mês (total, meta, progresso)
+4. Vendas do Mês (quantidade, valor bruto, tendência)
+5. Financeiro do Mês (recebido, pendente, vencido)
+6. Top Clientes (ranking mensal)
+7. Top Pastas/Fornecedores (ranking mensal)
+8. Recebíveis gerais (totais e contagens)
+9. Pastas do Usuário (lista completa com regra de cada uma)
+10. Clientes (total cadastrados)
+11. Próximos Recebíveis (parcelas dos próximos 14 dias com detalhes)
+
+**Resolução do nome do usuário:**
+O serviço tenta múltiplas fontes: `profile.full_name` → `user_metadata.full_name` → `user_metadata.name` → fallback "Usuário". Isso resolve o caso de login via Google onde o nome pode estar apenas no metadata.
 
 ## AI Client — Trocar Provider
 
@@ -125,14 +168,6 @@ const client = createAiClient({
 | Layout wrapper | Ambos | `app/(dashboard)/layout.tsx` | `<AiChatProvider>` envolve todo o dashboard |
 
 O `AiChatProvider` vive no layout do dashboard, garantindo que o estado open/close persista durante a navegação entre páginas.
-
-## System Prompt
-
-O backend monta um prompt contextualizado com:
-
-- **Identidade:** Kai, assistente do uComis
-- **Dados reais:** comissão, vendas, recebíveis, rankings (via ai-context-service)
-- **Diretrizes:** usar R$, português brasileiro, ser direto, admitir quando não tem dados
 
 ## Componentes
 
