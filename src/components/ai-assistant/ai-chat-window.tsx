@@ -2,12 +2,25 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Send, Bot, User, X, Loader2 } from 'lucide-react'
+import { Send, Bot, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
+
+const AVATAR_COLORS = [
+  '#E11D48', '#9333EA', '#2563EB', '#0891B2',
+  '#059669', '#D97706', '#DC2626', '#7C3AED',
+]
+
+function getAvatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++)
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+}
 
 interface Message {
   id: string
@@ -51,6 +64,16 @@ function getWelcomeMessage(name: string): string {
 export function AiChatWindow({ onClose }: AiChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const { profile } = useAppData()
+
+  const userName = profile?.name || 'Usuário'
+  const userInitials = userName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || profile?.email?.[0].toUpperCase() || 'U'
+  const userAvatarColor = getAvatarColor(userName)
+
   const welcomeText = useMemo(
     () => getWelcomeMessage(profile?.name || 'pessoal'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,20 +278,21 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                   )}
                 >
                   {/* Avatar */}
-                  <div
-                    className={cn(
-                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-                      message.role === 'assistant'
-                        ? 'bg-primary'
-                        : 'bg-muted'
-                    )}
-                  >
-                    {message.role === 'assistant' ? (
+                  {message.role === 'assistant' ? (
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
                       <Bot className="h-4 w-4 text-primary-foreground" />
-                    ) : (
-                      <User className="h-4 w-4" />
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt={userName} />
+                      <AvatarFallback
+                        className="text-white font-semibold text-xs"
+                        style={{ backgroundColor: userAvatarColor }}
+                      >
+                        {userInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
 
                        {/* Message Bubble */}
                        <div
