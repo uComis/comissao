@@ -6,10 +6,9 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, Sparkles, Sun, Moon } from 'lucide-react'
+import { ArrowLeft, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePageHeader, usePageHeaderActions } from './page-header-context'
-import { useAiChat } from '@/components/ai-assistant'
 
 /**
  * Unified mobile top bar.
@@ -23,8 +22,6 @@ export function Header() {
   const pathname = usePathname()
   const { title, backHref, taskMode } = usePageHeader()
   const actions = usePageHeaderActions()
-  const { toggle: toggleAiChat } = useAiChat()
-
   useEffect(() => {
     const timeout = setTimeout(() => setMounted(true), 0)
     return () => clearTimeout(timeout)
@@ -58,9 +55,6 @@ export function Header() {
         )}
         <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => setTheme(isDark ? 'light' : 'dark')}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={toggleAiChat}>
-          <Sparkles className="h-4 w-4" />
         </Button>
       </header>
     )
@@ -102,9 +96,6 @@ export function Header() {
       <div className="flex items-center gap-2 shrink-0">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setTheme(isDark ? 'light' : 'dark')}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleAiChat}>
-          <Sparkles className="h-4 w-4" />
         </Button>
         {!isHome && actions && <div className="ml-1 flex items-center gap-2">{actions}</div>}
         <UserControl />
