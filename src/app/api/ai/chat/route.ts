@@ -40,7 +40,7 @@ Formatação:
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json()
+    const { messages, conversation_id: incomingConvId } = await req.json()
 
     // 1. Auth
     const supabase = await createClient()
@@ -59,14 +59,46 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id)
       .single()
 
-    // 3. Real data context
+    // 3. Conversation persistence: resolve or create conversation
+    let conversationId: string | null = incomingConvId || null
+    const userMessage = messages[messages.length - 1]?.content || ''
+    const isFirstMessage = !incomingConvId
+
+    if (!conversationId) {
+      // Create new conversation
+      const { data: conv } = await supabase
+        .from('ai_conversations')
+        .insert({ user_id: user.id, title: userMessage.slice(0, 50) || 'Nova conversa' })
+        .select('id')
+        .single()
+      conversationId = conv?.id || null
+    }
+
+    // Save user message
+    if (conversationId) {
+      await supabase
+        .from('ai_messages')
+        .insert({ conversation_id: conversationId, role: 'user', content: userMessage })
+        .then(({ error }) => { if (error) console.error('Save user msg error:', error) })
+
+      // Update title on first message of existing conversation only if it was auto-created
+      if (isFirstMessage && conversationId) {
+        await supabase
+          .from('ai_conversations')
+          .update({ title: userMessage.slice(0, 50) || 'Nova conversa' })
+          .eq('id', conversationId)
+          .then(({ error }) => { if (error) console.error('Update title error:', error) })
+      }
+    }
+
+    // 4. Real data context
     const context = await getUserContext(supabase, user, profile)
 
-    // 4. System prompt: identity + knowledge + real data
+    // 5. System prompt: identity + knowledge + real data
     const dataBlock = formatForPrompt(context)
     const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${KAI_KNOWLEDGE}\n\n# Dados Reais do Usuário\n\n${dataBlock}`
 
-    // 5. Stream via AI client
+    // 6. Stream via AI client
     const client = createAiClient({
       provider: 'gemini',
       apiKey: process.env.GEMINI_API_KEY!,
@@ -81,18 +113,45 @@ export async function POST(req: NextRequest) {
 
     // Convert AiStreamChunk → SSE text
     const encoder = new TextEncoder()
+    const finalConvId = conversationId
     const sseStream = new ReadableStream({
       async start(controller) {
         try {
+          // First SSE event: conversation_id so client can track it
+          if (finalConvId) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ conversation_id: finalConvId })}\n\n`)
+            )
+          }
+
           const reader = aiStream.getReader()
+          let fullAssistantText = ''
+
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
+            fullAssistantText += value.text
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
             )
           }
+
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+
+          // Save assistant message (fire-and-forget)
+          if (finalConvId && fullAssistantText) {
+            supabase
+              .from('ai_messages')
+              .insert({ conversation_id: finalConvId, role: 'assistant', content: fullAssistantText })
+              .then(({ error }) => { if (error) console.error('Save assistant msg error:', error) })
+
+            supabase
+              .from('ai_conversations')
+              .update({ updated_at: new Date().toISOString() })
+              .eq('id', finalConvId)
+              .then(({ error }) => { if (error) console.error('Update conv timestamp error:', error) })
+          }
+
           controller.close()
         } catch (error: any) {
           console.error('[AI Backend] Stream error:', error)
