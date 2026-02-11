@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useCallback } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,7 +26,6 @@ type Props = {
 }
 
 export function FornecedoresClient({ initialSuppliers }: Props) {
-  const router = useRouter()
   const isMobile = useIsMobile()
   const [suppliers, setSuppliers] = useState(initialSuppliers)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -39,8 +37,13 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
 
   function handleSupplierCreated(newSupplier: PersonalSupplierWithRules) {
     setSuppliers(prev => [...prev, newSupplier])
-    router.refresh()
   }
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(1)
+    setMobileVisible(10)
+  }, [])
 
   // Filter
   const filtered = useMemo(() => {
@@ -48,9 +51,6 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
     const q = search.toLowerCase()
     return suppliers.filter((s) => s.name.toLowerCase().includes(q))
   }, [suppliers, search])
-
-  // Reset page when filter changes
-  useMemo(() => { setPage(1); setMobileVisible(10) }, [search])
 
   // Paginate
   const paginated = useMemo(() => {
@@ -115,7 +115,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
         <div className="flex items-center gap-2">
           <ExpandableSearch
             value={search}
-            onChange={setSearch}
+            onChange={handleSearchChange}
             placeholder="Buscar pasta..."
           />
           <div className="flex-1" />
@@ -158,7 +158,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
                 <label className="text-sm font-medium">Busca</label>
                 <ExpandableSearch
                   value={search}
-                  onChange={setSearch}
+                  onChange={handleSearchChange}
                   placeholder="Buscar pasta..."
                   alwaysExpanded
                 />
@@ -167,7 +167,7 @@ export function FornecedoresClient({ initialSuppliers }: Props) {
                 <Button
                   variant="ghost"
                   className="w-full text-muted-foreground"
-                  onClick={() => setSearch('')}
+                  onClick={() => handleSearchChange('')}
                 >
                   Limpar filtro
                 </Button>

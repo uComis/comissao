@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
@@ -32,7 +32,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MoreHorizontal, Pencil, Trash2, ShoppingCart, Calendar, Lock } from 'lucide-react'
 import { deletePersonalSupplier, type PersonalSupplierWithRules } from '@/app/actions/personal-suppliers'
-import { getBlockedSuppliers } from '@/app/actions/billing'
+import { useBillingData } from '@/components/billing/billing-notification-provider'
 import { toast } from 'sonner'
 
 type Props = {
@@ -61,22 +61,7 @@ export function SupplierTable({ suppliers, onDelete }: Props) {
   const router = useRouter()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [blockedSupplierIds, setBlockedSupplierIds] = useState<string[]>([])
-
-  useEffect(() => {
-    async function loadBlockedSuppliers() {
-      try {
-        const result = await getBlockedSuppliers('')
-        setBlockedSupplierIds(result.blockedSupplierIds)
-      } catch (error) {
-        console.error('Error loading blocked suppliers:', error)
-      }
-    }
-
-    if (suppliers.length > 0) {
-      loadBlockedSuppliers()
-    }
-  }, [suppliers])
+  const { blockedSupplierIds } = useBillingData()
 
   const isBlocked = (supplierId: string) => blockedSupplierIds.includes(supplierId)
 

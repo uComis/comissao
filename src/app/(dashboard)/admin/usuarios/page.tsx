@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
+import { listAllUsers } from '@/app/actions/admin'
 import { UsersClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FadeIn } from '@/components/ui/fade-in'
@@ -30,7 +31,10 @@ async function AdminUsersContent() {
     redirect('/home')
   }
 
-  return <FadeIn><UsersClient /></FadeIn>
+  const initialResult = await listAllUsers(1, 10)
+  const initialData = initialResult.success ? initialResult.data : { users: [], total: 0 }
+
+  return <FadeIn><UsersClient initialData={initialData} /></FadeIn>
 }
 
 function AdminUsersLoading() {

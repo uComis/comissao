@@ -105,49 +105,71 @@ export async function listAllUsers(
 
     if (error) throw error
 
-    // Buscar dados adicionais para cada usuário
-    const users: AdminUser[] = []
-    
-    for (const profile of profiles || []) {
-      // Buscar email do usuário
-      const { data: userData } = await adminClient.auth.admin.getUserById(profile.user_id)
-      
-      // Buscar subscription
-      const { data: subscription } = await adminClient
+    // Buscar dados adicionais para todos os usuários em paralelo
+    const profilesList = profiles || []
+    const userIds = profilesList.map(p => p.user_id)
+
+    // Executar todas as queries em paralelo (ao invés de N+1 sequencial)
+    const [authResults, subscriptionsResult, suppliersResults, salesResults] = await Promise.all([
+      // Auth data (email + last_sign_in) - paralelo por usuário
+      Promise.all(userIds.map(id => adminClient.auth.admin.getUserById(id))),
+      // Subscriptions - batch único
+      adminClient
         .from('subscriptions')
-        .select('plan_id, status, plans(name)')
-        .eq('user_id', profile.user_id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .select('user_id, plan_id, status, plans(name)')
+        .in('user_id', userIds)
+        .order('created_at', { ascending: false }),
+      // Contagem de fornecedores - paralelo por usuário
+      Promise.all(userIds.map(id =>
+        adminClient
+          .from('personal_suppliers')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', id)
+          .then(r => ({ user_id: id, count: r.count || 0 }))
+      )),
+      // Contagem de vendas - paralelo por usuário
+      Promise.all(userIds.map(id =>
+        adminClient
+          .from('personal_sales')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', id)
+          .then(r => ({ user_id: id, count: r.count || 0 }))
+      )),
+    ])
 
-      // Buscar contagem de fornecedores
-      const { count: suppliersCount } = await adminClient
-        .from('personal_suppliers')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', profile.user_id)
+    // Indexar resultados por user_id para lookup O(1)
+    const authMap = new Map(authResults.map((r, i) => [userIds[i], r.data?.user]))
+    const suppliersMap = new Map(suppliersResults.map(r => [r.user_id, r.count]))
+    const salesMap = new Map(salesResults.map(r => [r.user_id, r.count]))
 
-      // Buscar contagem de vendas
-      const { count: salesCount } = await adminClient
-        .from('personal_sales')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', profile.user_id)
+    // Subscriptions: pegar a mais recente por user_id (já ordenado por created_at desc)
+    type SubscriptionRow = { user_id: string; plan_id: string | null; status: string | null; plans: { name: string }[] | null }
+    const subscriptionMap = new Map<string, SubscriptionRow>()
+    for (const sub of subscriptionsResult.data || []) {
+      if (!subscriptionMap.has(sub.user_id)) {
+        subscriptionMap.set(sub.user_id, sub)
+      }
+    }
 
-      users.push({
+    const users: AdminUser[] = profilesList.map(profile => {
+      const authUser = authMap.get(profile.user_id)
+      const subscription = subscriptionMap.get(profile.user_id)
+
+      return {
         id: profile.user_id,
-        email: userData.user?.email || '',
+        email: authUser?.email || '',
         full_name: profile.full_name,
         avatar_url: profile.avatar_url,
         is_super_admin: profile.is_super_admin || false,
         created_at: profile.created_at,
-        last_sign_in_at: userData.user?.last_sign_in_at || null,
+        last_sign_in_at: authUser?.last_sign_in_at || null,
         plan_id: subscription?.plan_id || null,
-        plan_name: (subscription?.plans as unknown as { name: string } | null)?.name || null,
+        plan_name: subscription?.plans?.[0]?.name || null,
         subscription_status: subscription?.status || null,
-        suppliers_count: suppliersCount || 0,
-        sales_count: salesCount || 0,
-      })
-    }
+        suppliers_count: suppliersMap.get(profile.user_id) || 0,
+        sales_count: salesMap.get(profile.user_id) || 0,
+      }
+    })
 
     return { 
       success: true, 
@@ -182,29 +204,25 @@ export async function getUserDetails(userId: string): Promise<ActionResult<Admin
 
     if (profileError) throw profileError
 
-    // Buscar email do usuário
-    const { data: userData } = await adminClient.auth.admin.getUserById(userId)
-    
-    // Buscar subscription
-    const { data: subscription } = await adminClient
-      .from('subscriptions')
-      .select('plan_id, status, plans(name)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-
-    // Buscar contagem de fornecedores
-    const { count: suppliersCount } = await adminClient
-      .from('personal_suppliers')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-
-    // Buscar contagem de vendas
-    const { count: salesCount } = await adminClient
-      .from('personal_sales')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
+    // Buscar todos os dados adicionais em paralelo
+    const [{ data: userData }, { data: subscription }, { count: suppliersCount }, { count: salesCount }] = await Promise.all([
+      adminClient.auth.admin.getUserById(userId),
+      adminClient
+        .from('subscriptions')
+        .select('plan_id, status, plans(name)')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      adminClient
+        .from('personal_suppliers')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+      adminClient
+        .from('personal_sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
+    ])
 
     return {
       success: true,

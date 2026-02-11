@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Table,
@@ -54,18 +54,23 @@ type AdminUser = {
   sales_count: number
 }
 
-export function UsersClient() {
+type Props = {
+  initialData: { users: AdminUser[]; total: number }
+}
+
+export function UsersClient({ initialData }: Props) {
   const router = useRouter()
   const { preferences, setPreference } = usePreferences()
-  const [users, setUsers] = useState<AdminUser[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState<AdminUser[]>(initialData.users)
+  const [total, setTotal] = useState(initialData.total)
+  const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [impersonateUser, setImpersonateUser] = useState<AdminUser | null>(null)
   const [impersonating, setImpersonating] = useState(false)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const isInitialMount = useRef(true)
 
   useHeaderActions(
     <div className="relative">
@@ -97,21 +102,32 @@ export function UsersClient() {
     }
   }, [search])
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true)
-    const result = await listAllUsers(page, pageSize, debouncedSearch || undefined)
-    if (result.success) {
-      setUsers(result.data.users)
-      setTotal(result.data.total)
-    } else {
-      toast.error(result.error)
-    }
-    setLoading(false)
-  }, [page, pageSize, debouncedSearch])
-
+  // Fetch only when user changes page/search/pageSize (not on initial mount)
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      // If user has a custom pageSize different from the server default (10), refetch
+      if (pageSize !== 10) {
+        // fall through to fetch below
+      } else {
+        return
+      }
+    }
+
+    let cancelled = false
+    setLoading(true)
+    listAllUsers(page, pageSize, debouncedSearch || undefined).then(result => {
+      if (cancelled) return
+      if (result.success) {
+        setUsers(result.data.users)
+        setTotal(result.data.total)
+      } else {
+        toast.error(result.error)
+      }
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [page, pageSize, debouncedSearch])
 
   const handleImpersonate = async () => {
     if (!impersonateUser) return
