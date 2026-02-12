@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
 import { useAiChat } from './ai-chat-context'
 import { SaleConfirmationCard } from './sale-confirmation-card'
-import type { SalePreview } from './ai-chat-context'
+import { PaymentConfirmationCard } from './payment-confirmation-card'
+import type { SalePreview, ReceivablePreviewItem } from './ai-chat-context'
 
 const AVATAR_COLORS = [
   '#E11D48', '#9333EA', '#2563EB', '#0891B2',
@@ -109,23 +110,42 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
 
     setExecutingToolId(messageId)
     try {
+      const isPayment = msg.toolCall.name === 'register_payment'
+
+      const body: Record<string, unknown> = {
+        tool_name: msg.toolCall.name,
+        conversation_id: conversationId,
+      }
+      if (isPayment) {
+        body.receivables = msg.toolCall.receivables
+      } else {
+        body.preview = msg.toolCall.preview
+      }
+
       const res = await fetch('/api/ai/tool-execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tool_name: msg.toolCall.name,
-          preview: msg.toolCall.preview,
-          conversation_id: conversationId,
-        }),
+        body: JSON.stringify(body),
       })
 
       const data = await res.json()
 
-      if (data.success && data.sale_id) {
-        updateToolCallStatus(messageId, 'confirmed', { sale_id: data.sale_id })
-        router.push(`/minhasvendas/${data.sale_id}`)
+      if (isPayment) {
+        if (data.success) {
+          updateToolCallStatus(messageId, 'confirmed', {
+            count: data.count,
+            totalAmount: data.totalAmount,
+          })
+        } else {
+          updateToolCallStatus(messageId, 'error', undefined, data.error || 'Erro ao registrar recebimento')
+        }
       } else {
-        updateToolCallStatus(messageId, 'error', undefined, data.error || 'Erro ao criar venda')
+        if (data.success && data.sale_id) {
+          updateToolCallStatus(messageId, 'confirmed', { sale_id: data.sale_id })
+          router.push(`/minhasvendas/${data.sale_id}`)
+        } else {
+          updateToolCallStatus(messageId, 'error', undefined, data.error || 'Erro ao criar venda')
+        }
       }
     } catch {
       updateToolCallStatus(messageId, 'error', undefined, 'Erro de conexão. Tente novamente.')
@@ -208,26 +228,40 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               if (parsed.tool_call) {
                 receivedToolCall = true
 
-                // If no text was sent before the tool call, add a friendly message
-                const friendlyContent = fullText
-                  ? ''
-                  : 'Montei a venda aqui! Confirma no card abaixo ou edita no formulário ao lado.'
+                if (parsed.tool_call.name === 'register_payment') {
+                  const toolCallMsg = {
+                    id: (Date.now() + 2).toString(),
+                    role: 'assistant' as const,
+                    content: fullText ? '' : '',
+                    toolCall: {
+                      name: 'register_payment' as string,
+                      receivables: parsed.tool_call.receivables as ReceivablePreviewItem[],
+                      status: 'pending' as const,
+                    },
+                  }
+                  addMessage(toolCallMsg)
+                } else {
+                  // create_sale or other tool calls
+                  const friendlyContent = fullText
+                    ? ''
+                    : 'Montei a venda aqui! Confirma no card abaixo ou edita no formulário ao lado.'
 
-                const toolCallMsg = {
-                  id: (Date.now() + 2).toString(),
-                  role: 'assistant' as const,
-                  content: friendlyContent,
-                  toolCall: {
-                    name: parsed.tool_call.name as string,
-                    preview: parsed.tool_call.preview as SalePreview,
-                    status: 'pending' as const,
-                  },
-                }
-                addMessage(toolCallMsg)
+                  const toolCallMsg = {
+                    id: (Date.now() + 2).toString(),
+                    role: 'assistant' as const,
+                    content: friendlyContent,
+                    toolCall: {
+                      name: parsed.tool_call.name as string,
+                      preview: parsed.tool_call.preview as SalePreview,
+                      status: 'pending' as const,
+                    },
+                  }
+                  addMessage(toolCallMsg)
 
-                // Navigate to the pre-filled form
-                if (parsed.navigate) {
-                  router.push(parsed.navigate)
+                  // Navigate to the pre-filled form
+                  if (parsed.navigate) {
+                    router.push(parsed.navigate)
+                  }
                 }
 
                 continue
@@ -408,7 +442,17 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                              )}
 
                              {/* Tool call card */}
-                             {message.toolCall && (
+                             {message.toolCall && message.toolCall.name === 'register_payment' && (
+                               <div className={message.content ? 'mt-2' : ''}>
+                                 <PaymentConfirmationCard
+                                   toolCall={message.toolCall}
+                                   isExecuting={executingToolId === message.id}
+                                   onConfirm={() => handleToolConfirm(message.id)}
+                                   onCancel={() => handleToolCancel(message.id)}
+                                 />
+                               </div>
+                             )}
+                             {message.toolCall && message.toolCall.name !== 'register_payment' && (
                                <div className={message.content ? 'mt-2' : ''}>
                                  <SaleConfirmationCard
                                    toolCall={message.toolCall}

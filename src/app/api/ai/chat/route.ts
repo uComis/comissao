@@ -5,6 +5,7 @@ import { KAI_KNOWLEDGE } from '@/lib/clients/ai/kai-knowledge'
 import { KAI_TOOLS } from '@/lib/clients/ai/kai-tools'
 import { getUserContext, formatForPrompt } from '@/lib/services/ai-context-service'
 import { resolveNames } from '@/lib/services/ai-name-resolver'
+import { searchReceivables } from '@/lib/services/ai-receivables-search'
 import { commissionEngine } from '@/lib/commission-engine'
 
 export const runtime = 'edge'
@@ -20,6 +21,7 @@ Suas funções:
 - Guiar o usuário sobre como usar qualquer funcionalidade do sistema
 - Explicar conceitos do domínio (pasta, representada, recebível, etc.)
 - **Registrar vendas** quando o usuário pedir (usar a função create_sale)
+- **Registrar recebimentos** quando o usuário mencionar que recebeu (usar a função search_receivables)
 
 Diretrizes:
 - Seja direto e objetivo nas respostas
@@ -57,6 +59,15 @@ Ações disponíveis:
 - Se o usuário mencionar prazo, parcelas ou condição de pagamento, converta para o formato "dias/dias/dias" e passe em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita.
 - **SE CREATE_SALE FALHAR** porque cliente ou pasta não existe: ofereça criar primeiro usando create_client ou create_supplier, depois registre a venda.
 - Após o card de preview aparecer, escreva uma mensagem CURTA e amigável (ex: "Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados que já estão no card.
+
+**Registrar recebimento (search_receivables):**
+- Quando o usuário mencionar que recebeu, que um cliente pagou, ou quiser marcar parcelas como recebidas
+- Chame search_receivables IMEDIATAMENTE com os dados que o usuário deu — NÃO peça confirmação
+- O card de confirmação que aparece É a confirmação
+- Converta períodos para datas YYYY-MM-DD (a data de hoje está nos dados abaixo)
+- Se o usuário não especificar status, omita o parâmetro (busca pendentes + atrasadas por padrão)
+- Após o card aparecer, escreva uma mensagem CURTA (ex: "Encontrei essas parcelas! Confirma no card abaixo.")
+- **SE NÃO ENCONTRAR**: informe o usuário e sugira alternativas (outro período, nome diferente)
 
 Formatação:
 - Use **negrito** para destacar termos importantes, nomes de telas e valores
@@ -443,6 +454,60 @@ export async function POST(req: NextRequest) {
               // Save tool call as special message
               if (finalConvId) {
                 const toolContent = `[TOOL_CALL:create_sale]${JSON.stringify(preview)}`
+                supabase
+                  .from('ai_messages')
+                  .insert({ conversation_id: finalConvId, role: 'assistant', content: toolContent })
+                  .then(({ error }) => { if (error) console.error('Save tool call msg error:', error) })
+              }
+            }
+          } else if (toolCall && toolCall.name === 'search_receivables') {
+            const args = toolCall.args as {
+              client_name?: string
+              supplier_name?: string
+              status?: 'pending' | 'overdue' | 'pending_and_overdue' | 'all'
+              due_date_from?: string
+              due_date_to?: string
+              installment_number?: number
+              sale_number?: number
+            }
+
+            const { receivables, errors: searchErrors } = await searchReceivables(
+              supabase,
+              user.id,
+              args
+            )
+
+            if (searchErrors.length > 0) {
+              const errorMsg = searchErrors.join('\n')
+              fullAssistantText += errorMsg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+              )
+            } else if (receivables.length === 0) {
+              const filters: string[] = []
+              if (args.client_name) filters.push(`do cliente "${args.client_name}"`)
+              if (args.supplier_name) filters.push(`da pasta "${args.supplier_name}"`)
+              if (args.status === 'pending') filters.push('pendentes')
+              else if (args.status === 'overdue') filters.push('atrasadas')
+              else filters.push('pendentes ou atrasadas')
+              if (args.due_date_from || args.due_date_to) filters.push('no período informado')
+
+              const msg = `Não encontrei parcelas ${filters.join(' ')}.\n\nQuer que eu busque com outros filtros?`
+              fullAssistantText += msg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: msg })}\n\n`)
+              )
+            } else {
+              // Send tool_call event with receivables for confirmation card
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ tool_call: { name: 'register_payment', receivables } })}\n\n`
+                )
+              )
+
+              // Save tool call as special message
+              if (finalConvId) {
+                const toolContent = `[TOOL_CALL:register_payment]${JSON.stringify(receivables)}`
                 supabase
                   .from('ai_messages')
                   .insert({ conversation_id: finalConvId, role: 'assistant', content: toolContent })

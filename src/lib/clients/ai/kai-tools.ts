@@ -149,4 +149,66 @@ FLUXO:
       required: ['name', 'commission_rate'],
     },
   },
+  {
+    name: 'search_receivables',
+    description: `Busca parcelas de comissão (recebíveis) do usuário para registrar recebimento. Use quando o usuário quiser marcar parcelas como recebidas ou perguntar sobre parcelas específicas.
+
+QUANDO USAR:
+- "Recebi da Coca Cola" → buscar parcelas pendentes da Coca Cola
+- "A parcela do João que vencia dia 15 foi paga" → buscar parcela do João com vencimento dia 15
+- "Quero fechar as parcelas desse mês" → buscar parcelas pendentes do mês atual
+- "O cliente X pagou hoje" → buscar parcelas pendentes do cliente X
+
+REGRAS:
+- Chame IMEDIATAMENTE quando o usuário mencionar recebimento — NÃO peça confirmação, o card de preview É a confirmação.
+- Use exatamente o texto que o usuário informou nos campos de nome — o backend faz o match fuzzy.
+- Converta períodos para datas no formato YYYY-MM-DD:
+  "este mês" → primeiro e último dia do mês atual
+  "semana que vem" → próxima segunda a domingo
+  "janeiro" → 01/01 a 31/01 do ano atual
+- Se o usuário não especificar status, omita (default: pendentes + atrasadas).
+- Se o usuário mencionar "atrasadas" ou "vencidas", use status "overdue".
+- Se o usuário falar "todas", use status "all".
+- Não precisa de todos os parâmetros — qualquer combinação é válida.`,
+    parameters: {
+      type: 'object',
+      properties: {
+        client_name: {
+          type: 'string',
+          description:
+            'Nome do cliente (pode ser parcial, ex: "coca" para "Coca-Cola FEMSA")',
+        },
+        supplier_name: {
+          type: 'string',
+          description: 'Nome da pasta/fornecedor (pode ser parcial)',
+        },
+        status: {
+          type: 'string',
+          enum: ['pending', 'overdue', 'pending_and_overdue', 'all'],
+          description:
+            'Filtro de status. Default: pending_and_overdue (pendentes + atrasadas)',
+        },
+        due_date_from: {
+          type: 'string',
+          description:
+            'Data início do período de vencimento (YYYY-MM-DD)',
+        },
+        due_date_to: {
+          type: 'string',
+          description:
+            'Data fim do período de vencimento (YYYY-MM-DD)',
+        },
+        installment_number: {
+          type: 'number',
+          description:
+            'Número da parcela específica (ex: 2 para "segunda parcela")',
+        },
+        sale_number: {
+          type: 'number',
+          description: 'Número da venda (ex: 42 para "venda #42")',
+        },
+      },
+      required: [],
+    },
+  },
 ]

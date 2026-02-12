@@ -26,7 +26,9 @@ export function SaleConfirmationCard({
   onConfirm,
   onCancel,
 }: SaleConfirmationCardProps) {
-  const { preview, status } = toolCall
+  const preview = toolCall.preview
+  if (!preview) return null
+  const { status } = toolCall
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">

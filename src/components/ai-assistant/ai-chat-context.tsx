@@ -18,11 +18,24 @@ export type SalePreview = {
   notes: string | null
 }
 
+export type ReceivablePreviewItem = {
+  personal_sale_id: string
+  sale_number: number | null
+  installment_number: number
+  total_installments: number
+  client_name: string | null
+  supplier_name: string | null
+  due_date: string
+  expected_commission: number
+  status: 'pending' | 'overdue'
+}
+
 export type ToolCallData = {
   name: string
-  preview: SalePreview
+  preview?: SalePreview
+  receivables?: ReceivablePreviewItem[]
   status: 'pending' | 'confirmed' | 'cancelled' | 'error'
-  result?: { sale_id: string }
+  result?: { sale_id?: string; count?: number; totalAmount?: number }
   error?: string
 }
 
@@ -52,7 +65,7 @@ type AiChatContextValue = {
   updateToolCallStatus: (
     messageId: string,
     status: ToolCallData['status'],
-    result?: { sale_id: string },
+    result?: ToolCallData['result'],
     error?: string
   ) => void
   startNewConversation: () => void
@@ -74,7 +87,8 @@ function parsePersistedMessages(
 ): Message[] {
   const messages: Message[] = []
   // Track tool results to update tool call statuses
-  const toolResults = new Map<string, { success: boolean; sale_id?: string; error?: string }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toolResults = new Map<string, Record<string, any>>()
 
   // First pass: collect tool results
   for (const m of dbMessages) {
@@ -95,21 +109,36 @@ function parsePersistedMessages(
     if (toolCallMatch) {
       try {
         const toolName = toolCallMatch[1]
-        const preview = JSON.parse(toolCallMatch[2]) as SalePreview
+        const payload = JSON.parse(toolCallMatch[2])
         const result = toolResults.get(toolName)
 
-        messages.push({
-          id: m.id,
-          role: m.role,
-          content: '',
-          toolCall: {
-            name: toolName,
-            preview,
-            status: result?.success ? 'confirmed' : result ? 'error' : 'pending',
-            result: result?.sale_id ? { sale_id: result.sale_id } : undefined,
-            error: result?.error,
-          },
-        })
+        if (toolName === 'register_payment') {
+          messages.push({
+            id: m.id,
+            role: m.role,
+            content: '',
+            toolCall: {
+              name: toolName,
+              receivables: payload as ReceivablePreviewItem[],
+              status: result?.success ? 'confirmed' : result ? 'error' : 'pending',
+              result: result?.count !== undefined ? { count: result.count, totalAmount: result.totalAmount } : undefined,
+              error: result?.error,
+            },
+          })
+        } else {
+          messages.push({
+            id: m.id,
+            role: m.role,
+            content: '',
+            toolCall: {
+              name: toolName,
+              preview: payload as SalePreview,
+              status: result?.success ? 'confirmed' : result ? 'error' : 'pending',
+              result: result?.sale_id ? { sale_id: result.sale_id } : undefined,
+              error: result?.error,
+            },
+          })
+        }
       } catch {
         messages.push({ id: m.id, role: m.role, content: m.content })
       }
@@ -148,7 +177,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     (
       messageId: string,
       status: ToolCallData['status'],
-      result?: { sale_id: string },
+      result?: ToolCallData['result'],
       error?: string
     ) => {
       setMessages(prev =>
