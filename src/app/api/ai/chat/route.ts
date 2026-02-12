@@ -33,12 +33,29 @@ Diretrizes:
 - Nunca invente dados — use apenas o que está nas seções abaixo
 
 Ações disponíveis:
+
+**Cadastrar cliente (create_client):**
+- Quando o usuário pedir: "Cadastra o cliente João Silva"
+- OU quando create_sale falhar porque o cliente não existe
+- Dados obrigatórios: name
+- Dados opcionais: phone, email, address
+- Pergunte: "Preciso só do nome ou tem telefone/email?"
+
+**Cadastrar pasta (create_supplier):**
+- Quando o usuário pedir: "Cadastra a pasta Ambev"
+- OU quando create_sale falhar porque a pasta não existe
+- Dados obrigatórios: name, commission_rate
+- Dados opcionais: tax_rate, cnpj
+- Se não tiver comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
+
+**Registrar venda (create_sale):**
 - Quando o usuário mencionar uma venda com nomes + valor, chame create_sale IMEDIATAMENTE.
 - NÃO peça confirmação antes — o card de preview que aparece É a confirmação.
 - NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA").
 - Se faltar apenas o valor bruto, pergunte só o valor.
 - Use exatamente o texto que o usuário informou nos campos de nome.
 - Se o usuário mencionar prazo, parcelas ou condição de pagamento, converta para o formato "dias/dias/dias" e passe em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita.
+- **SE CREATE_SALE FALHAR** porque cliente ou pasta não existe: ofereça criar primeiro usando create_client ou create_supplier, depois registre a venda.
 - Após o card de preview aparecer, escreva uma mensagem CURTA e amigável (ex: "Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados que já estão no card.
 
 Formatação:
@@ -155,8 +172,77 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Process tool call after stream completes
-          if (toolCall && toolCall.name === 'create_sale') {
+          // Process tool calls after stream completes
+          if (toolCall && toolCall.name === 'create_client') {
+            const args = toolCall.args as {
+              name: string
+              phone?: string
+              email?: string
+              address?: string
+            }
+
+            // Create client
+            const { data: newClient, error: clientError } = await supabase
+              .from('personal_clients')
+              .insert({
+                user_id: user.id,
+                name: args.name,
+                phone: args.phone || null,
+                email: args.email || null,
+                address: args.address || null,
+                is_active: true,
+              })
+              .select('id, name')
+              .single()
+
+            if (clientError || !newClient) {
+              const errorMsg = `❌ Erro ao criar cliente: ${clientError?.message || 'Erro desconhecido'}`
+              fullAssistantText += errorMsg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+              )
+            } else {
+              const successMsg = `✅ Cliente **${newClient.name}** cadastrado com sucesso!`
+              fullAssistantText += successMsg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
+              )
+            }
+          } else if (toolCall && toolCall.name === 'create_supplier') {
+            const args = toolCall.args as {
+              name: string
+              commission_rate: number
+              tax_rate?: number
+              cnpj?: string
+            }
+
+            // Create supplier
+            const { data: newSupplier, error: supplierError } = await supabase
+              .from('personal_suppliers')
+              .insert({
+                user_id: user.id,
+                name: args.name,
+                default_commission_rate: args.commission_rate,
+                default_tax_rate: args.tax_rate || 0,
+                cnpj: args.cnpj || null,
+              })
+              .select('id, name')
+              .single()
+
+            if (supplierError || !newSupplier) {
+              const errorMsg = `❌ Erro ao criar pasta: ${supplierError?.message || 'Erro desconhecido'}`
+              fullAssistantText += errorMsg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+              )
+            } else {
+              const successMsg = `✅ Pasta **${newSupplier.name}** cadastrada com sucesso! (Comissão padrão: ${args.commission_rate}%)`
+              fullAssistantText += successMsg
+              controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
+              )
+            }
+          } else if (toolCall && toolCall.name === 'create_sale') {
             const args = toolCall.args as {
               client_name: string
               supplier_name: string
