@@ -283,6 +283,32 @@ export default function MinhaContaPage() {
   return (
     <SkeletonTransition isLoading={isLoading} skeleton={skeleton}>
       <div className="space-y-6 max-w-2xl md:mx-auto">
+
+      {/* Profile Card - Always Visible */}
+      {!activeSection && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20 ring-2 ring-border">
+                {!privacyMode && <AvatarImage src={profile?.avatar_url || undefined} />}
+                <AvatarFallback className="text-xl font-semibold">{initials}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-semibold">{name}</h3>
+                  {profile?.is_super_admin && (
+                    <Badge variant="secondary" className="text-xs">Admin</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {privacyMode ? 'john.doe@ucomis.com.br' : profile?.email}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="relative overflow-hidden">
         {/* Menu List */}
         <div
