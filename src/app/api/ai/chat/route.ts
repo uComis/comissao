@@ -263,11 +263,44 @@ export async function POST(req: NextRequest) {
             )
 
             if (resolution.errors.length > 0) {
-              // Send resolution errors as text
-              const errorText = resolution.errors.join('\n')
-              fullAssistantText += errorText
+              // Handle missing entities by offering to create them
+              const missingClient = !resolution.client && resolution.errors.some(e => e.includes('cliente'))
+              const missingSupplier = !resolution.supplier && resolution.errors.some(e => e.includes('pasta'))
+
+              let responseText = ''
+
+              if (missingClient && missingSupplier) {
+                // Both missing
+                const clientMatch = resolution.errors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
+                const supplierMatch = resolution.errors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
+                const clientName = clientMatch ? clientMatch[1] : 'informado'
+                const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
+
+                responseText = `O cliente "${clientName}" e a pasta "${supplierName}" não foram encontrados.\n\n` +
+                  `Vamos criar eles? Primeiro preciso cadastrar a pasta.\n\n` +
+                  `📁 **Pasta ${supplierName}**: Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
+              } else if (missingClient) {
+                // Only client missing
+                const clientMatch = resolution.errors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
+                const clientName = clientMatch ? clientMatch[1] : 'informado'
+
+                responseText = `O cliente "${clientName}" não foi encontrado.\n\n` +
+                  `Deseja criar ele? Preciso só do nome ou tem telefone/email para cadastrar também?`
+              } else if (missingSupplier) {
+                // Only supplier missing
+                const supplierMatch = resolution.errors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
+                const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
+
+                responseText = `A pasta "${supplierName}" não foi encontrada.\n\n` +
+                  `Deseja criar ela? Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
+              } else {
+                // Ambiguous names - show original errors
+                responseText = resolution.errors.join('\n\n')
+              }
+
+              fullAssistantText += responseText
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: errorText })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ text: responseText })}\n\n`)
               )
             } else if (resolution.client && resolution.supplier) {
               // Fetch commission rule for preview
