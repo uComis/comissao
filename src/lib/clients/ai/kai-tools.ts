@@ -13,7 +13,13 @@ REGRAS:
 - Só pergunte se faltar o valor bruto da venda. Nome e pasta parciais são suficientes.
 - Se o usuário informar comissão e/ou taxa, passe nos campos commission_rate e tax_rate (apenas o número, ex: 8 para 8%).
 - Se o usuário NÃO informar comissão/taxa, omita — o backend usa os valores padrão da pasta.
-- Se o usuário não informar a data, omita o parâmetro (será usada a data de hoje).`,
+- Se o usuário não informar a data, omita o parâmetro (será usada a data de hoje).
+- Se o usuário mencionar prazo/parcelas de pagamento, converta para o formato "dias/dias/dias" e passe em payment_condition:
+  "3 parcelas de 30 dias" → "30/60/90"
+  "45 dias, 3 vezes, intervalo de 40 dias" → "45/85/125"
+  "pagamento em 60 dias" → "60"
+  "à vista" → "0"
+- Se o usuário não mencionar condição de pagamento, omita payment_condition.`,
     parameters: {
       type: 'object',
       properties: {
@@ -45,6 +51,11 @@ REGRAS:
           type: 'string',
           description:
             'Data da venda no formato YYYY-MM-DD. Omitir para usar hoje.',
+        },
+        payment_condition: {
+          type: 'string',
+          description:
+            'Condição de pagamento no formato "dias/dias/dias". Exemplos: "30/60/90" para 3x de 30 dias, "45/85/125" para primeira em 45 dias com intervalo de 40, "60" para pagamento único em 60 dias, "0" para à vista. Omitir se o usuário não informou.',
         },
         notes: {
           type: 'string',

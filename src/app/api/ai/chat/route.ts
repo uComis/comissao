@@ -38,6 +38,7 @@ Ações disponíveis:
 - NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA").
 - Se faltar apenas o valor bruto, pergunte só o valor.
 - Use exatamente o texto que o usuário informou nos campos de nome.
+- Se o usuário mencionar prazo, parcelas ou condição de pagamento, converta para o formato "dias/dias/dias" e passe em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita.
 - Após o card de preview aparecer, escreva uma mensagem CURTA e amigável (ex: "Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados que já estão no card.
 
 Formatação:
@@ -163,6 +164,7 @@ export async function POST(req: NextRequest) {
               commission_rate?: number
               tax_rate?: number
               sale_date?: string
+              payment_condition?: string
               notes?: string
             }
 
@@ -274,6 +276,15 @@ export async function POST(req: NextRequest) {
                 }
               }
 
+              // Calculate first_installment_date from payment_condition
+              let firstInstallmentDate: string | null = null
+              if (args.payment_condition) {
+                const firstDays = parseInt(args.payment_condition.split('/')[0]) || 0
+                const base = new Date(saleDate + 'T12:00:00')
+                base.setDate(base.getDate() + firstDays)
+                firstInstallmentDate = base.toISOString().split('T')[0]
+              }
+
               const preview = {
                 supplier_id: resolution.supplier.id,
                 supplier_name: resolution.supplier.name,
@@ -285,6 +296,8 @@ export async function POST(req: NextRequest) {
                 net_value: netValue,
                 commission_rate: commissionRate,
                 commission_value: commissionValue,
+                payment_condition: args.payment_condition || null,
+                first_installment_date: firstInstallmentDate,
                 notes: args.notes || null,
               }
 
@@ -298,6 +311,7 @@ export async function POST(req: NextRequest) {
                 tax_rate: String(taxRate),
                 commission_rate: String(commissionRate),
               })
+              if (args.payment_condition) navParams.set('payment_condition', args.payment_condition)
               if (args.notes) navParams.set('notes', args.notes)
               const navigate = `/minhasvendas/nova?${navParams.toString()}`
 

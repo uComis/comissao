@@ -220,6 +220,22 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       })
     )
 
+    // Pre-fill payment condition from Kai
+    const spPaymentCondition = searchParams.get('payment_condition')
+    if (spPaymentCondition) {
+      const parsed = parsePaymentCondition(spPaymentCondition)
+      const firstDays = parseInt(spPaymentCondition.split('/')[0]) || 0
+      const spSaleDateValue = spSaleDate || today
+
+      setQuickCondition(spPaymentCondition)
+      setInstallments(parsed.installments)
+      setInterval(parsed.interval)
+      setFirstInstallmentDays(firstDays)
+      setFirstInstallmentDate(calculateDateFromDays(firstDays, spSaleDateValue))
+      setPaymentConfirmed(true)
+      setHasChangedSteppers(true)
+    }
+
     // Clean up URL
     router.replace('/minhasvendas/nova', { scroll: false })
   }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps

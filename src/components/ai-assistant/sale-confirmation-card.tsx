@@ -80,6 +80,13 @@ export function SaleConfirmationCard({
           </span>
         </div>
 
+        {preview.payment_condition && preview.payment_condition !== '0' && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Pagamento</span>
+            <span className="font-medium">{preview.payment_condition} dias</span>
+          </div>
+        )}
+
         {preview.notes && (
           <>
             <hr className="my-1" />

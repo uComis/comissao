@@ -14,6 +14,7 @@ export type SalePreview = {
   net_value: number
   commission_rate: number
   commission_value: number
+  payment_condition: string | null
   notes: string | null
 }
 
