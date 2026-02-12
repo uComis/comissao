@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { Send, Bot, X, Loader2, SquarePen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -60,6 +61,7 @@ function getWelcomeMessage(name: string): string {
 
 export function AiChatWindow({ onClose }: AiChatWindowProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
   const { profile } = useAppData()
   const {
     conversationId,
@@ -121,6 +123,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
 
       if (data.success && data.sale_id) {
         updateToolCallStatus(messageId, 'confirmed', { sale_id: data.sale_id })
+        router.push(`/minhasvendas/${data.sale_id}`)
       } else {
         updateToolCallStatus(messageId, 'error', undefined, data.error || 'Erro ao criar venda')
       }
@@ -204,10 +207,16 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
               // Handle tool_call event
               if (parsed.tool_call) {
                 receivedToolCall = true
+
+                // If no text was sent before the tool call, add a friendly message
+                const friendlyContent = fullText
+                  ? ''
+                  : 'Montei a venda aqui! Confirma no card abaixo ou edita no formulário ao lado.'
+
                 const toolCallMsg = {
                   id: (Date.now() + 2).toString(),
                   role: 'assistant' as const,
-                  content: '',
+                  content: friendlyContent,
                   toolCall: {
                     name: parsed.tool_call.name as string,
                     preview: parsed.tool_call.preview as SalePreview,
@@ -215,6 +224,12 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
                   },
                 }
                 addMessage(toolCallMsg)
+
+                // Navigate to the pre-filled form
+                if (parsed.navigate) {
+                  router.push(parsed.navigate)
+                }
+
                 continue
               }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from '@/components/ui/popover'
@@ -91,11 +91,14 @@ const calculateDaysFromDate = (targetDateStr: string, baseDateStr: string) => {
 
 export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySupplier, initialClients, sale, mode = 'create', formId, onSavingChange }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { preferences, setPreference } = usePreferences()
   const [saving, setSaving] = useState(false)
   const [informItems, setInformItems] = useState(preferences.saleInformItems)
   const isEdit = mode === 'edit' && !!sale
   const formBodyRef = useRef<HTMLDivElement>(null)
+
+  const prefillApplied = useRef(false)
 
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -180,6 +183,67 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
       setSupplierId(preferences.defaultSupplierId)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Pre-fill from search params (Kai AI assistant)
+  // Uses useEffect so it works even when component is already mounted
+  useEffect(() => {
+    if (prefillApplied.current) return
+    const spSupplierId = searchParams.get('supplier_id')
+    if (!spSupplierId) return
+
+    prefillApplied.current = true
+
+    // Apply all pre-fill values
+    setSupplierId(spSupplierId)
+    const spClientId = searchParams.get('client_id')
+    if (spClientId) setClientId(spClientId)
+    const spClientName = searchParams.get('client_name')
+    if (spClientName) setClientName(spClientName)
+    const spSaleDate = searchParams.get('sale_date')
+    if (spSaleDate) setSaleDate(spSaleDate)
+    const spNotes = searchParams.get('notes')
+    if (spNotes) setNotes(spNotes)
+    const spGrossValue = searchParams.get('gross_value')
+    if (spGrossValue) {
+      setValueEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === 'initial-entry'
+            ? { ...entry, grossValue: spGrossValue }
+            : entry
+        )
+      )
+    }
+
+    // Auto-apply rates from the supplier
+    const supplier = initialSuppliers.find((s) => s.id === spSupplierId)
+    if (supplier) {
+      const gross = parseFloat(spGrossValue || '0') || 0
+      const tieredRule = supplier.commission_rules?.find((r) => r.type === 'tiered' && r.is_default)
+      let commRate = 0
+      let taxRate = 0
+
+      if (tieredRule) {
+        const tiers = tieredRule.commission_tiers || []
+        const tier = tiers.find((t) => gross >= t.min && (t.max === null || gross <= t.max))
+        commRate = tier?.percentage ?? 0
+        taxRate = tieredRule.tax_percentage || 0
+      } else {
+        commRate = supplier.default_commission_rate || 0
+        taxRate = supplier.default_tax_rate || 0
+      }
+
+      setValueEntries((prev) =>
+        prev.map((entry) =>
+          entry.id === 'initial-entry'
+            ? { ...entry, commissionRate: String(commRate), taxRate: String(taxRate) }
+            : entry
+        )
+      )
+    }
+
+    // Clean up URL
+    router.replace('/minhasvendas/nova', { scroll: false })
+  }, [searchParams]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedProducts = supplierId ? productsBySupplier[supplierId] || [] : []
 

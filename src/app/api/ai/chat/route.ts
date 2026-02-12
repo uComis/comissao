@@ -33,10 +33,12 @@ Diretrizes:
 - Nunca invente dados — use apenas o que está nas seções abaixo
 
 Ações disponíveis:
-- Quando o usuário pedir para registrar/cadastrar/criar uma venda, use a função create_sale.
-- Antes de chamar create_sale, certifique-se de ter: nome do cliente, nome da pasta e valor bruto.
-- Se faltar algum dado obrigatório, pergunte ao usuário antes de chamar a função.
-- Nunca invente nomes de clientes ou pastas — use exatamente o que o usuário informar.
+- Quando o usuário mencionar uma venda com nomes + valor, chame create_sale IMEDIATAMENTE.
+- NÃO peça confirmação antes — o card de preview que aparece É a confirmação.
+- NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA").
+- Se faltar apenas o valor bruto, pergunte só o valor.
+- Use exatamente o texto que o usuário informou nos campos de nome.
+- Após o card de preview aparecer, escreva uma mensagem CURTA e amigável (ex: "Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados que já estão no card.
 
 Formatação:
 - Use **negrito** para destacar termos importantes, nomes de telas e valores
@@ -210,6 +212,21 @@ export async function POST(req: NextRequest) {
                   commissionValue = result.amount
                   commissionRate = result.percentageApplied
                 }
+              } else {
+                // Fallback: use supplier default rates
+                const { data: supplierData } = await supabase
+                  .from('personal_suppliers')
+                  .select('default_commission_rate, default_tax_rate')
+                  .eq('id', resolution.supplier.id)
+                  .single()
+
+                if (supplierData) {
+                  taxRate = supplierData.default_tax_rate || 0
+                  commissionRate = supplierData.default_commission_rate || 0
+                  const taxAmount = grossValue * (taxRate / 100)
+                  netValue = grossValue - taxAmount
+                  commissionValue = netValue * (commissionRate / 100)
+                }
               }
 
               const preview = {
@@ -226,9 +243,20 @@ export async function POST(req: NextRequest) {
                 notes: args.notes || null,
               }
 
+              // Build navigation URL for form pre-fill
+              const navParams = new URLSearchParams({
+                supplier_id: resolution.supplier.id,
+                client_id: resolution.client.id,
+                client_name: resolution.client.name,
+                gross_value: String(grossValue),
+                sale_date: saleDate,
+              })
+              if (args.notes) navParams.set('notes', args.notes)
+              const navigate = `/minhasvendas/nova?${navParams.toString()}`
+
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ tool_call: { name: 'create_sale', preview } })}\n\n`
+                  `data: ${JSON.stringify({ tool_call: { name: 'create_sale', preview }, navigate })}\n\n`
                 )
               )
 
