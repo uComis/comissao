@@ -140,7 +140,6 @@ export async function POST(req: NextRequest) {
           const reader = aiStream.getReader()
           let fullAssistantText = ''
           let toolCall: { name: string; args: Record<string, unknown> } | null = null
-
           while (true) {
             const { done, value } = await reader.read()
             if (done) break

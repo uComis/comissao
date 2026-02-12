@@ -22,7 +22,11 @@ export function createGeminiProvider(apiKey: string): AiClient {
       ]
 
       // Montar config com tools opcionais
-      const config: Record<string, unknown> = {}
+      const config: Record<string, unknown> = {
+        // Gemini 2.5 tem thinking habilitado por default.
+        // Desabilitar para evitar stream vazio em function calls.
+        thinkingConfig: { thinkingBudget: 0 },
+      }
       if (options.tools && options.tools.length > 0) {
         config.tools = [
           {
@@ -38,7 +42,7 @@ export function createGeminiProvider(apiKey: string): AiClient {
       const response = ai.models.generateContentStream({
         model: options.model,
         contents,
-        config: Object.keys(config).length > 0 ? config : undefined,
+        config,
       })
 
       // Transforma o async iterator do Gemini em ReadableStream genérico
@@ -51,6 +55,9 @@ export function createGeminiProvider(apiKey: string): AiClient {
               if (!parts) continue
 
               for (const part of parts) {
+                // Ignorar partes de "pensamento" do modelo
+                if ((part as any).thought) continue
+
                 if (part.functionCall) {
                   controller.enqueue({
                     type: 'tool_call',
@@ -65,8 +72,10 @@ export function createGeminiProvider(apiKey: string): AiClient {
               }
             }
             controller.close()
-          } catch (error) {
-            controller.error(error)
+          } catch (error: any) {
+            console.error('[Gemini] Stream error:', error?.message || error)
+            controller.enqueue({ type: 'text', text: `[GEMINI_ERROR] ${error?.message || 'Unknown error'}` })
+            controller.close()
           }
         },
       })
