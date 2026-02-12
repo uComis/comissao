@@ -73,8 +73,30 @@ export function createGeminiProvider(apiKey: string): AiClient {
             }
             controller.close()
           } catch (error: any) {
-            console.error('[Gemini] Stream error:', error?.message || error)
-            controller.enqueue({ type: 'text', text: `[GEMINI_ERROR] ${error?.message || 'Unknown error'}` })
+            // Log completo para debug no servidor
+            console.error('[Gemini] Stream error:', error)
+
+            // Detectar erro de quota excedida
+            const isQuotaError =
+              error?.status === 429 ||
+              error?.statusCode === 429 ||
+              error?.message?.includes('RESOURCE_EXHAUSTED') ||
+              error?.message?.includes('quota') ||
+              error?.message?.includes('429')
+
+            if (isQuotaError) {
+              // Mensagem amigável para o usuário
+              controller.enqueue({
+                type: 'text',
+                text: '⚠️ O assistente Kai está temporariamente indisponível. Tente novamente em alguns minutos.'
+              })
+            } else {
+              // Outro tipo de erro - mensagem genérica
+              controller.enqueue({
+                type: 'text',
+                text: '⚠️ Ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.'
+              })
+            }
             controller.close()
           }
         },
