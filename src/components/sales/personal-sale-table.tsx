@@ -61,9 +61,9 @@ function formatShortDate(dateStr: string | null): string {
   return `${day} ${month} ${year}`
 }
 
-function getCommissionPercent(gross: number | null, commission: number | null): string | null {
-  if (!gross || !commission || gross === 0) return null
-  return ((commission / gross) * 100).toFixed(1) + '%'
+function getCommissionPercent(rate: number | null): string | null {
+  if (rate === null || rate === undefined || rate === 0) return null
+  return rate % 1 === 0 ? rate.toFixed(0) + '%' : rate.toFixed(1) + '%'
 }
 
 function CommissionBadge({ percent }: { percent: string | null }) {
@@ -177,7 +177,7 @@ export function PersonalSaleTable({ sales, onSaleDeleted }: Props) {
       {/* Mobile cards */}
       <div className="space-y-3 md:hidden">
         {sales.map((sale) => {
-          const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
+          const percent = getCommissionPercent(sale.commission_rate)
 
           return (
             <Card
@@ -236,7 +236,7 @@ export function PersonalSaleTable({ sales, onSaleDeleted }: Props) {
             </TableHeader>
             <TableBody>
               {sales.map((sale) => {
-                const percent = getCommissionPercent(sale.gross_value, sale.commission_value)
+                const percent = getCommissionPercent(sale.commission_rate)
                 const hasCommission = sale.commission_value != null && sale.commission_value > 0
 
                 return (

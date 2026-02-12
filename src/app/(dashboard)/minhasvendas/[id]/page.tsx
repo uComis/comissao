@@ -66,6 +66,9 @@ async function VendaDetalheContent({ id }: { id: string }) {
             grossValue: sale.gross_value,
             netValue: sale.net_value,
             commissionValue: sale.commission_value,
+            commissionRate: sale.commission_rate,
+            taxRate: sale.tax_rate,
+            taxAmount: sale.tax_amount,
             paymentCondition: sale.payment_condition,
             saleDate: sale.sale_date,
           }}

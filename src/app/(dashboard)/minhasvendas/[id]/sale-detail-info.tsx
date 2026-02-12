@@ -10,6 +10,9 @@ type SaleInfo = {
   grossValue: number | null
   netValue: number | null
   commissionValue: number | null
+  commissionRate: number | null
+  taxRate: number | null
+  taxAmount: number | null
   paymentCondition: string | null
   saleDate: string | null
 }
@@ -25,6 +28,11 @@ function formatCurrency(value: number | null): string {
     style: 'currency',
     currency: 'BRL',
   }).format(value)
+}
+
+function formatPercent(value: number | null): string | null {
+  if (value === null || value === 0) return null
+  return value % 1 === 0 ? `${value}%` : `${value.toFixed(1)}%`
 }
 
 function formatDate(dateStr: string | null): string {
@@ -95,7 +103,7 @@ export function SaleDetailInfo({ saleId, sale }: Props) {
             </div>
           </div>
 
-          {/* Valores */}
+          {/* Total Geral e Taxa */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-start gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
@@ -104,6 +112,26 @@ export function SaleDetailInfo({ saleId, sale }: Props) {
                 <p className="text-sm font-semibold">{formatCurrency(sale.grossValue)}</p>
               </div>
             </div>
+            {(sale.taxRate || sale.taxAmount) ? (
+              <div className="flex items-start gap-2">
+                <Calculator className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Taxa</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-sm font-semibold text-amber-500">{formatCurrency(sale.taxAmount)}</p>
+                    {formatPercent(sale.taxRate) && (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-500">
+                        {formatPercent(sale.taxRate)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : <div />}
+          </div>
+
+          {/* Base Cálculo e Comissão */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="flex items-start gap-2">
               <Calculator className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <div className="min-w-0">
@@ -111,14 +139,19 @@ export function SaleDetailInfo({ saleId, sale }: Props) {
                 <p className="text-sm font-semibold">{formatCurrency(sale.netValue)}</p>
               </div>
             </div>
-          </div>
-
-          {/* Comissão */}
-          <div className="flex items-start gap-2">
-            <TrendingUp className="h-4 w-4 text-[#409eff] mt-0.5 shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">Comissão</p>
-              <p className="text-sm font-semibold text-[#409eff]">{formatCurrency(sale.commissionValue)}</p>
+            <div className="flex items-start gap-2">
+              <TrendingUp className="h-4 w-4 text-[#409eff] mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">Comissão</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <p className="text-sm font-semibold text-[#409eff]">{formatCurrency(sale.commissionValue)}</p>
+                  {formatPercent(sale.commissionRate) && (
+                    <span className="inline-flex items-center rounded-full bg-[#409eff]/10 px-1.5 py-0.5 text-xs font-medium text-[#409eff]">
+                      {formatPercent(sale.commissionRate)}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
