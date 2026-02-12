@@ -140,7 +140,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     if (!supabase) return
+
+    // Clear Supabase session
     await supabase.auth.signOut()
+
+    // Clear all Supabase cookies (chunked auth tokens)
+    const cookies = document.cookie.split('; ')
+    for (const cookie of cookies) {
+      const [name] = cookie.split('=')
+      if (name.startsWith('sb-')) {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+      }
+    }
+
+    // Clear local/session storage
+    localStorage.clear()
+    sessionStorage.clear()
+
     router.push('/login')
   }
 
