@@ -25,11 +25,33 @@ type TableMatch = {
   table: 'clients' | 'suppliers'
 }
 
+// --- Accent handling ---
+
+function removeAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/** Convert a word to a POSIX regex that matches with or without accents */
+function toAccentRegex(word: string): string {
+  const map: Record<string, string> = {
+    a: '[aáâãàä]', e: '[eéêèë]', i: '[iíîìï]',
+    o: '[oóôõòö]', u: '[uúûùü]', c: '[cç]', n: '[nñ]',
+  }
+  return removeAccents(word.toLowerCase())
+    .split('')
+    .map((ch) => map[ch] || escapeRegex(ch))
+    .join('')
+}
+
 // --- Scoring ---
 
 function scoreMatch(search: string, candidate: string): number {
-  const s = search.toLowerCase().trim()
-  const c = candidate.toLowerCase().trim()
+  const s = removeAccents(search).toLowerCase().trim()
+  const c = removeAccents(candidate).toLowerCase().trim()
 
   // Exact match
   if (s === c) return 100
@@ -80,9 +102,9 @@ async function searchInTable(
     query = query.eq('is_active', true)
   }
 
-  // Chain ilike for each word
+  // Chain accent-insensitive regex for each word
   for (const word of words) {
-    query = query.ilike('name', `%${word}%`)
+    query = query.filter('name', 'imatch', toAccentRegex(word))
   }
 
   const { data, error } = await query.limit(10)
