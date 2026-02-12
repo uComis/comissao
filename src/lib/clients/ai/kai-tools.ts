@@ -11,6 +11,8 @@ REGRAS:
 - Use exatamente o texto que o usuário informou nos campos de nome — o backend faz o match.
 - Se o usuário só deu dois nomes e um valor mas não ficou claro qual é cliente e qual é pasta, coloque o primeiro nome como supplier e o segundo como client (o backend corrige se necessário).
 - Só pergunte se faltar o valor bruto da venda. Nome e pasta parciais são suficientes.
+- Se o usuário informar comissão e/ou taxa, passe nos campos commission_rate e tax_rate (apenas o número, ex: 8 para 8%).
+- Se o usuário NÃO informar comissão/taxa, omita — o backend usa os valores padrão da pasta.
 - Se o usuário não informar a data, omita o parâmetro (será usada a data de hoje).`,
     parameters: {
       type: 'object',
@@ -28,6 +30,16 @@ REGRAS:
         gross_value: {
           type: 'number',
           description: 'Valor bruto da venda em reais (ex: 5000 para R$ 5.000)',
+        },
+        commission_rate: {
+          type: 'number',
+          description:
+            'Percentual de comissão informado pelo usuário (ex: 8 para 8%). Omitir se o usuário não informou — o backend usa o padrão da pasta.',
+        },
+        tax_rate: {
+          type: 'number',
+          description:
+            'Percentual de taxa/dedução informado pelo usuário (ex: 3.5 para 3,5%). Omitir se o usuário não informou — o backend usa o padrão da pasta.',
         },
         sale_date: {
           type: 'string',

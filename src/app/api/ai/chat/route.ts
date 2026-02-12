@@ -161,6 +161,8 @@ export async function POST(req: NextRequest) {
               client_name: string
               supplier_name: string
               gross_value: number
+              commission_rate?: number
+              tax_rate?: number
               sale_date?: string
               notes?: string
             }
@@ -189,7 +191,51 @@ export async function POST(req: NextRequest) {
               let commissionValue = 0
               let netValue = grossValue
 
-              if (resolution.supplier.commission_rule_id) {
+              const userProvidedComm = args.commission_rate !== undefined
+              const userProvidedTax = args.tax_rate !== undefined
+
+              if (userProvidedComm || userProvidedTax) {
+                // User explicitly provided rates — use them directly
+                if (userProvidedTax) taxRate = args.tax_rate!
+                if (userProvidedComm) commissionRate = args.commission_rate!
+
+                // If user gave only one rate, try to fill the other from DB
+                if (!userProvidedTax || !userProvidedComm) {
+                  if (resolution.supplier.commission_rule_id) {
+                    const { data: rule } = await supabase
+                      .from('commission_rules')
+                      .select('type, percentage, tiers, tax_percentage')
+                      .eq('id', resolution.supplier.commission_rule_id)
+                      .single()
+                    if (rule) {
+                      if (!userProvidedTax) taxRate = rule.tax_percentage || 0
+                      if (!userProvidedComm) {
+                        const tempTax = grossValue * (taxRate / 100)
+                        const tempNet = grossValue - tempTax
+                        const result = commissionEngine.calculate({
+                          netValue: tempNet,
+                          rule: { type: rule.type as 'fixed' | 'tiered', percentage: rule.percentage, tiers: rule.tiers },
+                        })
+                        commissionRate = result.percentageApplied
+                      }
+                    }
+                  } else {
+                    const { data: supplierData } = await supabase
+                      .from('personal_suppliers')
+                      .select('default_commission_rate, default_tax_rate')
+                      .eq('id', resolution.supplier.id)
+                      .single()
+                    if (supplierData) {
+                      if (!userProvidedTax) taxRate = supplierData.default_tax_rate || 0
+                      if (!userProvidedComm) commissionRate = supplierData.default_commission_rate || 0
+                    }
+                  }
+                }
+
+                const taxAmount = grossValue * (taxRate / 100)
+                netValue = grossValue - taxAmount
+                commissionValue = netValue * (commissionRate / 100)
+              } else if (resolution.supplier.commission_rule_id) {
                 const { data: rule } = await supabase
                   .from('commission_rules')
                   .select('type, percentage, tiers, tax_percentage')
@@ -250,6 +296,8 @@ export async function POST(req: NextRequest) {
                 client_name: resolution.client.name,
                 gross_value: String(grossValue),
                 sale_date: saleDate,
+                tax_rate: String(taxRate),
+                commission_rate: String(commissionRate),
               })
               if (args.notes) navParams.set('notes', args.notes)
               const navigate = `/minhasvendas/nova?${navParams.toString()}`

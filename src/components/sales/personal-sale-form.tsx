@@ -203,43 +203,22 @@ export function PersonalSaleForm({ suppliers: initialSuppliers, productsBySuppli
     if (spSaleDate) setSaleDate(spSaleDate)
     const spNotes = searchParams.get('notes')
     if (spNotes) setNotes(spNotes)
+    // Apply gross value and rates (rates come from the route, already calculated)
     const spGrossValue = searchParams.get('gross_value')
-    if (spGrossValue) {
-      setValueEntries((prev) =>
-        prev.map((entry) =>
-          entry.id === 'initial-entry'
-            ? { ...entry, grossValue: spGrossValue }
-            : entry
-        )
-      )
-    }
+    const spTaxRate = searchParams.get('tax_rate')
+    const spCommRate = searchParams.get('commission_rate')
 
-    // Auto-apply rates from the supplier
-    const supplier = initialSuppliers.find((s) => s.id === spSupplierId)
-    if (supplier) {
-      const gross = parseFloat(spGrossValue || '0') || 0
-      const tieredRule = supplier.commission_rules?.find((r) => r.type === 'tiered' && r.is_default)
-      let commRate = 0
-      let taxRate = 0
-
-      if (tieredRule) {
-        const tiers = tieredRule.commission_tiers || []
-        const tier = tiers.find((t) => gross >= t.min && (t.max === null || gross <= t.max))
-        commRate = tier?.percentage ?? 0
-        taxRate = tieredRule.tax_percentage || 0
-      } else {
-        commRate = supplier.default_commission_rate || 0
-        taxRate = supplier.default_tax_rate || 0
-      }
-
-      setValueEntries((prev) =>
-        prev.map((entry) =>
-          entry.id === 'initial-entry'
-            ? { ...entry, commissionRate: String(commRate), taxRate: String(taxRate) }
-            : entry
-        )
-      )
-    }
+    setValueEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== 'initial-entry') return entry
+        return {
+          ...entry,
+          ...(spGrossValue && { grossValue: spGrossValue }),
+          ...(spTaxRate && { taxRate: spTaxRate }),
+          ...(spCommRate && { commissionRate: spCommRate }),
+        }
+      })
+    )
 
     // Clean up URL
     router.replace('/minhasvendas/nova', { scroll: false })
