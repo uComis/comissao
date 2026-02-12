@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       sale_date: preview.sale_date,
       gross_value: preview.gross_value,
       tax_rate: preview.tax_rate || 0,
+      commission_rate: preview.commission_rate || 0,
       notes: preview.notes || undefined,
     })
 
