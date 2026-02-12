@@ -65,4 +65,88 @@ REGRAS:
       required: ['client_name', 'supplier_name', 'gross_value'],
     },
   },
+  {
+    name: 'create_client',
+    description: `Cadastra um novo cliente. Use quando o usuário pedir para cadastrar um cliente OU quando tentar registrar uma venda mas o cliente não existir.
+
+QUANDO USAR:
+- Usuário pede diretamente: "Cadastra o cliente João Silva"
+- Durante venda, cliente não encontrado: pergunte "O cliente 'X' não foi encontrado, deseja criar ele?"
+
+DADOS OBRIGATÓRIOS:
+- name (nome do cliente)
+
+DADOS OPCIONAIS (pergunte se o usuário quiser informar):
+- phone (telefone)
+- email (e-mail)
+- address (endereço)
+
+NÃO pergunte tudo de uma vez. Pergunte apenas: "Preciso só do nome mesmo ou tem telefone/email?"`,
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Nome do cliente',
+        },
+        phone: {
+          type: 'string',
+          description: 'Telefone do cliente (opcional)',
+        },
+        email: {
+          type: 'string',
+          description: 'E-mail do cliente (opcional)',
+        },
+        address: {
+          type: 'string',
+          description: 'Endereço do cliente (opcional)',
+        },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'create_supplier',
+    description: `Cadastra uma nova pasta/fornecedor. Use quando o usuário pedir para cadastrar uma pasta OU quando tentar registrar uma venda mas a pasta não existir.
+
+QUANDO USAR:
+- Usuário pede diretamente: "Cadastra a pasta Ambev"
+- Durante venda, pasta não encontrada: pergunte "A pasta 'X' não existe, deseja criar ela?"
+
+DADOS OBRIGATÓRIOS:
+- name (nome da pasta/fornecedor)
+- commission_rate (percentual de comissão padrão, ex: 10 para 10%)
+
+DADOS OPCIONAIS:
+- tax_rate (percentual de taxa/dedução padrão, ex: 3.5 para 3,5%)
+- cnpj (CNPJ do fornecedor)
+
+FLUXO:
+1. Se o usuário não informou a comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
+2. NÃO pergunte sobre taxa se não for mencionado — pode ser 0.`,
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'Nome da pasta/fornecedor',
+        },
+        commission_rate: {
+          type: 'number',
+          description:
+            'Percentual de comissão padrão (ex: 10 para 10%). OBRIGATÓRIO.',
+        },
+        tax_rate: {
+          type: 'number',
+          description:
+            'Percentual de taxa/dedução padrão (ex: 3.5 para 3,5%). Opcional, default 0.',
+        },
+        cnpj: {
+          type: 'string',
+          description: 'CNPJ do fornecedor (opcional)',
+        },
+      },
+      required: ['name', 'commission_rate'],
+    },
+  },
 ]

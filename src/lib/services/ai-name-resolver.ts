@@ -216,7 +216,7 @@ export async function resolveNames(
   const clientResult = pickBest(finalClientMatches)
   if (!clientResult) {
     errors.push(
-      `Nenhum cliente encontrado com o nome "${clientSearch}". Verifique se o nome está correto ou cadastre o cliente primeiro.`
+      `O cliente "${clientSearch}" não foi encontrado.`
     )
   } else if ('candidates' in clientResult) {
     const names = clientResult.candidates.map((c) => `"${c.name}"`).join(', ')
@@ -231,7 +231,7 @@ export async function resolveNames(
   const supplierResult = pickBest(finalSupplierMatches)
   if (!supplierResult) {
     errors.push(
-      `Nenhuma pasta encontrada com o nome "${supplierSearch}". Verifique se o nome está correto ou cadastre a pasta primeiro.`
+      `A pasta "${supplierSearch}" não foi encontrada.`
     )
   } else if ('candidates' in supplierResult) {
     const names = supplierResult.candidates
