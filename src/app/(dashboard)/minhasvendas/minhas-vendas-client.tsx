@@ -21,7 +21,6 @@ import {
   DrawerDescription,
 } from '@/components/ui/drawer'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
-import { AnimatedTableContainer } from '@/components/ui/animated-table-container'
 import { ExpandableSearch } from '@/components/ui/expandable-search'
 import { FilterPopover, FilterPopoverField } from '@/components/ui/filter-popover'
 import { Fab } from '@/components/ui/fab'
@@ -77,7 +76,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
           clientId: clientId || undefined,
           month: month || undefined,
         })
-        // Atualiza dados E página juntos para sincronizar com a animação
+        // Atualiza dados e página juntos
         setSales(result.data)
         setTotal(result.total)
         setAggregates(result.aggregates)
@@ -102,15 +101,12 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
     fetchData(1, pageSize, 1)
   }, [search, month, supplierId, clientId, pageSize, fetchData])
 
-  // Fetch when page changes (desktop) - não atualiza page imediatamente
   const handlePageChange = (newPage: number) => {
     fetchData(newPage, pageSize, newPage)
   }
 
-  // Fetch when page size changes
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize)
-    fetchData(1, newPageSize, 1)
   }
 
   // Load more for mobile
@@ -384,11 +380,14 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
         <>
           {/* Desktop: table + pagination */}
           <div className="hidden md:block space-y-0">
-            <AnimatedTableContainer transitionKey={page}>
-              <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-                <PersonalSaleTable sales={sales} onSaleDeleted={handleSaleDeleted} />
-              </div>
-            </AnimatedTableContainer>
+            <div className="relative">
+              <PersonalSaleTable sales={sales} onSaleDeleted={handleSaleDeleted} />
+              {isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
             <DataTablePagination
               page={page}
               pageSize={pageSize}
@@ -400,8 +399,13 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
 
           {/* Mobile: load more */}
           <div className="md:hidden">
-            <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
+            <div className="relative">
               <PersonalSaleTable sales={mobileSales} onSaleDeleted={handleSaleDeleted} />
+              {isPending && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              )}
             </div>
             {hasMoreMobile && (
               <div className="pt-4 pb-2">
