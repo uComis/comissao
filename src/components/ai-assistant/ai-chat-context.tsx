@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { AiChatWindow } from './ai-chat-window'
 
 export type SalePreview = {
   supplier_id: string
@@ -284,7 +283,6 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      {isOpen && <AiChatWindow onClose={() => setIsOpen(false)} />}
     </AiChatContext.Provider>
   )
 }

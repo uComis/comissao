@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { Send, Bot, X, Loader2, SquarePen } from 'lucide-react'
+import { Send, Bot, X, Loader2, SquarePen, PanelRightClose } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -25,10 +25,6 @@ function getAvatarColor(name: string): string {
   for (let i = 0; i < name.length; i++)
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
-interface AiChatWindowProps {
-  onClose: () => void
 }
 
 const WELCOME_MESSAGES = [
@@ -60,7 +56,7 @@ function getWelcomeMessage(name: string): string {
   return WELCOME_MESSAGES[idx](firstName)
 }
 
-export function AiChatWindow({ onClose }: AiChatWindowProps) {
+export function AiChatWindow() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const { profile } = useAppData()
@@ -68,6 +64,7 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
     conversationId,
     messages,
     isLoadingHistory,
+    toggle,
     setConversationId,
     addMessage,
     updateMessage,
@@ -312,56 +309,43 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
   const showWelcome = messages.length === 0 && !isLoadingHistory
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/20 md:hidden animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-
-      {/* Chat Window */}
-      <div
-        className={cn(
-          'fixed z-50 flex flex-col bg-background border shadow-2xl',
-          'inset-0 md:inset-auto',
-          'md:bottom-6 md:right-6 md:h-[50vh] md:min-h-[500px] md:max-h-[700px] md:w-[480px] md:rounded-xl',
-          'animate-in slide-in-from-bottom-4 md:slide-in-from-right-4 fade-in duration-300'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b p-4 bg-muted/30">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary shadow-sm">
-              <Bot className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-base">Kai</h3>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Online
-              </p>
-            </div>
+    <div className="flex flex-col h-full bg-background">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b p-4 bg-muted/30">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary shadow-sm">
+            <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={startNewConversation}
-              className="h-8 w-8 rounded-full hover:bg-muted"
-              title="Nova conversa"
-            >
-              <SquarePen className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-8 w-8 rounded-full hover:bg-muted"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div>
+            <h3 className="font-semibold text-base">Kai</h3>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Online
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={startNewConversation}
+            className="h-8 w-8 rounded-full hover:bg-muted"
+            title="Nova conversa"
+          >
+            <SquarePen className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggle}
+            className="h-8 w-8 rounded-full hover:bg-muted"
+            title="Fechar"
+          >
+            <PanelRightClose className="h-4 w-4 hidden md:block" />
+            <X className="h-4 w-4 md:hidden" />
+          </Button>
+        </div>
+      </div>
 
         {/* Messages */}
         <div className="flex-1 overflow-hidden">
@@ -531,7 +515,6 @@ export function AiChatWindow({ onClose }: AiChatWindowProps) {
             Pressione Enter para enviar
           </p>
         </div>
-      </div>
-    </>
+    </div>
   )
 }
