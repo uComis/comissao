@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Icon — Header Sizes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    background: #0c1628;
+    font-family: 'Outfit', sans-serif;
+    padding: 40px 20px;
+  }
+
+  /* ============================================
+     DEMO HEADER BAR
+     ============================================ */
+  .demo-header {
+    width: 100%;
+    max-width: 700px;
+    height: 52px;
+    background: linear-gradient(135deg, rgba(15, 22, 40, 0.95), rgba(20, 30, 55, 0.95));
+    border: 1px solid rgba(80, 140, 220, 0.12);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  .demo-header .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .demo-header .brand-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #c8daf0;
+    letter-spacing: 0.5px;
+  }
+
+  .demo-header .nav {
+    margin-left: auto;
+    display: flex;
+    gap: 20px;
+  }
+
+  .demo-header .nav span {
+    font-size: 12px;
+    color: #5a7da6;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .demo-header .nav span:hover { color: #8ab4e0; }
+
+  /* ============================================
+     SHOWCASE GRID
+     ============================================ */
+  .showcase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #4a6d94;
+  }
+
+  .size-row {
+    display: flex;
+    align-items: end;
+    gap: 36px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .size-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .size-label {
+    font-size: 11px;
+    font-weight: 300;
+    color: #4a6d94;
+    letter-spacing: 1px;
+  }
+
+  /* ============================================
+     MINI ICON — Base structure
+     ============================================ */
+  .ai-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* The sphere/orb background */
+  .ai-icon .orb {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 40% 35%,
+      #4a9af5 0%,
+      #2a6fd4 40%,
+      #1550a8 80%,
+      #0d3a80 100%
+    );
+    box-shadow:
+      inset 0 -2px 4px rgba(5, 20, 60, 0.5),
+      inset 0 2px 3px rgba(140, 200, 255, 0.2),
+      0 2px 8px rgba(30, 100, 220, 0.4);
+  }
+
+  /* Tiny specular dot on the orb */
+  .ai-icon .orb::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  /* The sparkle star — SVG positioned on top */
+  .ai-icon .star {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.7));
+    animation: mini-sparkle 2.8s ease-in-out infinite;
+  }
+
+  .ai-icon .star svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ============================================
+     SIZE: 16px
+     ============================================ */
+  .ai-icon.s16 {
+    width: 16px;
+    height: 16px;
+  }
+
+  .ai-icon.s16 .orb {
+    width: 13px;
+    height: 13px;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ai-icon.s16 .orb::after {
+    width: 3px; height: 3px;
+    top: 2px; left: 3px;
+  }
+
+  .ai-icon.s16 .star {
+    width: 11px;
+    height: 11px;
+    position: absolute;
+    top: -1px;
+    right: -1px;
+  }
+
+  /* ============================================
+     SIZE: 20px
+     ============================================ */
+  .ai-icon.s20 {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ai-icon.s20 .orb {
+    width: 16px;
+    height: 16px;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ai-icon.s20 .orb::after {
+    width: 3.5px; height: 3.5px;
+    top: 3px; left: 3px;
+  }
+
+  .ai-icon.s20 .star {
+    width: 14px;
+    height: 14px;
+    position: absolute;
+    top: -2px;
+    right: -2px;
+  }
+
+  /* ============================================
+     SIZE: 24px
+     ============================================ */
+  .ai-icon.s24 {
+    width: 24px;
+    height: 24px;
+  }
+
+  .ai-icon.s24 .orb {
+    width: 19px;
+    height: 19px;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ai-icon.s24 .orb::after {
+    width: 4px; height: 4px;
+    top: 3px; left: 4px;
+  }
+
+  .ai-icon.s24 .star {
+    width: 17px;
+    height: 17px;
+    position: absolute;
+    top: -2px;
+    right: -2px;
+  }
+
+  /* ============================================
+     SIZE: 32px
+     ============================================ */
+  .ai-icon.s32 {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ai-icon.s32 .orb {
+    width: 25px;
+    height: 25px;
+    bottom: 0;
+    left: 0;
+  }
+
+  .ai-icon.s32 .orb::after {
+    width: 5px; height: 5px;
+    top: 4px; left: 5px;
+  }
+
+  .ai-icon.s32 .star {
+    width: 22px;
+    height: 22px;
+    position: absolute;
+    top: -2px;
+    right: -3px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.6));
+  }
+
+  /* ============================================
+     SPARKLE ANIMATION
+     ============================================ */
+  @keyframes mini-sparkle {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+    30% {
+      opacity: 1;
+      transform: scale(1.15) rotate(8deg);
+    }
+    60% {
+      opacity: 0.55;
+      transform: scale(0.85) rotate(-4deg);
+    }
+  }
+
+  /* ============================================
+     LIGHT BG VARIANTS
+     ============================================ */
+  .light-section {
+    background: linear-gradient(135deg, #f0f4f8, #e4ecf4);
+    padding: 40px 50px;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .light-section .section-title {
+    color: #7a9abc;
+  }
+
+  .light-section .size-label {
+    color: #8aa4be;
+  }
+
+  /* Light header demo */
+  .demo-header.light {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240,245,252,0.95));
+    border-color: rgba(100, 150, 220, 0.15);
+    box-shadow: 0 2px 16px rgba(100,140,200,0.12);
+  }
+
+  .demo-header.light .brand-name {
+    color: #2a4a6e;
+  }
+
+  .demo-header.light .nav span {
+    color: #8aa4be;
+  }
+
+  .demo-header.light .nav span:hover {
+    color: #4a7da6;
+  }
+
+  /* ============================================
+     INLINE TEXT DEMO
+     ============================================ */
+  .text-demo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #8ab0d8;
+    font-weight: 400;
+  }
+
+  .text-demo.dark-text {
+    color: #8ab0d8;
+  }
+
+  .text-demo.light-text {
+    color: #4a6d8e;
+  }
+
+  .divider {
+    width: 100%;
+    max-width: 500px;
+    height: 1px;
+    background: rgba(80, 140, 220, 0.1);
+  }
+</style>
+</head>
+<body>
+
+  <!-- ===== DARK HEADER DEMO ===== -->
+  <div class="section-title">Header — Dark</div>
+  <div class="demo-header">
+    <div class="brand">
+      <div class="ai-icon s20">
+        <div class="orb"></div>
+        <div class="star">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+        </div>
+      </div>
+      <span class="brand-name">MeuApp AI</span>
+    </div>
+    <div class="nav">
+      <span>Dashboard</span>
+      <span>Projetos</span>
+      <span>Config</span>
+    </div>
+  </div>
+
+  <!-- ===== LIGHT HEADER DEMO ===== -->
+  <div class="light-section">
+    <div class="section-title">Header — Light</div>
+    <div class="demo-header light">
+      <div class="brand">
+        <div class="ai-icon s20">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="brand-name">MeuApp AI</span>
+      </div>
+      <div class="nav">
+        <span>Dashboard</span>
+        <span>Projetos</span>
+        <span>Config</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== ALL SIZES — DARK ===== -->
+  <div class="showcase">
+    <div class="section-title">Todos os tamanhos — Dark</div>
+    <div class="size-row">
+      <div class="size-item">
+        <div class="ai-icon s16">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">16px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s20">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">20px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s24">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">24px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s32">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">32px</span>
+      </div>
+    </div>
+
+    <!-- Inline text demo -->
+    <div class="text-demo dark-text">
+      <div class="ai-icon s16">
+        <div class="orb"></div>
+        <div class="star">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+        </div>
+      </div>
+      Resposta gerada por IA
+    </div>
+
+    <div class="text-demo dark-text">
+      <div class="ai-icon s16">
+        <div class="orb"></div>
+        <div class="star">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+        </div>
+      </div>
+      Assistente ativo
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== ALL SIZES — LIGHT ===== -->
+  <div class="light-section">
+    <div class="section-title">Todos os tamanhos — Light</div>
+    <div class="size-row">
+      <div class="size-item">
+        <div class="ai-icon s16">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">16px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s20">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">20px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s24">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">24px</span>
+      </div>
+
+      <div class="size-item">
+        <div class="ai-icon s32">
+          <div class="orb"></div>
+          <div class="star">
+            <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+        </div>
+        <span class="size-label">32px</span>
+      </div>
+    </div>
+
+    <!-- Inline text demo light -->
+    <div class="text-demo light-text">
+      <div class="ai-icon s16">
+        <div class="orb"></div>
+        <div class="star">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+        </div>
+      </div>
+      Resposta gerada por IA
+    </div>
+
+    <div class="text-demo light-text">
+      <div class="ai-icon s16">
+        <div class="orb"></div>
+        <div class="star">
+          <svg viewBox="0 0 40 40" fill="none"><path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z" fill="white" fill-opacity="0.95"/></svg>
+          </div>
+      </div>
+      Assistente ativo
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Icon — Animated</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    background: #0c1628;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ============================================
+     TOGGLE BUTTON
+     ============================================ */
+  .toggle-wrap {
+    display: flex;
+    gap: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(80, 140, 220, 0.2);
+    position: relative;
+    z-index: 10;
+  }
+
+  .toggle-btn {
+    padding: 12px 28px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    background: rgba(255,255,255,0.04);
+    color: #5a8cc0;
+  }
+
+  .toggle-btn:hover {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .toggle-btn.active {
+    background: linear-gradient(135deg, #2a6dd4, #1a4fa8);
+    color: #fff;
+    box-shadow: 0 2px 20px rgba(40, 100, 220, 0.4);
+  }
+
+  /* ============================================
+     SCENE
+     ============================================ */
+  .scene {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Background burst rays — entrance only */
+  .burst {
+    position: absolute;
+    width: 350px;
+    height: 350px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(60, 140, 255, 0.06) 10deg,
+      transparent 20deg,
+      rgba(60, 140, 255, 0.04) 30deg,
+      transparent 40deg,
+      rgba(60, 140, 255, 0.06) 50deg,
+      transparent 60deg,
+      rgba(60, 140, 255, 0.04) 70deg,
+      transparent 80deg,
+      rgba(60, 140, 255, 0.06) 90deg,
+      transparent 100deg,
+      rgba(60, 140, 255, 0.04) 110deg,
+      transparent 120deg,
+      rgba(60, 140, 255, 0.06) 130deg,
+      transparent 140deg,
+      rgba(60, 140, 255, 0.04) 150deg,
+      transparent 160deg,
+      rgba(60, 140, 255, 0.06) 170deg,
+      transparent 180deg,
+      rgba(60, 140, 255, 0.04) 190deg,
+      transparent 200deg,
+      rgba(60, 140, 255, 0.06) 210deg,
+      transparent 220deg,
+      rgba(60, 140, 255, 0.04) 230deg,
+      transparent 240deg,
+      rgba(60, 140, 255, 0.06) 250deg,
+      transparent 260deg,
+      rgba(60, 140, 255, 0.04) 270deg,
+      transparent 280deg,
+      rgba(60, 140, 255, 0.06) 290deg,
+      transparent 300deg,
+      rgba(60, 140, 255, 0.04) 310deg,
+      transparent 320deg,
+      rgba(60, 140, 255, 0.06) 330deg,
+      transparent 340deg,
+      rgba(60, 140, 255, 0.04) 350deg,
+      transparent 360deg
+    );
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    animation: none;
+    z-index: 0;
+  }
+
+  /* ============================================
+     ICON CONTAINER — Frosted glass
+     ============================================ */
+  .icon-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 28%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.5s ease;
+    box-shadow:
+      0 8px 32px rgba(30, 90, 200, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 1px rgba(80, 140, 220, 0.15);
+  }
+
+  .icon-container:hover {
+    transform: scale(1.06) translateY(-3px);
+  }
+
+  /* Frosted glass bg */
+  .icon-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      145deg,
+      rgba(20, 30, 50, 0.92) 0%,
+      rgba(15, 25, 55, 0.88) 30%,
+      rgba(10, 20, 45, 0.92) 60%,
+      rgba(18, 30, 60, 0.9) 100%
+    );
+    z-index: 0;
+  }
+
+  /* Border */
+  .icon-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1.5px solid rgba(80, 140, 220, 0.2);
+    z-index: 5;
+    pointer-events: none;
+    transition: border-color 0.5s ease;
+  }
+
+  /* ============================================
+     AMBIENT GLOW
+     ============================================ */
+  .glow {
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(50, 130, 240, 0.35) 0%,
+      rgba(50, 130, 240, 0.12) 50%,
+      transparent 70%
+    );
+    z-index: 1;
+    transition: opacity 0.6s ease;
+  }
+
+  /* ============================================
+     SPHERE
+     ============================================ */
+  .sphere {
+    position: relative;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    z-index: 2;
+    overflow: hidden;
+  }
+
+  /* Main body */
+  .sphere-body {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(120, 180, 255, 0.9) 0%, transparent 50%),
+      radial-gradient(circle at 65% 70%, rgba(20, 80, 180, 0.8) 0%, transparent 55%),
+      radial-gradient(circle at 50% 50%, #3b8bea 0%, #1a5cbf 50%, #0d3a80 100%);
+    box-shadow:
+      inset 0 -6px 14px rgba(5, 20, 60, 0.6),
+      inset 0 6px 10px rgba(100, 180, 255, 0.2);
+  }
+
+  /* Specular highlight — this moves on hover */
+  .sphere-highlight {
+    position: absolute;
+    width: 38px;
+    height: 54px;
+    top: 16px;
+    left: 22px;
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(255, 255, 255, 0.4) 40%,
+      transparent 70%
+    );
+    transform: rotate(-30deg);
+    transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 3;
+  }
+
+  /* Hover: simulate rotation by moving highlight across */
+  .icon-container:hover .sphere-highlight {
+    top: 60px;
+    left: 75px;
+    width: 30px;
+    height: 42px;
+    opacity: 0.7;
+    transform: rotate(30deg);
+  }
+
+  /* Sphere outer shadow */
+  .sphere-shadow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 6px 30px rgba(30, 100, 220, 0.5);
+    z-index: 1;
+    transition: box-shadow 0.5s ease;
+  }
+
+  /* ============================================
+     SPARKLE (4-point star) — orbits on hover
+     ============================================ */
+  .sparkle-orbit {
+    position: absolute;
+    width: 130px;
+    height: 130px;
+    z-index: 4;
+    transition: transform 0.6s ease;
+  }
+
+  .icon-container:hover .sparkle-orbit {
+    transform: rotate(120deg);
+  }
+
+  .sparkle {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    bottom: -10px;
+    right: -10px;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+    transition: filter 0.5s ease;
+  }
+
+  .sparkle svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ============================================
+     ENTRANCE FLASH — initial burst of light
+     ============================================ */
+  .entrance-flash {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(150, 200, 255, 0.6) 0%,
+      rgba(80, 150, 255, 0.3) 30%,
+      rgba(50, 120, 240, 0.1) 60%,
+      transparent 80%
+    );
+    z-index: 1;
+    opacity: 0;
+    transform: scale(0.3);
+    pointer-events: none;
+  }
+
+  /* ============================================
+     RING PULSE — expanding ring on entrance
+     ============================================ */
+  .ring-pulse {
+    position: absolute;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px solid rgba(100, 180, 255, 0.5);
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .ring-pulse.r2 {
+    animation-delay: 0.3s !important;
+  }
+
+  .ring-pulse.r3 {
+    animation-delay: 0.6s !important;
+  }
+
+  /* ============================================
+     FLOATING PARTICLES
+     ============================================ */
+  .particles {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(120, 180, 255, 0.7);
+    opacity: 0;
+  }
+
+  .particle:nth-child(1) { top: 10%; left: 15%; }
+  .particle:nth-child(2) { top: 80%; left: 20%; }
+  .particle:nth-child(3) { top: 20%; right: 10%; }
+  .particle:nth-child(4) { bottom: 10%; right: 20%; }
+  .particle:nth-child(5) { top: 50%; left: 5%; }
+  .particle:nth-child(6) { top: 40%; right: 5%; }
+
+  /* ============================================
+     STATE: ENTRANCE
+     ============================================ */
+  .scene.entrance .burst {
+    opacity: 1;
+    animation: burst-spin 8s linear infinite;
+  }
+
+  .scene.entrance .entrance-flash {
+    animation: flash-boom 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .scene.entrance .ring-pulse {
+    animation: ring-expand 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .scene.entrance .icon-container {
+    animation: icon-arrive 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    box-shadow:
+      0 8px 50px rgba(40, 120, 240, 0.5),
+      0 0 80px rgba(50, 130, 255, 0.25),
+      inset 0 1px 1px rgba(120, 180, 255, 0.2);
+  }
+
+  .scene.entrance .icon-container::after {
+    border-color: rgba(100, 170, 255, 0.4);
+  }
+
+  .scene.entrance .glow {
+    animation: glow-entrance 2.5s ease-in-out infinite;
+  }
+
+  .scene.entrance .sphere-shadow {
+    box-shadow: 0 6px 50px rgba(40, 130, 255, 0.7);
+  }
+
+  .scene.entrance .sparkle {
+    animation: sparkle-entrance 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.9));
+  }
+
+  .scene.entrance .sphere-highlight {
+    animation: highlight-dance 2s ease-in-out infinite;
+  }
+
+  .scene.entrance .particle {
+    animation: particle-float 2.5s ease-in-out infinite;
+  }
+  .scene.entrance .particle:nth-child(1) { animation-delay: 0s; }
+  .scene.entrance .particle:nth-child(2) { animation-delay: 0.4s; }
+  .scene.entrance .particle:nth-child(3) { animation-delay: 0.8s; }
+  .scene.entrance .particle:nth-child(4) { animation-delay: 1.2s; }
+  .scene.entrance .particle:nth-child(5) { animation-delay: 0.2s; }
+  .scene.entrance .particle:nth-child(6) { animation-delay: 0.6s; }
+
+  /* ============================================
+     STATE: STANDBY
+     ============================================ */
+  .scene.standby .burst {
+    opacity: 0;
+  }
+
+  .scene.standby .entrance-flash {
+    opacity: 0;
+  }
+
+  .scene.standby .ring-pulse {
+    opacity: 0;
+  }
+
+  .scene.standby .glow {
+    animation: glow-standby 4s ease-in-out infinite;
+  }
+
+  .scene.standby .sparkle {
+    animation: sparkle-standby 2.8s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7));
+  }
+
+  .scene.standby .sphere-highlight {
+    animation: highlight-breathe 5s ease-in-out infinite;
+  }
+
+  .scene.standby .particle {
+    animation: particle-drift 5s ease-in-out infinite;
+    opacity: 0;
+  }
+  .scene.standby .particle:nth-child(1) { animation-delay: 0s; }
+  .scene.standby .particle:nth-child(2) { animation-delay: 0.8s; }
+  .scene.standby .particle:nth-child(3) { animation-delay: 1.6s; }
+  .scene.standby .particle:nth-child(4) { animation-delay: 2.4s; }
+  .scene.standby .particle:nth-child(5) { animation-delay: 0.4s; }
+  .scene.standby .particle:nth-child(6) { animation-delay: 1.2s; }
+
+  .scene.standby .icon-container {
+    box-shadow:
+      0 8px 32px rgba(30, 90, 200, 0.3),
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 1px rgba(80, 140, 220, 0.15);
+  }
+
+  /* ============================================
+     KEYFRAMES — ENTRANCE
+     ============================================ */
+  @keyframes icon-arrive {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes flash-boom {
+    0% { opacity: 0; transform: scale(0.3); }
+    30% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0; transform: scale(2); }
+  }
+
+  @keyframes ring-expand {
+    0% { opacity: 0.8; transform: scale(0.5); }
+    100% { opacity: 0; transform: scale(3); }
+  }
+
+  @keyframes burst-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes glow-entrance {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.25); }
+  }
+
+  @keyframes sparkle-entrance {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    25% {
+      transform: scale(1.35) rotate(15deg);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(0.7) rotate(-10deg);
+      opacity: 0.5;
+    }
+    75% {
+      transform: scale(1.2) rotate(8deg);
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes highlight-dance {
+    0%, 100% {
+      top: 16px; left: 22px;
+      width: 38px; height: 54px;
+      opacity: 0.9;
+    }
+    33% {
+      top: 25px; left: 50px;
+      width: 32px; height: 46px;
+      opacity: 0.7;
+    }
+    66% {
+      top: 12px; left: 35px;
+      width: 40px; height: 50px;
+      opacity: 1;
+    }
+  }
+
+  @keyframes particle-float {
+    0%, 100% {
+      opacity: 0;
+      transform: translateY(0) scale(0.5);
+    }
+    20% {
+      opacity: 0.8;
+      transform: translateY(-10px) scale(1);
+    }
+    80% {
+      opacity: 0.6;
+      transform: translateY(-30px) scale(0.8);
+    }
+  }
+
+  /* ============================================
+     KEYFRAMES — STANDBY
+     ============================================ */
+  @keyframes glow-standby {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.1); }
+  }
+
+  @keyframes sparkle-standby {
+    0%, 100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 0.9;
+    }
+    30% {
+      transform: scale(1.18) rotate(8deg);
+      opacity: 1;
+    }
+    60% {
+      transform: scale(0.82) rotate(-5deg);
+      opacity: 0.55;
+    }
+  }
+
+  @keyframes highlight-breathe {
+    0%, 100% {
+      top: 16px; left: 22px;
+      width: 38px; height: 54px;
+      opacity: 0.88;
+    }
+    50% {
+      top: 20px; left: 28px;
+      width: 36px; height: 50px;
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes particle-drift {
+    0%, 100% {
+      opacity: 0;
+      transform: translateY(0) scale(0.4);
+    }
+    30% {
+      opacity: 0.4;
+      transform: translateY(-8px) scale(0.7);
+    }
+    70% {
+      opacity: 0.3;
+      transform: translateY(-18px) scale(0.5);
+    }
+  }
+
+  /* ============================================
+     TRANSITION between states
+     ============================================ */
+  .scene {
+    transition: all 0.8s ease;
+  }
+
+  .scene .glow,
+  .scene .sparkle,
+  .scene .sphere-highlight,
+  .scene .icon-container,
+  .scene .burst {
+    transition: all 0.8s ease;
+  }
+
+  /* ============================================
+     STATUS LABEL
+     ============================================ */
+  .status {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #4a7aaa;
+    text-align: center;
+    transition: color 0.4s ease;
+    height: 18px;
+  }
+
+  .scene.entrance ~ .status {
+    color: #6aadee;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOGGLE -->
+  <div class="toggle-wrap">
+    <button class="toggle-btn active" id="btn-entrance" onclick="setState('entrance')">⚡ Entrance</button>
+    <button class="toggle-btn" id="btn-standby" onclick="setState('standby')">💤 Standby</button>
+  </div>
+
+  <!-- SCENE -->
+  <div class="scene entrance" id="scene">
+
+    <!-- Background burst rays -->
+    <div class="burst"></div>
+
+    <!-- Initial flash -->
+    <div class="entrance-flash"></div>
+
+    <!-- Expanding rings -->
+    <div class="ring-pulse r1"></div>
+    <div class="ring-pulse r2"></div>
+    <div class="ring-pulse r3"></div>
+
+    <!-- Floating particles -->
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+
+    <!-- ICON -->
+    <div class="icon-container">
+      <div class="glow"></div>
+
+      <div class="sphere">
+        <div class="sphere-body"></div>
+        <div class="sphere-highlight"></div>
+      </div>
+      <div class="sphere-shadow"></div>
+
+      <!-- Sparkle orbits around sphere on hover -->
+      <div class="sparkle-orbit">
+        <div class="sparkle">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 0 C21 15, 25 19, 40 20 C25 21, 21 25, 20 40 C19 25, 15 21, 0 20 C15 19, 19 15, 20 0Z"
+                  fill="white" fill-opacity="0.95"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status" id="status">✦ entrance mode — ultra destaque</div>
+
+  <script>
+    function setState(state) {
+      const scene = document.getElementById('scene');
+      const status = document.getElementById('status');
+      const btnEntrance = document.getElementById('btn-entrance');
+      const btnStandby = document.getElementById('btn-standby');
+
+      scene.className = 'scene ' + state;
+
+      if (state === 'entrance') {
+        btnEntrance.classList.add('active');
+        btnStandby.classList.remove('active');
+        status.textContent = '✦ entrance mode — ultra destaque';
+
+        // Re-trigger one-shot animations (flash, rings)
+        const flash = scene.querySelector('.entrance-flash');
+        const rings = scene.querySelectorAll('.ring-pulse');
+
+        flash.style.animation = 'none';
+        rings.forEach(r => r.style.animation = 'none');
+
+        requestAnimationFrame(() => {
+          flash.style.animation = '';
+          rings.forEach(r => r.style.animation = '');
+        });
+
+      } else {
+        btnStandby.classList.add('active');
+        btnEntrance.classList.remove('active');
+        status.textContent = '✦ standby mode — idle vivo';
+      }
+    }
+
+    // Auto-transition: entrance → standby after 3.5s on first load
+    // (commented out for manual testing, uncomment for production)
+    // setTimeout(() => setState('standby'), 3500);
+  </script>
+
+</body>
+</html>
