@@ -59,6 +59,10 @@ export type PaginatedSalesParams = {
 export type PaginatedSalesResult = {
   data: PersonalSale[]
   total: number
+  aggregates: {
+    totalGross: number
+    totalCommission: number
+  }
 }
 
 export async function getPersonalSalesPaginated(
@@ -133,9 +137,49 @@ export async function getPersonalSalesPaginated(
 
   if (error) throw error
 
+  // Query agregada para totais (mesmos filtros, sem paginação)
+  let aggregateQuery = supabase
+    .from('personal_sales')
+    .select('gross_value, commission_value')
+    .eq('user_id', user.id)
+
+  // Aplicar os mesmos filtros da query principal
+  if (minDate) {
+    aggregateQuery = aggregateQuery.gte('sale_date', minDate.toISOString().split('T')[0])
+  }
+  if (supplierId && supplierId !== 'all') {
+    aggregateQuery = aggregateQuery.eq('supplier_id', supplierId)
+  }
+  if (clientId && clientId !== 'all') {
+    aggregateQuery = aggregateQuery.eq('client_id', clientId)
+  }
+  if (search && search.trim()) {
+    aggregateQuery = aggregateQuery.ilike('client_name', `%${search.trim()}%`)
+  }
+  if (month) {
+    const [year, mon] = month.split('-').map(Number)
+    const startDate = `${year}-${String(mon).padStart(2, '0')}-01`
+    const endDate = mon === 12
+      ? `${year + 1}-01-01`
+      : `${year}-${String(mon + 1).padStart(2, '0')}-01`
+    aggregateQuery = aggregateQuery.gte('sale_date', startDate).lt('sale_date', endDate)
+  }
+
+  const { data: aggregateData, error: aggregateError } = await aggregateQuery
+
+  if (aggregateError) throw aggregateError
+
+  // Calcular totais
+  const totalGross = aggregateData?.reduce((sum, s) => sum + (s.gross_value || 0), 0) || 0
+  const totalCommission = aggregateData?.reduce((sum, s) => sum + (s.commission_value || 0), 0) || 0
+
   return {
     data: data || [],
     total: count || 0,
+    aggregates: {
+      totalGross,
+      totalCommission,
+    },
   }
 }
 

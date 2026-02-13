@@ -48,6 +48,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
   // Data state
   const [sales, setSales] = useState<PersonalSale[]>(initialData.data)
   const [total, setTotal] = useState(initialData.total)
+  const [aggregates, setAggregates] = useState(initialData.aggregates)
 
   // Filter state
   const [search, setSearch] = useState('')
@@ -79,6 +80,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
         // Atualiza dados E página juntos para sincronizar com a animação
         setSales(result.data)
         setTotal(result.total)
+        setAggregates(result.aggregates)
         if (updatePageTo !== undefined) {
           setPage(updatePageTo)
         }
@@ -130,6 +132,7 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
           })
           setSales(result.data)
           setTotal(result.total)
+          setAggregates(result.aggregates)
         } catch (error) {
           console.error('Error fetching more sales:', error)
         }
@@ -137,13 +140,13 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
     }
   }
 
-  // Stats calculadas a partir do total e dos dados visíveis
+  // Stats calculadas a partir dos agregados (totais reais)
   const stats = useMemo(() => {
-    const faturado = sales.reduce((sum, s) => sum + (s.gross_value || 0), 0)
-    const comissao = sales.reduce((sum, s) => sum + (s.commission_value || 0), 0)
-    const ticket = sales.length > 0 ? faturado / sales.length : 0
+    const faturado = aggregates.totalGross
+    const comissao = aggregates.totalCommission
+    const ticket = total > 0 ? faturado / total : 0
     return { count: total, faturado, comissao, ticket }
-  }, [sales, total])
+  }, [aggregates, total])
 
   const handleSaleDeleted = useCallback((id: string) => {
     setSales(prev => prev.filter(s => s.id !== id))
@@ -248,9 +251,9 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
         <StatCard label="Vendas" value={String(stats.count)} icon={ShoppingBag} subtitle="total" />
-        <StatCard label="Faturado" value={formatCurrency(stats.faturado)} icon={TrendingUp} subtitle="página atual" />
-        <StatCard label="Comissão" value={formatCurrency(stats.comissao)} icon={Target} valueClassName="text-[#409eff]" subtitle="página atual" />
-        <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} subtitle="página atual" />
+        <StatCard label="Faturado" value={formatCurrency(stats.faturado)} icon={TrendingUp} subtitle="total" />
+        <StatCard label="Comissão" value={formatCurrency(stats.comissao)} icon={Target} valueClassName="text-[#409eff]" subtitle="total" />
+        <StatCard label="Ticket Médio" value={formatCurrency(stats.ticket)} icon={DollarSign} subtitle="média geral" />
       </div>
 
       {/* Desktop Filters */}
@@ -380,8 +383,8 @@ export function MinhasVendasClient({ initialData, suppliers, clients, months }: 
       ) : (
         <>
           {/* Desktop: table + pagination */}
-          <div className="hidden md:block">
-            <AnimatedTableContainer transitionKey={page} minHeight={pageSize * 57 + 41}>
+          <div className="hidden md:block space-y-0">
+            <AnimatedTableContainer transitionKey={page}>
               <div className={isPending ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
                 <PersonalSaleTable sales={sales} onSaleDeleted={handleSaleDeleted} />
               </div>
