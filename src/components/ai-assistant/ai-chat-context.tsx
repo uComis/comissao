@@ -229,6 +229,18 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Ctrl+K / Cmd+K to toggle Kai
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   // Load last conversation on first open + refresh sidebar list
   useEffect(() => {
     if (!isOpen || hasLoadedInitial) return

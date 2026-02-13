@@ -8,18 +8,44 @@ import { usePageHeader, usePageHeaderActions } from './page-header-context'
 import { SidebarOpenTrigger } from './sidebar-open-trigger'
 import { useAiChat } from '@/components/ai-assistant'
 import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+const HINT_KEY = 'kai_hint_seen'
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
   const { title, backHref, contentMaxWidth } = usePageHeader()
   const actions = usePageHeaderActions()
-  const { toggle: toggleAiChat } = useAiChat()
+  const { isOpen, toggle: toggleAiChat } = useAiChat()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+  const [showHint, setShowHint] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    if (!localStorage.getItem(HINT_KEY)) {
+      setShowHint(true)
+    }
+  }, [])
+
   const isDark = mounted && resolvedTheme === 'dark'
+
+  const handleKaiClick = useCallback(() => {
+    if (showHint) {
+      setShowHint(false)
+      localStorage.setItem(HINT_KEY, '1')
+    }
+    toggleAiChat()
+  }, [showHint, toggleAiChat])
+
+  // Dismiss hint when Kai opens (e.g. via Ctrl+K)
+  useEffect(() => {
+    if (isOpen && showHint) {
+      setShowHint(false)
+      localStorage.setItem(HINT_KEY, '1')
+    }
+  }, [isOpen, showHint])
 
   return (
     <div className="bg-background border-b h-20 flex items-center">
@@ -52,10 +78,22 @@ export function LayoutPageHeader() {
             </TooltipTrigger>
             <TooltipContent>{isDark ? 'Tema claro' : 'Tema escuro'}</TooltipContent>
           </Tooltip>
-          <Button variant="ghost" size="sm" onClick={toggleAiChat} className="gap-1.5">
-            <Sparkles className="h-4 w-4" />
-            Kai
-          </Button>
+          <Tooltip open={showHint ? true : undefined}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleKaiClick}
+                className={cn('gap-1.5 relative', showHint && 'kai-hint-pulse')}
+              >
+                <Sparkles className="h-4 w-4" />
+                Kai
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {showHint ? 'Conheça o Kai, seu assistente de IA ✨' : 'Abrir Kai (Ctrl+K)'}
+            </TooltipContent>
+          </Tooltip>
           {actions && <div className="ml-2 flex items-center gap-2">{actions}</div>}
         </div>
       </div>
