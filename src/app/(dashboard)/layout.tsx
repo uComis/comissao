@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true'
 
   return (
-    <div className={`${inter.variable} h-full overflow-hidden`}>
+    <div className={`${inter.variable} h-full`}>
     <CurrentUserProvider initialData={currentUser}>
       <AiChatProvider>
         <SidebarProvider defaultOpen={defaultOpen}>
@@ -30,14 +30,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <RoutePageHeader />
               <BillingNotificationProvider>
                 {/* Mobile: unified header (logo on home, title on internal pages) */}
-                <div className="sticky top-0 z-30 w-full bg-background md:hidden">
-                  <BillingBanners />
-                  <Header />
+                <div className="sticky top-0 z-30 w-full bg-background md:hidden pointer-events-none">
+                  <div className="pointer-events-auto">
+                    <BillingBanners />
+                    <Header />
+                  </div>
                 </div>
                 {/* Desktop: billing banners + page header (trigger inside) */}
-                <div className="sticky top-0 z-30 w-full bg-background hidden md:block">
-                  <BillingBanners />
-                  <LayoutPageHeader />
+                <div className="sticky top-0 z-30 w-full bg-background hidden md:block pointer-events-none">
+                  <div className="pointer-events-auto">
+                    <BillingBanners />
+                    <LayoutPageHeader />
+                  </div>
                 </div>
               </BillingNotificationProvider>
               <main className="flex-1 pb-32 md:pb-6">
