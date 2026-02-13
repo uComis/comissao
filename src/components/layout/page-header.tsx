@@ -52,8 +52,9 @@ export function LayoutPageHeader() {
             </TooltipTrigger>
             <TooltipContent>{isDark ? 'Tema claro' : 'Tema escuro'}</TooltipContent>
           </Tooltip>
-          <Button variant="ghost" size="icon" onClick={toggleAiChat}>
+          <Button variant="ghost" size="sm" onClick={toggleAiChat} className="gap-1.5">
             <Sparkles className="h-4 w-4" />
+            Kai
           </Button>
           {actions && <div className="ml-2 flex items-center gap-2">{actions}</div>}
         </div>
