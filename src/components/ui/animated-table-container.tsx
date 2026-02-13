@@ -30,7 +30,6 @@ export function AnimatedTableContainer({
     <motion.div
       animate={{ height }}
       transition={{ duration: 0.2, ease: 'easeInOut' }}
-      style={{ overflow: 'hidden' }}
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
