@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { Send, Bot, X, Loader2, SquarePen, PanelRightClose } from 'lucide-react'
+import { Send, Bot, X, Loader2, SquarePen, PanelRightClose, ShoppingCart, BarChart3, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -155,19 +155,18 @@ export function AiChatWindow() {
     updateToolCallStatus(messageId, 'cancelled')
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return
 
-    if (!input.trim() || isLoading) return
+    try { localStorage.setItem('kai_has_used', '1') } catch {}
 
     const userMessage = {
       id: Date.now().toString(),
       role: 'user' as const,
-      content: input.trim(),
+      content: text.trim(),
     }
 
     addMessage(userMessage)
-    setInput('')
     setIsLoading(true)
     setIsStreaming(false)
     setError(null)
@@ -281,7 +280,7 @@ export function AiChatWindow() {
                 fullText += newText
 
                 for (let i = 0; i < newText.length; i++) {
-                  await new Promise((resolve) => setTimeout(resolve, 8))
+                  await new Promise((resolve) => setTimeout(resolve, 3))
                   displayedText += newText[i]
                   updateMessage(assistantMessageId, displayedText)
                 }
@@ -304,6 +303,14 @@ export function AiChatWindow() {
       setIsLoading(false)
       setIsStreaming(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+    const text = input.trim()
+    setInput('')
+    await sendMessage(text)
   }
 
   const showWelcome = messages.length === 0 && !isLoadingHistory
@@ -365,16 +372,36 @@ export function AiChatWindow() {
 
               {/* Welcome message (static, when no messages) */}
               {showWelcome && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
-                    <Bot className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-muted">
-                    <div className="text-sm prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1">
-                      <ReactMarkdown>{welcomeText}</ReactMarkdown>
+                <>
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
+                      <Bot className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <div className="rounded-lg px-4 py-2 max-w-[80%] bg-muted">
+                      <div className="text-sm prose prose-sm prose-neutral dark:prose-invert max-w-none prose-p:my-1">
+                        <ReactMarkdown>{welcomeText}</ReactMarkdown>
+                      </div>
                     </div>
                   </div>
-                </div>
+                  {/* Suggestion chips */}
+                  <div className="flex flex-wrap gap-2 pl-11">
+                    {[
+                      { icon: ShoppingCart, label: 'Registrar uma venda' },
+                      { icon: BarChart3, label: 'Ver meus resultados' },
+                      { icon: HelpCircle, label: 'Como funciona o uComis?' },
+                    ].map((chip) => (
+                      <button
+                        key={chip.label}
+                        onClick={() => sendMessage(chip.label)}
+                        disabled={isLoading}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-foreground hover:bg-primary/10 transition-colors disabled:opacity-50"
+                      >
+                        <chip.icon className="h-3 w-3 text-primary" />
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
 
               {messages.map((message) => (

@@ -32,6 +32,8 @@ import { Button } from '@/components/ui/button'
 import { Printer } from 'lucide-react'
 import { useSetPageHeader, useHeaderActions } from '@/components/layout'
 import { SkeletonTransition } from '@/components/ui/skeleton-transition'
+import { KaiDashboardCard } from '@/components/ai-assistant/kai-dashboard-card'
+import { KaiDashboardBanner } from '@/components/ai-assistant/kai-dashboard-banner'
 import type { DashboardSummary, DashboardHistory } from '@/types'
 
 function formatCurrency(value: number): string {
@@ -170,6 +172,8 @@ export default function DashboardPage() {
     <SkeletonTransition isLoading={orgLoading} skeleton={skeleton}>
       <div className="space-y-6">
 
+      <KaiDashboardCard />
+
       {/* Gráfico de evolução multi-série */}
       <EvolutionChart data={history?.periods ?? []} loading={historyLoading} />
 
@@ -182,6 +186,8 @@ export default function DashboardPage() {
           loading={historyLoading}
         />
       </div>
+
+      <KaiDashboardBanner />
 
       <Card>
         <CardHeader>

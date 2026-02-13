@@ -160,6 +160,7 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
   const [hasLoadedInitial, setHasLoadedInitial] = useState(false)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
 
+
   const toggle = () => setIsOpen(prev => !prev)
 
   const addMessage = useCallback((msg: Message) => {

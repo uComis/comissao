@@ -11,6 +11,8 @@ import { GoalDialog } from '@/components/dashboard/goal-dialog'
 import { HomeSkeleton } from '@/components/dashboard/home-skeleton'
 import { HomeEmptyState } from '@/components/dashboard/home-empty-state'
 import { SkeletonTransition } from '@/components/ui/skeleton-transition'
+import { KaiDashboardCard } from '@/components/ai-assistant/kai-dashboard-card'
+import { KaiDashboardBanner } from '@/components/ai-assistant/kai-dashboard-banner'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import {
@@ -75,6 +77,8 @@ export default function AnalyticsPage() {
   return (
     <SkeletonTransition isLoading={initialLoading} skeleton={<HomeSkeleton />}>
       <div className="space-y-8">
+
+        <KaiDashboardCard />
 
         <div className="flex items-center justify-end max-w-[600px] lg:max-w-none mx-auto lg:mx-0">
           <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
@@ -176,6 +180,8 @@ export default function AnalyticsPage() {
                 />
           </div>
         </div>
+
+        <KaiDashboardBanner />
 
         {/* Gráficos de Evolução */}
         <div className={cn(
