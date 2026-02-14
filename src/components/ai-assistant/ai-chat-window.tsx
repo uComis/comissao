@@ -433,7 +433,9 @@ export function AiChatWindow() {
       </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-hidden pt-2">
+        <div className="flex-1 overflow-hidden pt-2 relative">
+          {/* Dot pattern decoration — only in messages area */}
+          <div className="absolute inset-0 pointer-events-none select-none bg-[radial-gradient(#00000030_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff38_1px,transparent_1px)] [background-size:16px_16px]" />
           <ScrollArea className="h-full">
             <div className="space-y-4 p-4">
               {/* Loading history skeleton */}
