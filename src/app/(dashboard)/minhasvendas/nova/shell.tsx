@@ -41,6 +41,14 @@ export function NovaVendaShell({ suppliers, productsBySupplier, clients }: Props
           formId="sale-form"
           onSavingChange={setSaving}
         />
+        <div className="hidden md:flex justify-end gap-3 mt-4 pb-6">
+          <Button variant="outline" asChild disabled={saving}>
+            <Link href="/minhasvendas">Cancelar</Link>
+          </Button>
+          <Button type="submit" form="sale-form" disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar Venda'}
+          </Button>
+        </div>
       </div>
     </div>
   )

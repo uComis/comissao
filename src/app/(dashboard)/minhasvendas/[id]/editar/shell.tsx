@@ -42,6 +42,14 @@ export function EditarVendaShell({ suppliers, productsBySupplier, sale, backHref
           formId="sale-form"
           onSavingChange={setSaving}
         />
+        <div className="hidden md:flex justify-end gap-3 mt-4 pb-6">
+          <Button variant="outline" asChild disabled={saving}>
+            <Link href={backHref}>Cancelar</Link>
+          </Button>
+          <Button type="submit" form="sale-form" disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar Alterações'}
+          </Button>
+        </div>
       </div>
     </div>
   )

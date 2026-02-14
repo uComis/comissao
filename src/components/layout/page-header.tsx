@@ -15,7 +15,7 @@ const HINT_KEY = 'kai_hint_seen'
 
 /** Rendered once in the layout — reads title/actions from context */
 export function LayoutPageHeader() {
-  const { title, backHref, contentMaxWidth } = usePageHeader()
+  const { title, backHref, contentMaxWidth, taskMode } = usePageHeader()
   const actions = usePageHeaderActions()
   const { isOpen, toggle: toggleAiChat } = useAiChat()
   const { resolvedTheme, setTheme } = useTheme()
@@ -94,7 +94,7 @@ export function LayoutPageHeader() {
               {showHint ? 'Conheça o Kai, seu assistente de IA ✨' : 'Abrir Kai (Ctrl+K)'}
             </TooltipContent>
           </Tooltip>
-          {actions && <div className="ml-2 flex items-center gap-2">{actions}</div>}
+          {actions && !taskMode && <div className="ml-2 flex items-center gap-2">{actions}</div>}
         </div>
       </div>
       </div>
