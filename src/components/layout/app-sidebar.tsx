@@ -27,7 +27,6 @@ import { useSidebar } from '@/components/ui/sidebar'
 import { isDebugMode } from '@/lib/debug'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
-import { SidebarKaiHistory } from './sidebar-kai-history'
 
 
 type MenuItem = {
@@ -186,9 +185,6 @@ export function AppSidebar() {
           </motion.div>
         ))}
         
-        {/* Kai - Histórico de conversas */}
-        <SidebarSeparator className="my-1 opacity-30" />
-        <SidebarKaiHistory />
 
         {/* Seção Admin - só visível para super admin e quando NÃO está em modo privacidade */}
         {isSuperAdmin && !privacyMode && (

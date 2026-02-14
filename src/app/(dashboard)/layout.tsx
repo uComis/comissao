@@ -4,6 +4,8 @@ import { Header } from '@/components/layout/header'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { AiChatProvider } from '@/components/ai-assistant'
 import { KaiPanel } from '@/components/ai-assistant/kai-panel'
+import { KaiContentPush } from '@/components/ai-assistant/kai-content-push'
+import { KaiPanelOffset } from '@/components/ai-assistant/kai-panel-offset'
 import BillingBanners from '@/components/billing/billing-banners'
 import { BillingNotificationProvider } from '@/components/billing/billing-notification-provider'
 import { CurrentUserProvider } from '@/contexts/current-user-context'
@@ -37,26 +39,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
                     <Header />
                   </div>
                 </div>
-                {/* Desktop: billing banners + page header (trigger inside) */}
-                <div className="sticky top-0 z-30 w-full bg-background hidden md:block pointer-events-none">
-                  <div className="pointer-events-auto">
-                    <BillingBanners />
-                    <LayoutPageHeader />
-                  </div>
-                </div>
+                {/* Desktop: billing banners + page header — KaiPanelOffset measures
+                    height and sets --kai-panel-top so the Kai panel aligns below */}
+                <KaiPanelOffset>
+                  <BillingBanners />
+                  <LayoutPageHeader />
+                </KaiPanelOffset>
               </BillingNotificationProvider>
-              <main className="flex-1 pb-32 md:pb-6">
+              <KaiContentPush className="flex-1 pb-32 md:pb-6">
                 <div className="max-w-[1500px] mx-auto px-6 pt-6">
                   <PageTransition>
                     {children}
                   </PageTransition>
                 </div>
-              </main>
+              </KaiContentPush>
               <BottomNav />
             </PageHeaderProvider>
           </SidebarInset>
-          <KaiPanel />
         </SidebarProvider>
+        <KaiPanel />
       </AiChatProvider>
     </CurrentUserProvider>
     </div>

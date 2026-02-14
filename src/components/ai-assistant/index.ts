@@ -1,5 +1,8 @@
 export { AiChatProvider, useAiChat } from './ai-chat-context'
 export { KaiPanel } from './kai-panel'
+export { KaiContentPush } from './kai-content-push'
+export { KaiPanelOffset } from './kai-panel-offset'
+export { KaiIcon } from './kai-icon'
 export { KaiDashboardCard } from './kai-dashboard-card'
 export { KaiDashboardBanner } from './kai-dashboard-banner'
 export { KaiFormCard } from './kai-form-card'

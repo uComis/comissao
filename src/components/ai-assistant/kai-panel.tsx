@@ -4,19 +4,26 @@ import { useAiChat } from './ai-chat-context'
 import { AiChatWindow } from './ai-chat-window'
 import { cn } from '@/lib/utils'
 
+const PANEL_WIDTHS = { normal: 480, wide: 680 } as const
+
 export function KaiPanel() {
-  const { isOpen, toggle } = useAiChat()
+  const { isOpen, toggle, panelWidth } = useAiChat()
+  const widthPx = PANEL_WIDTHS[panelWidth]
 
   return (
     <>
-      {/* Desktop: flex child that pushes content */}
+      {/* Desktop: fixed right panel — aligned below header via --kai-panel-top */}
       <aside
         className={cn(
-          'hidden md:block flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out',
-          isOpen ? 'w-[480px] border-l' : 'w-0 border-l-0'
+          'hidden md:flex flex-col fixed right-0 bottom-0 z-40 overflow-hidden bg-background transition-[width] duration-300 ease-in-out',
+          isOpen ? 'border-l border-t rounded-tl-xl shadow-lg' : 'w-0'
         )}
+        style={{
+          width: isOpen ? widthPx : 0,
+          top: 'var(--kai-panel-top, 0px)',
+        }}
       >
-        <div className="h-full min-w-[480px]">
+        <div className="h-full flex flex-col" style={{ minWidth: widthPx }}>
           <AiChatWindow />
         </div>
       </aside>

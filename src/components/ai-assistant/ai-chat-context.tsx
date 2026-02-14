@@ -51,9 +51,13 @@ export type ConversationSummary = {
   updated_at: string
 }
 
+export type KaiPanelWidth = 'normal' | 'wide'
+
 type AiChatContextValue = {
   isOpen: boolean
   toggle: () => void
+  panelWidth: KaiPanelWidth
+  setPanelWidth: (width: KaiPanelWidth) => void
   conversationId: string | null
   messages: Message[]
   conversations: ConversationSummary[]
@@ -154,12 +158,25 @@ function parsePersistedMessages(
 
 export function AiChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [panelWidth, setPanelWidthState] = useState<KaiPanelWidth>('normal')
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [hasLoadedInitial, setHasLoadedInitial] = useState(false)
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
 
+  // Restore panel width preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('kai_panel_width') as KaiPanelWidth
+      if (saved === 'normal' || saved === 'wide') setPanelWidthState(saved)
+    } catch {}
+  }, [])
+
+  const setPanelWidth = useCallback((width: KaiPanelWidth) => {
+    setPanelWidthState(width)
+    try { localStorage.setItem('kai_panel_width', width) } catch {}
+  }, [])
 
   const toggle = () => setIsOpen(prev => !prev)
 
@@ -282,6 +299,8 @@ export function AiChatProvider({ children }: { children: ReactNode }) {
       value={{
         isOpen,
         toggle,
+        panelWidth,
+        setPanelWidth,
         conversationId,
         messages,
         conversations,

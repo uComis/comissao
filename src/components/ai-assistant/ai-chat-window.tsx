@@ -3,11 +3,20 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { Send, Bot, X, Loader2, SquarePen, PanelRightClose } from 'lucide-react'
+import { Send, Bot, X, Loader2, SquarePen, Menu, MessageSquare, PanelRight, Square, ChevronDown, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { KaiIcon } from './kai-icon'
 import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
 import { useAiChat } from './ai-chat-context'
@@ -64,13 +73,17 @@ export function AiChatWindow() {
   const {
     conversationId,
     messages,
+    conversations,
     isLoadingHistory,
     toggle,
+    panelWidth,
+    setPanelWidth,
     setConversationId,
     addMessage,
     updateMessage,
     updateToolCallStatus,
     startNewConversation,
+    loadConversation,
     refreshConversations,
   } = useAiChat()
 
@@ -321,45 +334,106 @@ export function AiChatWindow() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b p-4 bg-muted/30">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary shadow-sm">
-            <Bot className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-base">Kai</h3>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Online
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={startNewConversation}
-            className="h-8 w-8 rounded-full hover:bg-muted"
-            title="Nova conversa"
-          >
-            <SquarePen className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggle}
-            className="h-8 w-8 rounded-full hover:bg-muted"
-            title="Fechar"
-          >
-            <PanelRightClose className="h-4 w-4 hidden md:block" />
-            <X className="h-4 w-4 md:hidden" />
-          </Button>
-        </div>
+      {/* Header — Gemini-style: [Menu] [Icon] [Kai] ... [Size ▾] [X] */}
+      <div className="flex items-center gap-2 px-4 py-4">
+        {/* Conversations menu */}
+        <DropdownMenu onOpenChange={(open) => { if (open) refreshConversations() }}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title="Conversas">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64 max-h-80 overflow-y-auto">
+            <DropdownMenuItem onClick={() => { startNewConversation(); if (!open) toggle() }}>
+              <SquarePen className="h-4 w-4 mr-2" />
+              Nova conversa
+            </DropdownMenuItem>
+            {conversations.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  Recentes
+                </DropdownMenuLabel>
+                {conversations.map((conv) => (
+                  <DropdownMenuItem
+                    key={conv.id}
+                    onClick={() => loadConversation(conv.id)}
+                    className={cn(
+                      'cursor-pointer',
+                      conv.id === conversationId && 'bg-accent'
+                    )}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
+                    <span className="truncate text-xs">{conv.title}</span>
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Kai icon + name */}
+        <KaiIcon size={20} />
+        <span className="font-semibold text-sm select-none">Kai</span>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* New conversation — visible button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={startNewConversation}
+          className="h-8 w-8 shrink-0"
+          title="Nova conversa"
+        >
+          <SquarePen className="h-4 w-4" />
+        </Button>
+
+        {/* Panel size toggle (desktop only) */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-0.5 px-1.5 shrink-0 hidden md:inline-flex"
+              title="Tamanho do painel"
+            >
+              {panelWidth === 'wide'
+                ? <Square className="h-4 w-4" />
+                : <PanelRight className="h-4 w-4" />
+              }
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setPanelWidth('normal')} className="cursor-pointer">
+              <PanelRight className="h-4 w-4 mr-2" />
+              Lateral
+              {panelWidth === 'normal' && <Check className="h-4 w-4 ml-auto" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPanelWidth('wide')} className="cursor-pointer">
+              <Square className="h-4 w-4 mr-2" />
+              Larga
+              {panelWidth === 'wide' && <Check className="h-4 w-4 ml-auto" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Close */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          className="h-9 w-9 shrink-0"
+          title="Fechar"
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden pt-2">
           <ScrollArea className="h-full">
             <div className="space-y-4 p-4">
               {/* Loading history skeleton */}
