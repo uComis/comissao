@@ -122,5 +122,66 @@ export function resolveDateRange(
     return monthRange(year, monthOnly)
   }
 
+  // "esse ano" / "este ano" / "ano atual"
+  if (/^(esse?|este)\s+ano$/.test(input) || input === 'ano atual') {
+    return {
+      from: `${ref.getFullYear()}-01-01`,
+      to: fmt(ref),
+    }
+  }
+
+  // "ano passado" / "ano anterior"
+  if (/^ano\s+(passado|anterior)$/.test(input)) {
+    const prevYear = ref.getFullYear() - 1
+    return {
+      from: `${prevYear}-01-01`,
+      to: `${prevYear}-12-31`,
+    }
+  }
+
+  // "último trimestre" / "trimestre passado"
+  if (/^(ultimo\s+trimestre|trimestre\s+passado)$/.test(input)) {
+    const end = new Date(ref)
+    end.setMonth(end.getMonth() - 1)
+    const endRange = monthRange(end.getFullYear(), end.getMonth())
+    const start = new Date(ref)
+    start.setMonth(start.getMonth() - 3)
+    const startRange = monthRange(start.getFullYear(), start.getMonth())
+    return { from: startRange.from, to: endRange.to }
+  }
+
+  // "últimos N meses"
+  const lastNMonthsMatch = input.match(/^ultimos?\s+(\d+)\s+mes(es)?$/)
+  if (lastNMonthsMatch) {
+    const n = parseInt(lastNMonthsMatch[1])
+    const end = new Date(ref)
+    end.setMonth(end.getMonth() - 1)
+    const endRange = monthRange(end.getFullYear(), end.getMonth())
+    const start = new Date(ref)
+    start.setMonth(start.getMonth() - n)
+    const startRange = monthRange(start.getFullYear(), start.getMonth())
+    return { from: startRange.from, to: endRange.to }
+  }
+
+  // "entre <mês> e <mês>" — e.g. "entre janeiro e março", "entre outubro e dezembro"
+  const MONTH_PATTERN = '(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)'
+  const betweenMatch = input.match(
+    new RegExp(`^entre\\s+${MONTH_PATTERN}\\s+e\\s+${MONTH_PATTERN}(?:\\s+(?:de\\s+)?(\\d{4}))?$`)
+  )
+  if (betweenMatch) {
+    const startMonth = MONTH_NAMES[betweenMatch[1]]
+    const endMonth = MONTH_NAMES[betweenMatch[2]]
+    let year = betweenMatch[3] ? parseInt(betweenMatch[3]) : ref.getFullYear()
+    // If end month is in the future, use previous year
+    if (endMonth > ref.getMonth() && !betweenMatch[3]) {
+      year -= 1
+    }
+    // Handle cross-year ranges (e.g. "entre outubro e janeiro")
+    const startYear = startMonth > endMonth ? year - 1 : year
+    const startRange = monthRange(startYear, startMonth)
+    const endRange = monthRange(year, endMonth)
+    return { from: startRange.from, to: endRange.to }
+  }
+
   return null
 }

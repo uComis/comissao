@@ -252,6 +252,15 @@ export async function resolveNames(
     searchInTable(supabase, userId, supplierName, 'personal_suppliers'),
   ])
 
+  // Debug logging for name resolution tracing
+  console.log('[resolveNames] Input:', { clientName, supplierName })
+  console.log('[resolveNames] Results:', {
+    clientInClients: clientInClients.map(m => `${m.name}(${m.score})`),
+    clientInSuppliers: clientInSuppliers.map(m => `${m.name}(${m.score})`),
+    supplierInClients: supplierInClients.map(m => `${m.name}(${m.score})`),
+    supplierInSuppliers: supplierInSuppliers.map(m => `${m.name}(${m.score})`),
+  })
+
   // Detect if swap is needed:
   // clientName only found in suppliers AND supplierName only found in clients
   const clientOnlyInSuppliers =
@@ -276,13 +285,15 @@ export async function resolveNames(
     finalSupplierMatches = supplierInSuppliers
 
     // If primary table has no results, try cross-table as fallback
-    if (finalClientMatches.length === 0 && clientInSuppliers.length === 0) {
-      // Try supplier table as last resort for client name
-      finalClientMatches = supplierInClients
+    // clientName not found in clients → check if it's in suppliers (user may have swapped)
+    if (finalClientMatches.length === 0 && clientInSuppliers.length > 0) {
+      // clientName found in suppliers but not in clients — partial swap hint
+      // Don't auto-swap (only one side swapped), but add suggestive error later
     }
-    if (finalSupplierMatches.length === 0 && supplierInClients.length === 0) {
-      // Try client table as last resort for supplier name
-      finalSupplierMatches = clientInSuppliers
+    // supplierName not found in suppliers → check if it's in clients (user may have swapped)
+    if (finalSupplierMatches.length === 0 && supplierInClients.length > 0) {
+      // supplierName found in clients but not in suppliers — partial swap hint
+      // Don't auto-swap (only one side swapped), but add suggestive error later
     }
 
     clientSearch = clientName
@@ -292,9 +303,17 @@ export async function resolveNames(
   // Resolve client
   const clientResult = pickBest(finalClientMatches)
   if (!clientResult) {
-    errors.push(
-      `O cliente "${clientSearch}" não foi encontrado.`
-    )
+    // Check if clientSearch was found in suppliers (partial swap)
+    if (clientInSuppliers.length > 0) {
+      const bestSupplier = clientInSuppliers[0]
+      errors.push(
+        `O cliente "${clientSearch}" não foi encontrado, mas existe a pasta "${bestSupplier.name}". Você quis dizer a pasta ${bestSupplier.name}? Informe o nome do cliente.`
+      )
+    } else {
+      errors.push(
+        `O cliente "${clientSearch}" não foi encontrado.`
+      )
+    }
   } else if ('candidates' in clientResult) {
     const names = clientResult.candidates.map((c) => `"${c.name}"`).join(', ')
     errors.push(
@@ -307,9 +326,17 @@ export async function resolveNames(
   // Resolve supplier
   const supplierResult = pickBest(finalSupplierMatches)
   if (!supplierResult) {
-    errors.push(
-      `A pasta "${supplierSearch}" não foi encontrada.`
-    )
+    // Check if supplierSearch was found in clients (partial swap)
+    if (supplierInClients.length > 0) {
+      const bestClient = supplierInClients[0]
+      errors.push(
+        `A pasta "${supplierSearch}" não foi encontrada, mas existe o cliente "${bestClient.name}". Você quis dizer o cliente ${bestClient.name}? Informe o nome da pasta.`
+      )
+    } else {
+      errors.push(
+        `A pasta "${supplierSearch}" não foi encontrada.`
+      )
+    }
   } else if ('candidates' in supplierResult) {
     const names = supplierResult.candidates
       .map((s) => `"${s.name}"`)

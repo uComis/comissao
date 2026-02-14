@@ -12,6 +12,7 @@ import {
   fetchClientList,
   fetchReceivablesTotals,
   fetchHistoricalData,
+  fetchRecentSales,
 } from '@/lib/services/ai-context-service'
 import { resolveNames } from '@/lib/services/ai-name-resolver'
 import { searchReceivables } from '@/lib/services/ai-receivables-search'
@@ -46,6 +47,7 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - **get_supplier_list** — pastas/fornecedores com regras de comissão
 - **get_client_list** — clientes cadastrados
 - **get_receivables_summary** — totais de recebíveis (pendentes, vencidos, recebidos)
+- **get_recent_sales** — últimas vendas (opcionalmente filtradas por cliente/pasta)
 - **get_historical_data** — vendas/comissões de um período (requer date_from e date_to no formato YYYY-MM-DD)
 
 **SEMPRE** chame a ferramenta de consulta apropriada antes de responder sobre dados. Nunca invente ou estime valores.
@@ -56,7 +58,10 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - Chame IMEDIATAMENTE quando houver nomes + valor — NÃO peça confirmação, o card de preview É a confirmação
 - NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA")
 - Se faltar apenas o valor, pergunte só o valor
+- Se um nome é claramente uma empresa/marca conhecida como fornecedor (ex: Coca-Cola, Ambev, Nestlé), coloque como supplier_name mesmo que o usuário tenha dito "pro" ou "pra"
+- "a Ambev comprou 3 mil" = venda de 3 mil pela pasta Ambev. Pergunte só o nome do cliente
 - Se o usuário mencionar prazo/parcelas, converta para "dias/dias/dias" em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita
+- SEMPRE chame create_sale com os dados disponíveis. NUNCA gere mensagens de erro sobre nome não encontrado — o backend faz a resolução e retorna erros adequados
 - **SE FALHAR** (cliente/pasta não existe): ofereça criar usando create_client ou create_supplier
 - Após o card: mensagem CURTA ("Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados
 
@@ -68,12 +73,28 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - **SE NÃO ENCONTRAR**: sugira alternativas (outro período, nome diferente)
 
 **create_client** — Cadastrar cliente:
-- Obrigatório: name. Opcional: phone, email, address
+- Obrigatório: name. Opcional: phone, email, notes (observações)
 - Pergunte: "Preciso só do nome ou tem telefone/email?"
 
 **create_supplier** — Cadastrar pasta:
 - Obrigatório: name, commission_rate. Opcional: tax_rate, cnpj
 - Se falta comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
+
+**navigate_to** — Navegar para uma página:
+- Use quando o usuário pedir para ir a uma tela ou quando for útil direcioná-lo
+- Páginas: home, vendas, nova_venda, faturamento, clientes, pastas, planos, conta, configuracoes, ajuda
+
+## Regra de ouro sobre nomes
+- O uComis é pessoal e intransferível. O ÚNICO vendedor é o dono da conta (o usuário).
+- Nomes mencionados pelo usuário referem-se SEMPRE a clientes ou pastas, NUNCA a outros vendedores.
+- "quanto a Ana vendeu?" = "quanto EU vendi para a cliente Ana?"
+- "a Coca vendeu 5 mil" = "eu vendi 5 mil pela pasta Coca-Cola"
+- Na dúvida, interprete como cliente primeiro. Use as ferramentas de consulta para verificar.
+
+## Linguagem
+- NUNCA exiba URLs, paths ou rotas técnicas (como /clientes, /minhasvendas, /faturamento) nas respostas
+- Use apenas nomes amigáveis: "Minhas Vendas", "Meus Clientes", "Minhas Pastas", "Faturamento", "Planos", "Minha Conta", "Configurações"
+- Se precisar direcionar o usuário a uma página, use a ferramenta navigate_to
 
 ## Diretrizes
 - Direto e objetivo, em português brasileiro
@@ -238,6 +259,15 @@ export async function POST(req: NextRequest) {
               case 'get_receivables_summary':
                 toolResult = await fetchReceivablesTotals(supabase, user.id)
                 break
+              case 'get_recent_sales':
+                toolResult = await fetchRecentSales(
+                  supabase,
+                  user.id,
+                  (toolCall.args.client_name as string) || undefined,
+                  (toolCall.args.supplier_name as string) || undefined,
+                  (toolCall.args.limit as number) || 5,
+                )
+                break
               case 'get_historical_data':
                 toolResult = await fetchHistoricalData(
                   supabase,
@@ -273,7 +303,7 @@ export async function POST(req: NextRequest) {
               name: string
               phone?: string
               email?: string
-              address?: string
+              notes?: string
             }
 
             // Check for duplicates before creating
@@ -295,7 +325,7 @@ export async function POST(req: NextRequest) {
                   name: args.name,
                   phone: args.phone || null,
                   email: args.email || null,
-                  address: args.address || null,
+                  notes: args.notes || null,
                   is_active: true,
                 })
                 .select('id, name')
@@ -568,6 +598,36 @@ export async function POST(req: NextRequest) {
                   .then(({ error }) => { if (error) console.error('Save tool call msg error:', error) })
               }
             }
+          } else if (toolCall && toolCall.name === 'navigate_to') {
+            const PAGE_ROUTES: Record<string, { route: string; label: string }> = {
+              home: { route: '/home', label: 'Home' },
+              vendas: { route: '/minhasvendas', label: 'Minhas Vendas' },
+              nova_venda: { route: '/minhasvendas/nova', label: 'Nova Venda' },
+              faturamento: { route: '/faturamento', label: 'Faturamento' },
+              clientes: { route: '/clientes', label: 'Meus Clientes' },
+              pastas: { route: '/fornecedores', label: 'Minhas Pastas' },
+              planos: { route: '/planos', label: 'Planos' },
+              conta: { route: '/minhaconta', label: 'Minha Conta' },
+              configuracoes: { route: '/configuracoes', label: 'Configurações' },
+              ajuda: { route: '/ajuda', label: 'Ajuda' },
+            }
+
+            const page = (toolCall.args.page as string) || 'home'
+            const target = PAGE_ROUTES[page] || PAGE_ROUTES.home
+
+            // Emit navigation event
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ navigate: target.route })}\n\n`
+              )
+            )
+
+            // Emit confirmation text
+            const navMsg = `Abrindo **${target.label}**...`
+            fullAssistantText += navMsg
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text: navMsg })}\n\n`)
+            )
           } else if (toolCall && toolCall.name === 'search_receivables') {
             const args = toolCall.args as {
               client_name?: string

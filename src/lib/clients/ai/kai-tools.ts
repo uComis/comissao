@@ -5,9 +5,9 @@ import type { AiFunctionDeclaration } from './types'
 export const KAI_QUERY_TOOLS: AiFunctionDeclaration[] = [
   {
     name: 'get_dashboard',
-    description: `Busca as métricas do dashboard do mês atual: comissão, vendas, financeiro, rankings. Use quando o usuário perguntar sobre seus números do mês, como está o progresso da meta, quantas vendas fez, etc.
+    description: `Busca as métricas do dashboard do mês atual: comissão, vendas, financeiro, rankings de clientes e pastas. Use quando o usuário perguntar sobre seus números do mês, como está o progresso da meta, quantas vendas fez, qual cliente ou pasta mais vendeu, ranking, etc.
 
-Exemplos: "como estão minhas vendas?", "quanto ganhei esse mês?", "como está minha meta?"`,
+Exemplos: "como estão minhas vendas?", "quanto ganhei esse mês?", "como está minha meta?", "qual minha pasta mais rentável?", "qual cliente mais comprou?"`,
     parameters: {
       type: 'object',
       properties: {},
@@ -44,6 +44,30 @@ Exemplos: "quanto tenho a receber?", "tem alguma parcela atrasada?", "quanto já
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_recent_sales',
+    description: `Busca as vendas mais recentes do usuário, opcionalmente filtradas por cliente ou pasta. Use para responder sobre última(s) venda(s), vendas recentes, ou detalhes de vendas específicas.
+
+Exemplos: "qual foi minha última venda?", "últimas vendas da Coca", "o que vendi pro João recentemente?"`,
+    parameters: {
+      type: 'object',
+      properties: {
+        client_name: {
+          type: 'string',
+          description: 'Filtrar por nome do cliente (pode ser parcial)',
+        },
+        supplier_name: {
+          type: 'string',
+          description: 'Filtrar por nome da pasta/fornecedor (pode ser parcial)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Número de vendas a retornar (padrão: 5, máximo: 20)',
+        },
+      },
       required: [],
     },
   },
@@ -150,7 +174,7 @@ DADOS OBRIGATÓRIOS:
 DADOS OPCIONAIS (pergunte se o usuário quiser informar):
 - phone (telefone)
 - email (e-mail)
-- address (endereço)
+- notes (observações)
 
 NÃO pergunte tudo de uma vez. Pergunte apenas: "Preciso só do nome mesmo ou tem telefone/email?"
 
@@ -170,9 +194,9 @@ DUPLICATAS: o backend verifica automaticamente se já existe um cliente com nome
           type: 'string',
           description: 'E-mail do cliente (opcional)',
         },
-        address: {
+        notes: {
           type: 'string',
-          description: 'Endereço do cliente (opcional)',
+          description: 'Observações sobre o cliente (opcional)',
         },
       },
       required: ['name'],
@@ -289,10 +313,46 @@ REGRAS:
   },
 ]
 
+// Navigation tool — handled inline during stream
+export const KAI_NAV_TOOLS: AiFunctionDeclaration[] = [
+  {
+    name: 'navigate_to',
+    description: `Navega o usuário para uma página do app. Use quando o usuário pedir para ir a uma tela, ou quando quiser direcioná-lo a uma funcionalidade.
+
+Exemplos: "me leva pro faturamento", "abre minhas vendas", "quero ver meus clientes", "vai pra configurações"
+
+IMPORTANTE: Use apenas os valores permitidos no campo "page". Não invente páginas.`,
+    parameters: {
+      type: 'object',
+      properties: {
+        page: {
+          type: 'string',
+          enum: [
+            'home',
+            'vendas',
+            'nova_venda',
+            'faturamento',
+            'clientes',
+            'pastas',
+            'planos',
+            'conta',
+            'configuracoes',
+            'ajuda',
+          ],
+          description:
+            'Página de destino: home, vendas, nova_venda, faturamento, clientes, pastas, planos, conta, configuracoes, ajuda',
+        },
+      },
+      required: ['page'],
+    },
+  },
+]
+
 // Combined for the AI model — includes both query and action tools
 export const KAI_TOOLS: AiFunctionDeclaration[] = [
   ...KAI_QUERY_TOOLS,
   ...KAI_ACTION_TOOLS,
+  ...KAI_NAV_TOOLS,
 ]
 
 // Set of query tool names for quick lookup

@@ -62,6 +62,8 @@ Cada pasta pode ter sua própria regra. Aplicada automaticamente ao registrar ve
 
 # Mapa Completo de Páginas
 
+(Rotas abaixo são para uso interno da ferramenta navigate_to — NUNCA exiba rotas ao usuário. Use apenas os nomes das páginas.)
+
 ## Dashboard
 | Página | Rota | O que faz |
 |--------|------|-----------|
@@ -121,7 +123,7 @@ Após registrar, as parcelas de comissão são geradas automaticamente na tela d
 1. Pode ser feito de duas formas:
    - Em **Meus Clientes** (/clientes) → botão "Novo Cliente"
    - Direto no formulário de venda, ao selecionar cliente → botão "+"
-2. Campos: **Nome** (obrigatório), CPF ou CNPJ (opcional, não ambos), telefone, email, observações
+2. Campos: **Nome** (obrigatório), CPF ou CNPJ (opcional, não ambos), telefone, email, observações (notas)
 3. O formulário segue o padrão SnapForm: campo principal em destaque, detalhes opcionais em seção colapsável
 
 **Atalho**: "cadastra o cliente João Silva"
@@ -237,25 +239,23 @@ Venda de R$ 8.000:
 
 # Planos e Preços
 
-## Plano Free (Grátis)
+## Plano Free (Grátis — R$ 0)
 - 1 pasta de fornecedor
 - 30 vendas por mês
 - 30 dias de histórico de dados
 - Ideal para começar e conhecer a plataforma
 
-## Plano Pro
+## Plano Pro — R$ 29,90/mês ou R$ 299,00/ano (~17% de desconto)
 - 1 pasta de fornecedor
 - Vendas ilimitadas
 - Histórico ilimitado de dados
 - Relatórios avançados
-- Cobrança mensal ou anual (anual tem desconto)
 
-## Plano Ultra
+## Plano Ultra — R$ 49,90/mês ou R$ 499,00/ano (~17% de desconto)
 - **Pastas ilimitadas** — para representante multi-pasta
 - Vendas ilimitadas
 - Histórico ilimitado de dados
 - Relatórios avançados
-- Cobrança mensal ou anual (anual tem desconto)
 
 ## Trial
 - 14 dias grátis com acesso ULTRA completo ao criar a conta
@@ -329,5 +329,5 @@ Não. Após os 14 dias, você continua no plano Free. Todos os dados ficam salvo
 ---
 
 # Quando não consigo resolver
-Se o problema persistir ou for algo fora do meu alcance, oriente o usuário a entrar em contato pelo email **suporte@ucomis.com.br** ou pela página de **Ajuda** (/ajuda).
+Se o problema persistir ou for algo fora do meu alcance, oriente o usuário a entrar em contato pelo email **suporte@ucomis.com.br** ou pela página de **Ajuda**.
 `

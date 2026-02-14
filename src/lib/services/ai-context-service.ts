@@ -299,6 +299,71 @@ export async function fetchHistoricalData(
 }
 
 // =====================================================
+// RECENT SALES (get_recent_sales tool)
+// =====================================================
+
+export async function fetchRecentSales(
+  supabase: SupabaseClient,
+  userId: string,
+  clientName?: string,
+  supplierName?: string,
+  limit: number = 5
+): Promise<string> {
+  const safeLimit = Math.min(Math.max(limit, 1), 20)
+
+  let query = supabase
+    .from('personal_sales')
+    .select('sale_date, gross_value, net_value, commission_value, created_at, personal_clients(id, name), personal_suppliers(id, name)')
+    .eq('user_id', userId)
+    .order('sale_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(safeLimit)
+
+  // If filtering by client, resolve name first
+  if (clientName) {
+    const { resolveName } = await import('./ai-name-resolver')
+    const result = await resolveName(supabase, userId, clientName, 'clients')
+    if (result.error) return JSON.stringify({ error: result.error })
+    if (result.match) {
+      query = query.eq('client_id', result.match.id)
+    }
+  }
+
+  // If filtering by supplier, resolve name first
+  if (supplierName) {
+    const { resolveName } = await import('./ai-name-resolver')
+    const result = await resolveName(supabase, userId, supplierName, 'suppliers')
+    if (result.error) return JSON.stringify({ error: result.error })
+    if (result.match) {
+      query = query.eq('supplier_id', result.match.id)
+    }
+  }
+
+  const { data: sales, error } = await query
+
+  if (error) return JSON.stringify({ error: 'Erro ao buscar vendas recentes.' })
+
+  if (!sales || sales.length === 0) {
+    const filters: string[] = []
+    if (clientName) filters.push(`do cliente "${clientName}"`)
+    if (supplierName) filters.push(`da pasta "${supplierName}"`)
+    const filterText = filters.length > 0 ? ` ${filters.join(' ')}` : ''
+    return JSON.stringify({ message: `Nenhuma venda${filterText} encontrada.` })
+  }
+
+  const lines = sales.map((v: any) => {
+    const client = v.personal_clients?.name || '?'
+    const supplier = v.personal_suppliers?.name || '?'
+    return `- ${formatDate(v.sale_date)}: ${client} (${supplier}) — bruto ${formatCurrency(v.gross_value)}, comissão ${formatCurrency(v.commission_value)}`
+  })
+
+  return JSON.stringify({
+    total: sales.length,
+    sales: lines.join('\n'),
+  })
+}
+
+// =====================================================
 // BACKWARD COMPAT — old getUserContext (deprecated)
 // =====================================================
 
