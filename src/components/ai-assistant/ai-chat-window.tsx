@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-import { Send, Bot, X, Loader2, SquarePen, PanelRightClose, ShoppingCart, BarChart3, HelpCircle } from 'lucide-react'
+import { Send, Bot, X, Loader2, SquarePen, PanelRightClose } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
 import { useAiChat } from './ai-chat-context'
+import { getSuggestionsForRoute } from './kai-suggestions'
 import { SaleConfirmationCard } from './sale-confirmation-card'
 import { PaymentConfirmationCard } from './payment-confirmation-card'
 import type { SalePreview, ReceivablePreviewItem } from './ai-chat-context'
@@ -87,6 +88,9 @@ export function AiChatWindow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   )
+
+  const pathname = usePathname()
+  const suggestions = useMemo(() => getSuggestionsForRoute(pathname), [pathname])
 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -383,21 +387,21 @@ export function AiChatWindow() {
                       </div>
                     </div>
                   </div>
-                  {/* Suggestion chips */}
-                  <div className="flex flex-wrap gap-2 pl-11">
-                    {[
-                      { icon: ShoppingCart, label: 'Registrar uma venda' },
-                      { icon: BarChart3, label: 'Ver meus resultados' },
-                      { icon: HelpCircle, label: 'Como funciona o uComis?' },
-                    ].map((chip) => (
+                  {/* Route-aware suggestions */}
+                  <div
+                    key={pathname}
+                    className="flex flex-col items-center gap-2 pt-4 animate-in fade-in duration-200"
+                  >
+                    {suggestions.map((s, i) => (
                       <button
-                        key={chip.label}
-                        onClick={() => sendMessage(chip.label)}
+                        key={s.label}
+                        onClick={() => sendMessage(s.prompt)}
                         disabled={isLoading}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-foreground hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        style={{ animationDelay: `${i * 75}ms`, animationFillMode: 'both' }}
+                        className="w-full max-w-xs flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm text-foreground hover:bg-primary/10 transition-colors disabled:opacity-50 animate-in fade-in slide-in-from-bottom-1 duration-200"
                       >
-                        <chip.icon className="h-3 w-3 text-primary" />
-                        {chip.label}
+                        <s.icon className="h-4 w-4 shrink-0 text-primary" />
+                        <span>{s.label}</span>
                       </button>
                     ))}
                   </div>
