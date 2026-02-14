@@ -2,14 +2,9 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { DashboardService } from './dashboard-service'
 import type { HomeDashboardData } from './dashboard-service'
 
-type ReceivablesTotals = {
-  totalPending: number
-  totalOverdue: number
-  totalReceived: number
-  countPending: number
-  countOverdue: number
-  countReceived: number
-}
+// =====================================================
+// TYPES
+// =====================================================
 
 type SupplierWithRule = {
   name: string
@@ -17,21 +12,6 @@ type SupplierWithRule = {
   ruleType: 'fixed' | 'tiered' | null
   commissionPercent: number | null
   taxPercent: number | null
-}
-
-type UpcomingReceivable = {
-  clientName: string | null
-  supplierName: string | null
-  dueDate: string
-  expectedCommission: number
-  installmentNumber: number
-  totalInstallments: number
-  status: string
-}
-
-type UserPreferences = {
-  commissionGoal: number
-  userMode: string
 }
 
 type UserProfile = {
@@ -46,158 +26,19 @@ type AuthUser = {
   user_metadata?: { full_name?: string; name?: string }
 }
 
-type UserContext = {
+// Light base context — always loaded (~200 tokens)
+type BaseContext = {
   userName: string
   userEmail: string
-  orgName: string
-  userRole: string
-  dashboard: HomeDashboardData | null
-  receivables: ReceivablesTotals | null
-  suppliers: SupplierWithRule[] | null
-  clientCount: number | null
-  preferences: UserPreferences | null
-  upcomingReceivables: UpcomingReceivable[] | null
+  supplierCount: number
+  clientCount: number
+  saleCount: number
+  today: string
 }
 
-// Wraps a promise with a timeout (ms). Returns null on timeout.
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number
-): Promise<T | null> {
-  return Promise.race([
-    promise,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ])
-}
-
-const DATA_TIMEOUT_MS = 8000
-
-async function fetchReceivablesTotals(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<ReceivablesTotals> {
-  const { data, error } = await supabase
-    .from('v_receivables')
-    .select('status, expected_commission')
-    .eq('user_id', userId)
-
-  if (error) throw error
-
-  const rows = data || []
-  const pending = rows.filter((r) => r.status === 'pending')
-  const overdue = rows.filter((r) => r.status === 'overdue')
-  const received = rows.filter((r) => r.status === 'received')
-
-  return {
-    totalPending: pending.reduce(
-      (sum, r) => sum + (r.expected_commission || 0),
-      0
-    ),
-    totalOverdue: overdue.reduce(
-      (sum, r) => sum + (r.expected_commission || 0),
-      0
-    ),
-    totalReceived: received.reduce(
-      (sum, r) => sum + (r.expected_commission || 0),
-      0
-    ),
-    countPending: pending.length,
-    countOverdue: overdue.length,
-    countReceived: received.length,
-  }
-}
-
-async function fetchSuppliers(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<SupplierWithRule[]> {
-  const { data, error } = await supabase
-    .from('personal_suppliers')
-    .select(
-      'name, cnpj, commission_rules(type, commission_percentage, tax_percentage, is_default)'
-    )
-    .eq('user_id', userId)
-    .order('name')
-
-  if (error) throw error
-
-  return (data || []).map((s: any) => {
-    const rules = s.commission_rules || []
-    const defaultRule = rules.find((r: any) => r.is_default) || rules[0] || null
-    return {
-      name: s.name,
-      cnpj: s.cnpj,
-      ruleType: defaultRule?.type || null,
-      commissionPercent: defaultRule?.commission_percentage || null,
-      taxPercent: defaultRule?.tax_percentage || null,
-    }
-  })
-}
-
-async function fetchClientCount(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<number> {
-  const { count, error } = await supabase
-    .from('personal_clients')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('is_active', true)
-
-  if (error) throw error
-  return count || 0
-}
-
-async function fetchPreferences(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<UserPreferences> {
-  const { data, error } = await supabase
-    .from('user_preferences')
-    .select('commission_goal, user_mode')
-    .eq('user_id', userId)
-    .single()
-
-  if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows
-
-  return {
-    commissionGoal: data?.commission_goal || 0,
-    userMode: data?.user_mode || 'personal',
-  }
-}
-
-async function fetchUpcomingReceivables(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<UpcomingReceivable[]> {
-  const today = new Date().toISOString().split('T')[0]
-  const in14Days = new Date(Date.now() + 14 * 86400000)
-    .toISOString()
-    .split('T')[0]
-
-  const { data, error } = await supabase
-    .from('v_receivables')
-    .select(
-      'client_name, supplier_name, due_date, expected_commission, installment_number, total_installments, status'
-    )
-    .eq('user_id', userId)
-    .in('status', ['pending', 'overdue'])
-    .lte('due_date', in14Days)
-    .order('due_date')
-    .limit(20)
-
-  if (error) throw error
-
-  return (data || []).map((r: any) => ({
-    clientName: r.client_name,
-    supplierName: r.supplier_name,
-    dueDate: r.due_date,
-    expectedCommission: r.expected_commission,
-    installmentNumber: r.installment_number,
-    totalInstallments: r.total_installments,
-    status: r.status,
-  }))
-}
+// =====================================================
+// HELPERS
+// =====================================================
 
 function resolveUserName(
   profile: UserProfile | null,
@@ -209,39 +50,6 @@ function resolveUserName(
     user.user_metadata?.name ||
     'Usuário'
   )
-}
-
-export async function getUserContext(
-  supabase: SupabaseClient,
-  user: AuthUser,
-  profile: UserProfile | null
-): Promise<UserContext> {
-  // Busca dados em paralelo com fallback individual
-  const [dashboard, receivables, suppliers, clientCount, preferences, upcomingReceivables] =
-    (await withTimeout(
-      Promise.all([
-        DashboardService.getHomeAnalytics().catch(() => null),
-        fetchReceivablesTotals(supabase, user.id).catch(() => null),
-        fetchSuppliers(supabase, user.id).catch(() => null),
-        fetchClientCount(supabase, user.id).catch(() => null),
-        fetchPreferences(supabase, user.id).catch(() => null),
-        fetchUpcomingReceivables(supabase, user.id).catch(() => null),
-      ]),
-      DATA_TIMEOUT_MS
-    )) ?? [null, null, null, null, null, null]
-
-  return {
-    userName: resolveUserName(profile, user),
-    userEmail: user.email || '',
-    orgName: profile?.organizations?.name || 'Não informada',
-    userRole: profile?.role || 'Não informado',
-    dashboard,
-    receivables,
-    suppliers,
-    clientCount,
-    preferences,
-    upcomingReceivables,
-  }
 }
 
 function formatCurrency(value: number): string {
@@ -263,113 +71,248 @@ function formatDate(dateStr: string): string {
   return `${d}/${m}/${y}`
 }
 
-export function formatForPrompt(ctx: UserContext): string {
+// =====================================================
+// BASE CONTEXT (always loaded — light)
+// =====================================================
+
+export async function getBaseContext(
+  supabase: SupabaseClient,
+  user: AuthUser,
+  profile: UserProfile | null
+): Promise<BaseContext> {
+  // 3 fast count queries in parallel
+  const [supplierCount, clientCount, saleCount] = await Promise.all([
+    supabase
+      .from('personal_suppliers')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => count || 0),
+    supabase
+      .from('personal_clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .then(({ count }) => count || 0),
+    supabase
+      .from('personal_sales')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .then(({ count }) => count || 0),
+  ])
+
+  return {
+    userName: resolveUserName(profile, user),
+    userEmail: user.email || '',
+    supplierCount,
+    clientCount,
+    saleCount,
+    today: new Date().toISOString().split('T')[0],
+  }
+}
+
+export function formatBaseContext(ctx: BaseContext): string {
+  return `## Usuário
+- Nome: ${ctx.userName}
+- Email: ${ctx.userEmail}
+- Data de hoje: ${ctx.today}
+
+## Resumo
+- ${ctx.supplierCount} pasta(s) cadastrada(s)
+- ${ctx.clientCount} cliente(s) ativo(s)
+- ${ctx.saleCount} venda(s) registrada(s)`
+}
+
+// =====================================================
+// QUERY TOOL HANDLERS (called on demand)
+// =====================================================
+
+export async function fetchDashboardData(): Promise<string> {
+  const d = await DashboardService.getHomeAnalytics()
+  if (!d) return JSON.stringify({ error: 'Não foi possível carregar o dashboard.' })
+
+  const c = d.cards
   const sections: string[] = []
 
-  // Identidade
+  // Comissão
+  const goalLine =
+    c.commission.goal > 0
+      ? `Meta: ${formatCurrency(c.commission.goal)} | Progresso: ${formatPercent(c.commission.progress)} | Falta: ${formatCurrency(c.commission.remaining)}`
+      : 'Sem meta definida'
+  sections.push(`Comissão do Mês: ${formatCurrency(c.commission.current)} (${goalLine})`)
+
+  // Vendas
   sections.push(
-    `## Usuário\n- Nome: ${ctx.userName}\n- Email: ${ctx.userEmail}\n- Organização: ${ctx.orgName}\n- Cargo: ${ctx.userRole}`
+    `Vendas do Mês: ${c.sales_performed.value} vendas (${trendLabel(c.sales_performed.trend)}), valor bruto ${formatCurrency(c.total_sales.value)} (${trendLabel(c.total_sales.trend)})`
   )
 
-  // Preferências
-  if (ctx.preferences) {
-    const goalStr =
-      ctx.preferences.commissionGoal > 0
-        ? formatCurrency(ctx.preferences.commissionGoal)
-        : 'Não definida'
-    sections.push(
-      `## Preferências\n- Meta de comissão mensal: ${goalStr}\n- Modo: ${ctx.preferences.userMode}`
-    )
+  // Financeiro
+  sections.push(
+    `Financeiro: Recebido ${formatCurrency(c.finance.received)} | Pendente ${formatCurrency(c.finance.pending)} | Vencido ${formatCurrency(c.finance.overdue)}`
+  )
+
+  // Rankings
+  if (d.rankings.clients.length > 0) {
+    const lines = d.rankings.clients.map((r, i) => `${i + 1}. ${r.name}: ${formatCurrency(r.value)}`).join(', ')
+    sections.push(`Top Clientes: ${lines}`)
+  }
+  if (d.rankings.folders.length > 0) {
+    const lines = d.rankings.folders.map((r, i) => `${i + 1}. ${r.name}: ${formatCurrency(r.value)}`).join(', ')
+    sections.push(`Top Pastas: ${lines}`)
   }
 
-  const d = ctx.dashboard
-  if (d) {
-    const c = d.cards
+  return JSON.stringify({ dashboard: sections.join('\n') })
+}
 
-    // Comissão
-    const goalLine =
-      c.commission.goal > 0
-        ? `Meta: ${formatCurrency(c.commission.goal)} | Progresso: ${formatPercent(c.commission.progress)} | Falta: ${formatCurrency(c.commission.remaining)}`
-        : 'Sem meta definida'
-    sections.push(
-      `## Comissão do Mês\n- Total: ${formatCurrency(c.commission.current)}\n- ${goalLine}`
+export async function fetchSupplierList(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('personal_suppliers')
+    .select(
+      'name, cnpj, commission_rules(type, commission_percentage, tax_percentage, is_default)'
     )
+    .eq('user_id', userId)
+    .order('name')
 
-    // Vendas
-    sections.push(
-      `## Vendas do Mês\n- Quantidade: ${c.sales_performed.value} (${trendLabel(c.sales_performed.trend)})\n- Valor bruto: ${formatCurrency(c.total_sales.value)} (${trendLabel(c.total_sales.trend)})`
-    )
+  if (error) return JSON.stringify({ error: 'Erro ao buscar pastas.' })
 
-    // Financeiro mensal
-    sections.push(
-      `## Financeiro do Mês\n- Recebido: ${formatCurrency(c.finance.received)}\n- Pendente: ${formatCurrency(c.finance.pending)}\n- Vencido: ${formatCurrency(c.finance.overdue)}`
-    )
-
-    // Rankings
-    if (d.rankings.clients.length > 0) {
-      const lines = d.rankings.clients
-        .map((r, i) => `${i + 1}. ${r.name}: ${formatCurrency(r.value)}`)
-        .join('\n')
-      sections.push(`## Top Clientes (mês)\n${lines}`)
+  const suppliers: SupplierWithRule[] = (data || []).map((s: any) => {
+    const rules = s.commission_rules || []
+    const defaultRule = rules.find((r: any) => r.is_default) || rules[0] || null
+    return {
+      name: s.name,
+      cnpj: s.cnpj,
+      ruleType: defaultRule?.type || null,
+      commissionPercent: defaultRule?.commission_percentage || null,
+      taxPercent: defaultRule?.tax_percentage || null,
     }
+  })
 
-    if (d.rankings.folders.length > 0) {
-      const lines = d.rankings.folders
-        .map((r, i) => `${i + 1}. ${r.name}: ${formatCurrency(r.value)}`)
-        .join('\n')
-      sections.push(`## Top Pastas/Fornecedores (mês)\n${lines}`)
+  if (suppliers.length === 0) {
+    return JSON.stringify({ suppliers: [], message: 'Nenhuma pasta cadastrada.' })
+  }
+
+  const lines = suppliers.map((s) => {
+    let rule = 'sem regra configurada'
+    if (s.ruleType === 'fixed' && s.commissionPercent != null) {
+      rule = `comissão fixa ${s.commissionPercent}%`
+      if (s.taxPercent) rule += `, taxa ${s.taxPercent}%`
+    } else if (s.ruleType === 'tiered') {
+      rule = 'comissão escalonada (por faixa)'
+      if (s.taxPercent) rule += `, taxa ${s.taxPercent}%`
     }
+    return `- ${s.name}${s.cnpj ? ` (CNPJ: ${s.cnpj})` : ''}: ${rule}`
+  })
+
+  return JSON.stringify({ suppliers: lines.join('\n'), total: suppliers.length })
+}
+
+export async function fetchClientList(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('personal_clients')
+    .select('name, phone, email, is_active')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('name')
+    .limit(50)
+
+  if (error) return JSON.stringify({ error: 'Erro ao buscar clientes.' })
+  if (!data || data.length === 0) {
+    return JSON.stringify({ clients: [], message: 'Nenhum cliente cadastrado.' })
   }
 
-  // Recebíveis totais
-  const r = ctx.receivables
-  if (r) {
-    sections.push(
-      `## Recebíveis (geral)\n- Pendentes: ${r.countPending} parcelas — ${formatCurrency(r.totalPending)}\n- Vencidos: ${r.countOverdue} parcelas — ${formatCurrency(r.totalOverdue)}\n- Recebidos: ${r.countReceived} parcelas — ${formatCurrency(r.totalReceived)}`
-    )
+  const lines = data.map((c: any) => {
+    const details = [c.phone, c.email].filter(Boolean).join(', ')
+    return `- ${c.name}${details ? ` (${details})` : ''}`
+  })
+
+  return JSON.stringify({ clients: lines.join('\n'), total: data.length })
+}
+
+export async function fetchReceivablesTotals(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string> {
+  const { data, error } = await supabase
+    .from('v_receivables')
+    .select('status, expected_commission')
+    .eq('user_id', userId)
+
+  if (error) return JSON.stringify({ error: 'Erro ao buscar recebíveis.' })
+
+  const rows = data || []
+  const pending = rows.filter((r) => r.status === 'pending')
+  const overdue = rows.filter((r) => r.status === 'overdue')
+  const received = rows.filter((r) => r.status === 'received')
+
+  const totals = {
+    pendentes: `${pending.length} parcelas — ${formatCurrency(pending.reduce((s, r) => s + (r.expected_commission || 0), 0))}`,
+    vencidos: `${overdue.length} parcelas — ${formatCurrency(overdue.reduce((s, r) => s + (r.expected_commission || 0), 0))}`,
+    recebidos: `${received.length} parcelas — ${formatCurrency(received.reduce((s, r) => s + (r.expected_commission || 0), 0))}`,
   }
 
-  // Pastas (fornecedores) com regras
-  if (ctx.suppliers && ctx.suppliers.length > 0) {
-    const lines = ctx.suppliers.map((s) => {
-      let rule = 'sem regra configurada'
-      if (s.ruleType === 'fixed' && s.commissionPercent != null) {
-        rule = `comissão fixa ${s.commissionPercent}%`
-        if (s.taxPercent) rule += `, taxa ${s.taxPercent}%`
-      } else if (s.ruleType === 'tiered') {
-        rule = 'comissão escalonada (por faixa)'
-        if (s.taxPercent) rule += `, taxa ${s.taxPercent}%`
-      }
-      return `- ${s.name}: ${rule}`
-    })
-    sections.push(
-      `## Pastas do Usuário (${ctx.suppliers.length} total)\n${lines.join('\n')}`
-    )
-  } else if (ctx.suppliers) {
-    sections.push('## Pastas do Usuário\nNenhuma pasta cadastrada.')
+  return JSON.stringify({ receivables_totals: totals })
+}
+
+export async function fetchHistoricalData(
+  supabase: SupabaseClient,
+  userId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<string> {
+  // Fetch sales in period
+  const { data: sales, error: salesError } = await supabase
+    .from('personal_sales')
+    .select('sale_date, gross_value, net_value, commission_value, personal_clients(name), personal_suppliers(name)')
+    .eq('user_id', userId)
+    .gte('sale_date', dateFrom)
+    .lte('sale_date', dateTo)
+    .order('sale_date', { ascending: false })
+    .limit(50)
+
+  if (salesError) return JSON.stringify({ error: 'Erro ao buscar histórico.' })
+
+  if (!sales || sales.length === 0) {
+    return JSON.stringify({ message: `Nenhuma venda encontrada entre ${formatDate(dateFrom)} e ${formatDate(dateTo)}.` })
   }
 
-  // Clientes
-  if (ctx.clientCount != null) {
-    sections.push(`## Clientes\n- Total cadastrados: ${ctx.clientCount}`)
-  }
+  const totalGross = sales.reduce((s, v: any) => s + (v.gross_value || 0), 0)
+  const totalCommission = sales.reduce((s, v: any) => s + (v.commission_value || 0), 0)
 
-  // Recebíveis próximos
-  if (ctx.upcomingReceivables && ctx.upcomingReceivables.length > 0) {
-    const lines = ctx.upcomingReceivables.map((r) => {
-      const statusLabel = r.status === 'overdue' ? 'ATRASADO' : 'a receber'
-      return `- ${formatDate(r.dueDate)} | ${formatCurrency(r.expectedCommission)} | ${r.clientName || '?'} (${r.supplierName || '?'}) | parcela ${r.installmentNumber}/${r.totalInstallments} | ${statusLabel}`
-    })
-    sections.push(
-      `## Próximos Recebíveis (14 dias)\n${lines.join('\n')}`
-    )
-  }
+  const lines = sales.map((v: any) => {
+    const client = v.personal_clients?.name || '?'
+    const supplier = v.personal_suppliers?.name || '?'
+    return `- ${formatDate(v.sale_date)}: ${client} (${supplier}) — bruto ${formatCurrency(v.gross_value)}, comissão ${formatCurrency(v.commission_value)}`
+  })
 
-  if (!d && !r) {
-    sections.push(
-      '## Dados\nNão foi possível carregar dados do usuário neste momento.'
-    )
-  }
+  return JSON.stringify({
+    period: `${formatDate(dateFrom)} a ${formatDate(dateTo)}`,
+    total_sales: sales.length,
+    total_gross: formatCurrency(totalGross),
+    total_commission: formatCurrency(totalCommission),
+    sales: lines.join('\n'),
+  })
+}
 
-  return sections.join('\n\n')
+// =====================================================
+// BACKWARD COMPAT — old getUserContext (deprecated)
+// =====================================================
+
+/** @deprecated Use getBaseContext + query tools instead */
+export async function getUserContext(
+  supabase: SupabaseClient,
+  user: AuthUser,
+  profile: UserProfile | null
+) {
+  const base = await getBaseContext(supabase, user, profile)
+  return base
+}
+
+/** @deprecated Use formatBaseContext instead */
+export function formatForPrompt(ctx: BaseContext): string {
+  return formatBaseContext(ctx)
 }

@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { resolveName, toAccentRegex } from './ai-name-resolver'
 
 // =====================================================
 // TYPES
@@ -24,29 +25,6 @@ export type ReceivableSearchResult = {
   due_date: string
   expected_commission: number
   status: 'pending' | 'overdue'
-}
-
-// =====================================================
-// ACCENT HANDLING (same logic as ai-name-resolver.ts)
-// =====================================================
-
-function removeAccents(str: string): string {
-  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function toAccentRegex(word: string): string {
-  const map: Record<string, string> = {
-    a: '[aáâãàä]', e: '[eéêèë]', i: '[iíîìï]',
-    o: '[oóôõòö]', u: '[uúûùü]', c: '[cç]', n: '[nñ]',
-  }
-  return removeAccents(word.toLowerCase())
-    .split('')
-    .map((ch) => map[ch] || escapeRegex(ch))
-    .join('')
 }
 
 // =====================================================
@@ -77,6 +55,44 @@ export async function searchReceivables(
     saleIdFromNumber = sale.id
   }
 
+  // --- Resolve names using fuzzy matching ---
+  let resolvedClientName: string | null = null
+  let resolvedSupplierName: string | null = null
+
+  if (params.client_name) {
+    const result = await resolveName(supabase, userId, params.client_name, 'clients')
+    if (result.error) {
+      // Try in suppliers table (swap hint)
+      const swapResult = await resolveName(supabase, userId, params.client_name, 'suppliers')
+      if (swapResult.match) {
+        errors.push(
+          `"${params.client_name}" não é um cliente, mas encontrei a pasta **${swapResult.match.name}**. Você quis dizer a pasta?`
+        )
+        return { receivables: [], errors }
+      }
+      errors.push(result.error)
+      return { receivables: [], errors }
+    }
+    resolvedClientName = result.match!.name
+  }
+
+  if (params.supplier_name) {
+    const result = await resolveName(supabase, userId, params.supplier_name, 'suppliers')
+    if (result.error) {
+      // Try in clients table (swap hint)
+      const swapResult = await resolveName(supabase, userId, params.supplier_name, 'clients')
+      if (swapResult.match) {
+        errors.push(
+          `"${params.supplier_name}" não é uma pasta, mas encontrei o cliente **${swapResult.match.name}**. Você quis dizer o cliente?`
+        )
+        return { receivables: [], errors }
+      }
+      errors.push(result.error)
+      return { receivables: [], errors }
+    }
+    resolvedSupplierName = result.match!.name
+  }
+
   // Build query on v_receivables
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = supabase
@@ -97,17 +113,16 @@ export async function searchReceivables(
   }
   // 'all' → no status filter
 
-  // Client name fuzzy filter (accent-insensitive, word-based)
-  if (params.client_name) {
-    const words = params.client_name.trim().split(/\s+/).filter((w) => w.length > 0)
+  // Filter by resolved name (accent-insensitive match on the resolved full name)
+  if (resolvedClientName) {
+    const words = resolvedClientName.trim().split(/\s+/).filter((w) => w.length > 0)
     for (const word of words) {
       query = query.filter('client_name', 'imatch', toAccentRegex(word))
     }
   }
 
-  // Supplier name fuzzy filter
-  if (params.supplier_name) {
-    const words = params.supplier_name.trim().split(/\s+/).filter((w) => w.length > 0)
+  if (resolvedSupplierName) {
+    const words = resolvedSupplierName.trim().split(/\s+/).filter((w) => w.length > 0)
     for (const word of words) {
       query = query.filter('supplier_name', 'imatch', toAccentRegex(word))
     }

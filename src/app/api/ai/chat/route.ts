@@ -1,15 +1,32 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 import { createAiClient } from '@/lib/clients/ai'
+import type { AiMessage, AiStreamChunk } from '@/lib/clients/ai/types'
 import { KAI_KNOWLEDGE } from '@/lib/clients/ai/kai-knowledge'
-import { KAI_TOOLS } from '@/lib/clients/ai/kai-tools'
-import { getUserContext, formatForPrompt } from '@/lib/services/ai-context-service'
+import { KAI_TOOLS, QUERY_TOOL_NAMES } from '@/lib/clients/ai/kai-tools'
+import {
+  getBaseContext,
+  formatBaseContext,
+  fetchDashboardData,
+  fetchSupplierList,
+  fetchClientList,
+  fetchReceivablesTotals,
+  fetchHistoricalData,
+} from '@/lib/services/ai-context-service'
 import { resolveNames } from '@/lib/services/ai-name-resolver'
 import { searchReceivables } from '@/lib/services/ai-receivables-search'
+import { checkDuplicate } from '@/lib/services/ai-duplicate-checker'
 import { commissionEngine } from '@/lib/commission-engine'
 
 export const runtime = 'edge'
 export const maxDuration = 30
+
+// Max query tool rounds before giving up (prevents infinite loops)
+const MAX_QUERY_TURNS = 3
+
+// =====================================================
+// SYSTEM PROMPT
+// =====================================================
 
 const SYSTEM_PROMPT_BASE = `Você é Kai, assistente inteligente do uComis.
 
@@ -20,64 +37,63 @@ Suas funções:
 - Explicar regras de comissão configuradas
 - Guiar o usuário sobre como usar qualquer funcionalidade do sistema
 - Explicar conceitos do domínio (pasta, representada, recebível, etc.)
-- **Registrar vendas** quando o usuário pedir (usar a função create_sale)
-- **Registrar recebimentos** quando o usuário mencionar que recebeu (usar a função search_receivables)
+- Registrar vendas, cadastrar clientes/pastas, e registrar recebimentos
 
-Diretrizes:
-- Seja direto e objetivo nas respostas
-- Use português brasileiro
-- Formate valores como moeda brasileira (R$)
-- Quando tiver dados reais, use-os para responder com precisão
-- Quando NÃO tiver dados sobre algo específico, diga que não tem essa informação disponível
-- Se o usuário perguntar como fazer algo, guie passo a passo usando o conhecimento do sistema
-- Se o usuário perguntar por que uma comissão tem determinado valor, explique baseando-se na regra da pasta
-- Chame o usuário pelo nome (está nos dados abaixo)
-- Nunca invente dados — use apenas o que está nas seções abaixo
+## Como acessar dados do usuário
 
-Ações disponíveis:
+Você tem ferramentas de consulta para buscar dados reais sob demanda:
+- **get_dashboard** — métricas do mês (comissão, vendas, financeiro, rankings)
+- **get_supplier_list** — pastas/fornecedores com regras de comissão
+- **get_client_list** — clientes cadastrados
+- **get_receivables_summary** — totais de recebíveis (pendentes, vencidos, recebidos)
+- **get_historical_data** — vendas/comissões de um período (requer date_from e date_to no formato YYYY-MM-DD)
 
-**Cadastrar cliente (create_client):**
-- Quando o usuário pedir: "Cadastra o cliente João Silva"
-- OU quando create_sale falhar porque o cliente não existe
-- Dados obrigatórios: name
-- Dados opcionais: phone, email, address
+**SEMPRE** chame a ferramenta de consulta apropriada antes de responder sobre dados. Nunca invente ou estime valores.
+
+## Ações
+
+**create_sale** — Registrar venda:
+- Chame IMEDIATAMENTE quando houver nomes + valor — NÃO peça confirmação, o card de preview É a confirmação
+- NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA")
+- Se faltar apenas o valor, pergunte só o valor
+- Se o usuário mencionar prazo/parcelas, converta para "dias/dias/dias" em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita
+- **SE FALHAR** (cliente/pasta não existe): ofereça criar usando create_client ou create_supplier
+- Após o card: mensagem CURTA ("Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados
+
+**search_receivables** — Registrar recebimento:
+- Chame IMEDIATAMENTE quando o usuário mencionar que recebeu ou que um cliente pagou
+- Converta períodos para datas YYYY-MM-DD (a data de hoje está nos dados abaixo)
+- Se o usuário não especificar status, omita (busca pendentes + atrasadas por padrão)
+- Após o card: mensagem CURTA
+- **SE NÃO ENCONTRAR**: sugira alternativas (outro período, nome diferente)
+
+**create_client** — Cadastrar cliente:
+- Obrigatório: name. Opcional: phone, email, address
 - Pergunte: "Preciso só do nome ou tem telefone/email?"
 
-**Cadastrar pasta (create_supplier):**
-- Quando o usuário pedir: "Cadastra a pasta Ambev"
-- OU quando create_sale falhar porque a pasta não existe
-- Dados obrigatórios: name, commission_rate
-- Dados opcionais: tax_rate, cnpj
-- Se não tiver comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
+**create_supplier** — Cadastrar pasta:
+- Obrigatório: name, commission_rate. Opcional: tax_rate, cnpj
+- Se falta comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
 
-**Registrar venda (create_sale):**
-- Quando o usuário mencionar uma venda com nomes + valor, chame create_sale IMEDIATAMENTE.
-- NÃO peça confirmação antes — o card de preview que aparece É a confirmação.
-- NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA").
-- Se faltar apenas o valor bruto, pergunte só o valor.
-- Use exatamente o texto que o usuário informou nos campos de nome.
-- Se o usuário mencionar prazo, parcelas ou condição de pagamento, converta para o formato "dias/dias/dias" e passe em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita.
-- **SE CREATE_SALE FALHAR** porque cliente ou pasta não existe: ofereça criar primeiro usando create_client ou create_supplier, depois registre a venda.
-- Após o card de preview aparecer, escreva uma mensagem CURTA e amigável (ex: "Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados que já estão no card.
+## Diretrizes
+- Direto e objetivo, em português brasileiro
+- Formate valores como R$
+- Use dados reais das ferramentas — nunca invente
+- Chame o usuário pelo nome (está nos dados abaixo)
+- Guie passo a passo quando pedirem como fazer algo
+- Se o usuário perguntar por que uma comissão tem determinado valor, explique baseando-se na regra da pasta
 
-**Registrar recebimento (search_receivables):**
-- Quando o usuário mencionar que recebeu, que um cliente pagou, ou quiser marcar parcelas como recebidas
-- Chame search_receivables IMEDIATAMENTE com os dados que o usuário deu — NÃO peça confirmação
-- O card de confirmação que aparece É a confirmação
-- Converta períodos para datas YYYY-MM-DD (a data de hoje está nos dados abaixo)
-- Se o usuário não especificar status, omita o parâmetro (busca pendentes + atrasadas por padrão)
-- Após o card aparecer, escreva uma mensagem CURTA (ex: "Encontrei essas parcelas! Confirma no card abaixo.")
-- **SE NÃO ENCONTRAR**: informe o usuário e sugira alternativas (outro período, nome diferente)
-
-Formatação:
-- Use **negrito** para destacar termos importantes, nomes de telas e valores
-- Use listas numeradas para passo a passo
-- Use bullet points para listar opções ou itens
-- Use emojis para dar contexto visual aos conceitos:
+## Formatação
+- **Negrito** para termos importantes, nomes de telas e valores
+- Listas numeradas para passo a passo, bullet points para opções
+- Emojis com moderação (1-2 por parágrafo, nos pontos-chave):
   📁 Pasta/Fornecedor | 👤 Cliente | 🛒 Venda | 💰 Comissão
   💵 Recebível/Faturamento | 🎯 Meta | ⚠️ Atenção | 💡 Dica
-  📋 Passo a passo | ✅ Concluído | 📊 Relatório/Faixa
-- Não exagere nos emojis — use 1-2 por parágrafo, nos pontos-chave`
+  📋 Passo a passo | ✅ Concluído | 📊 Relatório/Faixa`
+
+// =====================================================
+// ROUTE HANDLER
+// =====================================================
 
 export async function POST(req: NextRequest) {
   try {
@@ -132,58 +148,126 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Real data context
-    const context = await getUserContext(supabase, user, profile)
+    // 4. Light base context (~200 tokens: name, email, counts, date)
+    const baseCtx = await getBaseContext(supabase, user, profile)
+    const dataBlock = formatBaseContext(baseCtx)
 
-    // 5. System prompt: identity + knowledge + real data
-    const dataBlock = formatForPrompt(context)
-    const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${KAI_KNOWLEDGE}\n\n# Dados Reais do Usuário\n\n${dataBlock}`
+    // 5. System prompt: identity + knowledge + base context
+    const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${KAI_KNOWLEDGE}\n\n# Dados do Usuário\n\n${dataBlock}`
 
-    // 6. Stream via AI client
+    // 6. AI client
     const client = createAiClient({
       provider: 'gemini',
       apiKey: process.env.GEMINI_API_KEY!,
       defaultModel: 'gemini-2.5-flash',
     })
 
-    const aiStream = await client.chat({
-      model: 'gemini-2.5-flash',
-      systemPrompt,
-      messages,
-      tools: KAI_TOOLS,
-    })
+    // 7. Build AI message history from client messages
+    const aiMessages: AiMessage[] = messages.map((m: { role: string; content: string }) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }))
 
-    // Convert AiStreamChunk → SSE text
+    // 8. Stream via SSE
     const encoder = new TextEncoder()
     const finalConvId = conversationId
     const sseStream = new ReadableStream({
       async start(controller) {
         try {
-          // First SSE event: conversation_id so client can track it
+          // Emit conversation_id so the client can track it
           if (finalConvId) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ conversation_id: finalConvId })}\n\n`)
             )
           }
 
-          const reader = aiStream.getReader()
-          let fullAssistantText = ''
-          let toolCall: { name: string; args: Record<string, unknown> } | null = null
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            if (value.type === 'text') {
-              fullAssistantText += value.text
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
-              )
-            } else if (value.type === 'tool_call') {
-              toolCall = value.toolCall
+          // Helper: read an AI stream, forwarding text chunks via SSE
+          const readAndStream = async (
+            stream: ReadableStream<AiStreamChunk>
+          ): Promise<{
+            text: string
+            toolCall: { name: string; args: Record<string, unknown> } | null
+          }> => {
+            const reader = stream.getReader()
+            let text = ''
+            let tc: { name: string; args: Record<string, unknown> } | null = null
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              if (value.type === 'text') {
+                text += value.text
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text: value.text })}\n\n`)
+                )
+              } else if (value.type === 'tool_call') {
+                tc = value.toolCall
+              }
             }
+            return { text, toolCall: tc }
           }
 
-          // Process tool calls after stream completes
+          // --- First AI call ---
+          let aiStream = await client.chat({
+            model: 'gemini-2.5-flash',
+            systemPrompt,
+            messages: aiMessages,
+            tools: KAI_TOOLS,
+          })
+
+          let { text: fullAssistantText, toolCall } = await readAndStream(aiStream)
+
+          // --- Multi-turn query tool loop ---
+          // When the model calls a query tool, execute it and feed the result back.
+          // The model then generates a natural-language answer using the data.
+          let queryRounds = 0
+          while (toolCall && QUERY_TOOL_NAMES.has(toolCall.name) && queryRounds < MAX_QUERY_TURNS) {
+            queryRounds++
+
+            // Execute query tool
+            let toolResult: string
+            switch (toolCall.name) {
+              case 'get_dashboard':
+                toolResult = await fetchDashboardData()
+                break
+              case 'get_supplier_list':
+                toolResult = await fetchSupplierList(supabase, user.id)
+                break
+              case 'get_client_list':
+                toolResult = await fetchClientList(supabase, user.id)
+                break
+              case 'get_receivables_summary':
+                toolResult = await fetchReceivablesTotals(supabase, user.id)
+                break
+              case 'get_historical_data':
+                toolResult = await fetchHistoricalData(
+                  supabase,
+                  user.id,
+                  (toolCall.args.date_from as string) || '',
+                  (toolCall.args.date_to as string) || '',
+                )
+                break
+              default:
+                toolResult = JSON.stringify({ error: `Tool desconhecida: ${toolCall.name}` })
+            }
+
+            // Append tool interaction to message history for next call
+            aiMessages.push({ role: 'tool_call', name: toolCall.name, args: toolCall.args })
+            aiMessages.push({ role: 'tool_response', name: toolCall.name, content: toolResult })
+
+            // Next AI call — model now has the data and can answer
+            aiStream = await client.chat({
+              model: 'gemini-2.5-flash',
+              systemPrompt,
+              messages: aiMessages,
+              tools: KAI_TOOLS,
+            })
+
+            const result = await readAndStream(aiStream)
+            fullAssistantText += result.text
+            toolCall = result.toolCall
+          }
+
+          // --- Action tool handlers (side effects) ---
           if (toolCall && toolCall.name === 'create_client') {
             const args = toolCall.args as {
               name: string
@@ -192,32 +276,44 @@ export async function POST(req: NextRequest) {
               address?: string
             }
 
-            // Create client
-            const { data: newClient, error: clientError } = await supabase
-              .from('personal_clients')
-              .insert({
-                user_id: user.id,
-                name: args.name,
-                phone: args.phone || null,
-                email: args.email || null,
-                address: args.address || null,
-                is_active: true,
-              })
-              .select('id, name')
-              .single()
+            // Check for duplicates before creating
+            const dupCheck = await checkDuplicate(supabase, user.id, args.name, 'clients')
 
-            if (clientError || !newClient) {
-              const errorMsg = `❌ Erro ao criar cliente: ${clientError?.message || 'Erro desconhecido'}`
-              fullAssistantText += errorMsg
+            if (dupCheck.hasDuplicate && dupCheck.match && dupCheck.match.score < 100) {
+              // Similar name exists (score 70-99) — ask user
+              const msg = `⚠️ Já existe um cliente chamado **${dupCheck.match.name}**. Deseja criar "${args.name}" mesmo assim?`
+              fullAssistantText += msg
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ text: msg })}\n\n`)
               )
             } else {
-              const successMsg = `✅ Cliente **${newClient.name}** cadastrado com sucesso!`
-              fullAssistantText += successMsg
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
-              )
+              // No duplicate or exact same name (user knows it exists) — proceed
+              const { data: newClient, error: clientError } = await supabase
+                .from('personal_clients')
+                .insert({
+                  user_id: user.id,
+                  name: args.name,
+                  phone: args.phone || null,
+                  email: args.email || null,
+                  address: args.address || null,
+                  is_active: true,
+                })
+                .select('id, name')
+                .single()
+
+              if (clientError || !newClient) {
+                const errorMsg = `❌ Erro ao criar cliente: ${clientError?.message || 'Erro desconhecido'}`
+                fullAssistantText += errorMsg
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+                )
+              } else {
+                const successMsg = `✅ Cliente **${newClient.name}** cadastrado com sucesso!`
+                fullAssistantText += successMsg
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
+                )
+              }
             }
           } else if (toolCall && toolCall.name === 'create_supplier') {
             const args = toolCall.args as {
@@ -227,31 +323,43 @@ export async function POST(req: NextRequest) {
               cnpj?: string
             }
 
-            // Create supplier
-            const { data: newSupplier, error: supplierError } = await supabase
-              .from('personal_suppliers')
-              .insert({
-                user_id: user.id,
-                name: args.name,
-                default_commission_rate: args.commission_rate,
-                default_tax_rate: args.tax_rate || 0,
-                cnpj: args.cnpj || null,
-              })
-              .select('id, name')
-              .single()
+            // Check for duplicates before creating
+            const dupCheck = await checkDuplicate(supabase, user.id, args.name, 'suppliers')
 
-            if (supplierError || !newSupplier) {
-              const errorMsg = `❌ Erro ao criar pasta: ${supplierError?.message || 'Erro desconhecido'}`
-              fullAssistantText += errorMsg
+            if (dupCheck.hasDuplicate && dupCheck.match && dupCheck.match.score < 100) {
+              // Similar name exists (score 70-99) — ask user
+              const msg = `⚠️ Já existe uma pasta chamada **${dupCheck.match.name}**. Deseja criar "${args.name}" mesmo assim?`
+              fullAssistantText += msg
               controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ text: msg })}\n\n`)
               )
             } else {
-              const successMsg = `✅ Pasta **${newSupplier.name}** cadastrada com sucesso! (Comissão padrão: ${args.commission_rate}%)`
-              fullAssistantText += successMsg
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
-              )
+              // No duplicate or exact same name — proceed
+              const { data: newSupplier, error: supplierError } = await supabase
+                .from('personal_suppliers')
+                .insert({
+                  user_id: user.id,
+                  name: args.name,
+                  default_commission_rate: args.commission_rate,
+                  default_tax_rate: args.tax_rate || 0,
+                  cnpj: args.cnpj || null,
+                })
+                .select('id, name')
+                .single()
+
+              if (supplierError || !newSupplier) {
+                const errorMsg = `❌ Erro ao criar pasta: ${supplierError?.message || 'Erro desconhecido'}`
+                fullAssistantText += errorMsg
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text: errorMsg })}\n\n`)
+                )
+              } else {
+                const successMsg = `✅ Pasta **${newSupplier.name}** cadastrada com sucesso! (Comissão padrão: ${args.commission_rate}%)`
+                fullAssistantText += successMsg
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ text: successMsg })}\n\n`)
+                )
+              }
             }
           } else if (toolCall && toolCall.name === 'create_sale') {
             const args = toolCall.args as {
@@ -518,20 +626,12 @@ export async function POST(req: NextRequest) {
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
 
-          // Save assistant text message (if any, and not already saved as tool call)
-          if (finalConvId && fullAssistantText && !toolCall) {
+          // Save assistant text message (if any)
+          if (finalConvId && fullAssistantText) {
             supabase
               .from('ai_messages')
               .insert({ conversation_id: finalConvId, role: 'assistant', content: fullAssistantText })
               .then(({ error }) => { if (error) console.error('Save assistant msg error:', error) })
-          }
-
-          // Save text that came before a tool call (rare but possible)
-          if (finalConvId && fullAssistantText && toolCall) {
-            supabase
-              .from('ai_messages')
-              .insert({ conversation_id: finalConvId, role: 'assistant', content: fullAssistantText })
-              .then(({ error }) => { if (error) console.error('Save pre-tool text error:', error) })
           }
 
           if (finalConvId) {

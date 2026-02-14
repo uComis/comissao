@@ -1,5 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 
+// =====================================================
+// TYPES
+// =====================================================
+
 type ResolvedClient = {
   id: string
   name: string
@@ -17,6 +21,12 @@ export type NameResolutionResult = {
   errors: string[]
 }
 
+export type SingleNameResult = {
+  match: { id: string; name: string; commission_rule_id?: string | null } | null
+  candidates: { id: string; name: string; score: number }[] | null
+  error: string | null
+}
+
 type TableMatch = {
   id: string
   name: string
@@ -25,18 +35,20 @@ type TableMatch = {
   table: 'clients' | 'suppliers'
 }
 
-// --- Accent handling ---
+// =====================================================
+// ACCENT HANDLING (exported for reuse)
+// =====================================================
 
-function removeAccents(str: string): string {
+export function removeAccents(str: string): string {
   return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
-function escapeRegex(str: string): string {
+export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /** Convert a word to a POSIX regex that matches with or without accents */
-function toAccentRegex(word: string): string {
+export function toAccentRegex(word: string): string {
   const map: Record<string, string> = {
     a: '[aáâãàä]', e: '[eéêèë]', i: '[iíîìï]',
     o: '[oóôõòö]', u: '[uúûùü]', c: '[cç]', n: '[nñ]',
@@ -47,9 +59,11 @@ function toAccentRegex(word: string): string {
     .join('')
 }
 
-// --- Scoring ---
+// =====================================================
+// SCORING (exported for reuse)
+// =====================================================
 
-function scoreMatch(search: string, candidate: string): number {
+export function scoreMatch(search: string, candidate: string): number {
   const s = removeAccents(search).toLowerCase().trim()
   const c = removeAccents(candidate).toLowerCase().trim()
 
@@ -79,7 +93,9 @@ function scoreMatch(search: string, candidate: string): number {
   return 0
 }
 
-// --- Word-based search ---
+// =====================================================
+// WORD-BASED SEARCH
+// =====================================================
 
 async function searchInTable(
   supabase: SupabaseClient,
@@ -127,7 +143,9 @@ async function searchInTable(
     .sort((a, b) => b.score - a.score)
 }
 
-// --- Pick best match from results ---
+// =====================================================
+// PICK BEST MATCH
+// =====================================================
 
 function pickBest(
   matches: TableMatch[]
@@ -150,8 +168,67 @@ function pickBest(
   return { candidates: matches.slice(0, 5) }
 }
 
-// --- Main resolver ---
+// =====================================================
+// ATOMIC SINGLE-NAME RESOLVER
+// =====================================================
 
+/**
+ * Resolve a single name term against one table.
+ * Returns match, candidates (if ambiguous), or error.
+ */
+export async function resolveName(
+  supabase: SupabaseClient,
+  userId: string,
+  term: string,
+  table: 'clients' | 'suppliers'
+): Promise<SingleNameResult> {
+  const dbTable = table === 'clients' ? 'personal_clients' : 'personal_suppliers'
+  const matches = await searchInTable(supabase, userId, term, dbTable)
+
+  const result = pickBest(matches)
+
+  if (!result) {
+    const label = table === 'clients' ? 'cliente' : 'pasta'
+    return {
+      match: null,
+      candidates: null,
+      error: `${label === 'cliente' ? 'O' : 'A'} ${label} "${term}" não foi encontrad${label === 'cliente' ? 'o' : 'a'}.`,
+    }
+  }
+
+  if ('candidates' in result) {
+    const label = table === 'clients' ? 'clientes' : 'pastas'
+    const names = result.candidates.map((c) => `"${c.name}"`).join(', ')
+    return {
+      match: null,
+      candidates: result.candidates.map((c) => ({
+        id: c.id,
+        name: c.name,
+        score: c.score,
+      })),
+      error: `Encontrei ${result.candidates.length} ${label} com nome parecido com "${term}": ${names}. Qual del${table === 'clients' ? 'es' : 'as'}?`,
+    }
+  }
+
+  return {
+    match: {
+      id: result.match.id,
+      name: result.match.name,
+      commission_rule_id: result.match.commission_rule_id,
+    },
+    candidates: null,
+    error: null,
+  }
+}
+
+// =====================================================
+// DUAL-NAME RESOLVER (used by create_sale)
+// =====================================================
+
+/**
+ * Resolve client + supplier names with swap detection.
+ * 100% backward-compatible with existing create_sale flow.
+ */
 export async function resolveNames(
   supabase: SupabaseClient,
   userId: string,

@@ -2,10 +2,10 @@
 
 export type AiRole = 'user' | 'assistant'
 
-export type AiMessage = {
-  role: AiRole
-  content: string
-}
+export type AiMessage =
+  | { role: 'user' | 'assistant'; content: string }
+  | { role: 'tool_call'; name: string; args: Record<string, unknown> }
+  | { role: 'tool_response'; name: string; content: string }
 
 export type AiToolCall = {
   name: string

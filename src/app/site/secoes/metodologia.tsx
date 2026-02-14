@@ -1,21 +1,21 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Zap, Cog, Lock } from 'lucide-react';
+import { Zap, Calculator, CalendarCheck } from 'lucide-react';
 
 const PILARES = [
   {
     icon: Zap,
-    titulo: 'Captura Instantânea',
-    descricao: 'Registre a venda no calor do fechamento.',
+    titulo: 'Registre a venda',
+    descricao: 'Poucos campos, sem burocracia. O essencial para o cálculo.',
   },
   {
-    icon: Cog,
-    titulo: 'Verificação Contínua',
-    descricao: 'O AuditCore™ confere os valores na hora.',
+    icon: Calculator,
+    titulo: 'Comissão calculada na hora',
+    descricao: 'O sistema aplica as regras do fornecedor e calcula automaticamente.',
   },
   {
-    icon: Lock,
-    titulo: 'Trava de Segurança (Truth-Lock)',
-    descricao: 'Sua comissão protegida e indiscutível.',
+    icon: CalendarCheck,
+    titulo: 'Parcelas geradas',
+    descricao: 'Saiba quanto e quando vai receber, parcela por parcela.',
   },
 ];
 
@@ -27,13 +27,14 @@ export function Metodologia() {
           {/* Título */}
           <div className="text-center space-y-4">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight tracking-wide">
-              Conheça a{' '}
+              Como o{' '}
               <span className="bg-gradient-to-r from-landing-gradient-start via-landing-gradient-middle to-landing-gradient-end bg-clip-text text-transparent">
-                Auditoria Cinética™
+                uComis
               </span>
+              {' '}funciona
             </h2>
             <p className="text-xl text-muted-foreground">
-              O motor que nunca dorme.
+              Três passos. Zero planilha.
             </p>
           </div>
 

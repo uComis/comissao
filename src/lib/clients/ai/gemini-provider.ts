@@ -1,7 +1,33 @@
 // Provider Gemini (não depende do domínio do projeto)
 
 import { GoogleGenAI } from '@google/genai'
-import type { AiClient, AiChatOptions, AiStreamChunk } from './types'
+import type { AiClient, AiChatOptions, AiStreamChunk, AiMessage } from './types'
+
+function mapMessage(msg: AiMessage) {
+  if (msg.role === 'tool_call') {
+    return {
+      role: 'model' as const,
+      parts: [{ functionCall: { name: msg.name, args: msg.args } }],
+    }
+  }
+  if (msg.role === 'tool_response') {
+    return {
+      role: 'user' as const,
+      parts: [
+        {
+          functionResponse: {
+            name: msg.name,
+            response: JSON.parse(msg.content),
+          },
+        },
+      ],
+    }
+  }
+  return {
+    role: msg.role === 'user' ? ('user' as const) : ('model' as const),
+    parts: [{ text: msg.content }],
+  }
+}
 
 export function createGeminiProvider(apiKey: string): AiClient {
   const ai = new GoogleGenAI({ apiKey })
@@ -15,10 +41,7 @@ export function createGeminiProvider(apiKey: string): AiClient {
           role: 'model',
           parts: [{ text: 'Entendido! Estou pronto para ajudar.' }],
         },
-        ...options.messages.map((msg) => ({
-          role: msg.role === 'user' ? ('user' as const) : ('model' as const),
-          parts: [{ text: msg.content }],
-        })),
+        ...options.messages.map(mapMessage),
       ]
 
       // Montar config com tools opcionais

@@ -1,6 +1,77 @@
 import type { AiFunctionDeclaration } from './types'
 
-export const KAI_TOOLS: AiFunctionDeclaration[] = [
+// Query tools — Kai calls these to fetch data on demand.
+// The result goes back to the model as tool_response so it can reason over it.
+export const KAI_QUERY_TOOLS: AiFunctionDeclaration[] = [
+  {
+    name: 'get_dashboard',
+    description: `Busca as métricas do dashboard do mês atual: comissão, vendas, financeiro, rankings. Use quando o usuário perguntar sobre seus números do mês, como está o progresso da meta, quantas vendas fez, etc.
+
+Exemplos: "como estão minhas vendas?", "quanto ganhei esse mês?", "como está minha meta?"`,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_supplier_list',
+    description: `Lista todas as pastas/fornecedores do usuário com suas regras de comissão. Use quando o usuário perguntar sobre suas pastas, quais fornecedores tem, qual a comissão de uma pasta, etc.
+
+Exemplos: "quais são minhas pastas?", "qual a comissão da Coca?", "me mostra meus fornecedores"`,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_client_list',
+    description: `Lista todos os clientes ativos do usuário. Use quando o usuário perguntar sobre seus clientes cadastrados.
+
+Exemplos: "quais são meus clientes?", "quantos clientes tenho?", "me mostra a lista de clientes"`,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_receivables_summary',
+    description: `Busca o resumo de recebíveis do usuário: totais pendentes, vencidos e recebidos. Use quando o usuário perguntar sobre o total que tem a receber, quanto está atrasado, etc.
+
+Exemplos: "quanto tenho a receber?", "tem alguma parcela atrasada?", "quanto já recebi?"`,
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'get_historical_data',
+    description: `Busca vendas e comissões de um período específico. Use quando o usuário perguntar sobre dados de meses anteriores, comparações, totais de um período, etc. Sempre forneça date_from e date_to no formato YYYY-MM-DD.
+
+Exemplos: "quanto vendi em janeiro?", "como foi dezembro?", "quanto ganhei em 2025?"`,
+    parameters: {
+      type: 'object',
+      properties: {
+        date_from: {
+          type: 'string',
+          description: 'Data início do período (YYYY-MM-DD)',
+        },
+        date_to: {
+          type: 'string',
+          description: 'Data fim do período (YYYY-MM-DD)',
+        },
+      },
+      required: ['date_from', 'date_to'],
+    },
+  },
+]
+
+// Action tools — these perform side effects (create, update).
+// Handled after stream completes.
+export const KAI_ACTION_TOOLS: AiFunctionDeclaration[] = [
   {
     name: 'create_sale',
     description: `Registra uma nova venda para o usuário. Chame esta função IMEDIATAMENTE quando o usuário mencionar uma venda com pelo menos dois nomes (cliente e pasta/fornecedor) e um valor.
@@ -81,7 +152,9 @@ DADOS OPCIONAIS (pergunte se o usuário quiser informar):
 - email (e-mail)
 - address (endereço)
 
-NÃO pergunte tudo de uma vez. Pergunte apenas: "Preciso só do nome mesmo ou tem telefone/email?"`,
+NÃO pergunte tudo de uma vez. Pergunte apenas: "Preciso só do nome mesmo ou tem telefone/email?"
+
+DUPLICATAS: o backend verifica automaticamente se já existe um cliente com nome parecido. Se existir, ele pergunta ao usuário se quer criar mesmo assim. Se o usuário confirmar, chame a função novamente com o mesmo nome.`,
     parameters: {
       type: 'object',
       properties: {
@@ -123,7 +196,9 @@ DADOS OPCIONAIS:
 
 FLUXO:
 1. Se o usuário não informou a comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
-2. NÃO pergunte sobre taxa se não for mencionado — pode ser 0.`,
+2. NÃO pergunte sobre taxa se não for mencionado — pode ser 0.
+
+DUPLICATAS: o backend verifica automaticamente se já existe uma pasta com nome parecido. Se existir, ele pergunta ao usuário se quer criar mesmo assim. Se o usuário confirmar, chame a função novamente com o mesmo nome.`,
     parameters: {
       type: 'object',
       properties: {
@@ -161,7 +236,7 @@ QUANDO USAR:
 
 REGRAS:
 - Chame IMEDIATAMENTE quando o usuário mencionar recebimento — NÃO peça confirmação, o card de preview É a confirmação.
-- Use exatamente o texto que o usuário informou nos campos de nome — o backend faz o match fuzzy.
+- Use exatamente o texto que o usuário informou nos campos de nome — o backend resolve nomes parciais automaticamente (ex: "coca" → "Coca-Cola FEMSA"). Se o nome for ambíguo, o backend retorna candidatos para o usuário escolher.
 - Converta períodos para datas no formato YYYY-MM-DD:
   "este mês" → primeiro e último dia do mês atual
   "semana que vem" → próxima segunda a domingo
@@ -169,7 +244,8 @@ REGRAS:
 - Se o usuário não especificar status, omita (default: pendentes + atrasadas).
 - Se o usuário mencionar "atrasadas" ou "vencidas", use status "overdue".
 - Se o usuário falar "todas", use status "all".
-- Não precisa de todos os parâmetros — qualquer combinação é válida.`,
+- Não precisa de todos os parâmetros — qualquer combinação é válida.
+- Se o backend detectar que o nome informado como cliente é na verdade uma pasta (ou vice-versa), ele sugere a correção automaticamente.`,
     parameters: {
       type: 'object',
       properties: {
@@ -212,3 +288,14 @@ REGRAS:
     },
   },
 ]
+
+// Combined for the AI model — includes both query and action tools
+export const KAI_TOOLS: AiFunctionDeclaration[] = [
+  ...KAI_QUERY_TOOLS,
+  ...KAI_ACTION_TOOLS,
+]
+
+// Set of query tool names for quick lookup
+export const QUERY_TOOL_NAMES = new Set(
+  KAI_QUERY_TOOLS.map((t) => t.name)
+)
