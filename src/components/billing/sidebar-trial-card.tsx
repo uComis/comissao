@@ -1,7 +1,7 @@
 'use client'
 
 import { useCurrentUser } from '@/contexts/current-user-context'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 function getBarColor(daysRemaining: number): string {
@@ -20,26 +20,10 @@ export function SidebarTrialCard() {
   const isPaidUp = billing.isPaidUp
   const daysRemaining = billing.trial?.daysRemaining ?? 0
   const totalTrialDays = 14
-  const trialExpired = !isInTrial && !isPaidUp
 
-  // Pago: não mostra nada
+  // Pago ou trial expirado: não mostra nada
+  if (!isInTrial) return null
   if (isPaidUp && !isInTrial) return null
-
-  // Trial expirou → botão de upgrade
-  if (trialExpired) {
-    return (
-      <div className="mx-2 mb-[clamp(0.5rem,1vh,1rem)]">
-        <Link
-          href="/planos"
-          className="flex items-center justify-center gap-2 w-full p-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Faça upgrade
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      </div>
-    )
-  }
 
   // Trial ativo → card com barra de progresso
   const progress = ((totalTrialDays - daysRemaining) / totalTrialDays) * 100
