@@ -17,7 +17,7 @@ const HINT_KEY = 'kai_hint_seen'
 export function LayoutPageHeader() {
   const { title, backHref, contentMaxWidth, taskMode } = usePageHeader()
   const actions = usePageHeaderActions()
-  const { isOpen, toggle: toggleAiChat } = useAiChat()
+  const { isOpen, panelWidth, toggle: toggleAiChat } = useAiChat()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [showHint, setShowHint] = useState(false)
@@ -48,7 +48,10 @@ export function LayoutPageHeader() {
   }, [isOpen, showHint])
 
   return (
-    <div className="bg-background border-b h-20 flex items-center">
+    <div className={cn(
+      "bg-background border-b h-20 flex items-center md:transition-[padding] md:duration-300 md:ease-in-out",
+      isOpen && (panelWidth === 'wide' ? 'md:pr-[680px]' : 'md:pr-[480px]')
+    )}>
       <div className="max-w-[1500px] mx-auto px-6 w-full">
         <div className={cn(
           "flex items-center justify-between gap-4 w-full",
