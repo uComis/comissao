@@ -17,6 +17,7 @@ import {
 import { resolveNames } from '@/lib/services/ai-name-resolver'
 import { searchReceivables } from '@/lib/services/ai-receivables-search'
 import { checkDuplicate } from '@/lib/services/ai-duplicate-checker'
+import { resolveDateRange } from '@/lib/services/ai-date-resolver'
 import { commissionEngine } from '@/lib/commission-engine'
 
 export const runtime = 'edge'
@@ -48,7 +49,7 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - **get_client_list** — clientes cadastrados
 - **get_receivables_summary** — totais de recebíveis (pendentes, vencidos, recebidos)
 - **get_recent_sales** — últimas vendas (opcionalmente filtradas por cliente/pasta)
-- **get_historical_data** — vendas/comissões de um período (requer date_from e date_to no formato YYYY-MM-DD)
+- **get_historical_data** — vendas/comissões de um período. Aceita "period" em linguagem natural (ex: "último trimestre", "entre outubro e dezembro") OU date_from/date_to em YYYY-MM-DD. NUNCA pergunte "para qual ano?" — o backend infere automaticamente
 
 **SEMPRE** chame a ferramenta de consulta apropriada antes de responder sobre dados. Nunca invente ou estime valores.
 
@@ -59,11 +60,14 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - NÃO peça "nome completo" — o backend resolve nomes parciais (ex: "coca" → "Coca-Cola FEMSA")
 - Se faltar apenas o valor, pergunte só o valor
 - Se um nome é claramente uma empresa/marca conhecida como fornecedor (ex: Coca-Cola, Ambev, Nestlé), coloque como supplier_name mesmo que o usuário tenha dito "pro" ou "pra"
-- "a Ambev comprou 3 mil" = venda de 3 mil pela pasta Ambev. Pergunte só o nome do cliente
 - Se o usuário mencionar prazo/parcelas, converta para "dias/dias/dias" em payment_condition (ex: "3x de 30 dias" → "30/60/90", "à vista" → "0"). Se não mencionar, omita
 - SEMPRE chame create_sale com os dados disponíveis. NUNCA gere mensagens de erro sobre nome não encontrado — o backend faz a resolução e retorna erros adequados
 - **SE FALHAR** (cliente/pasta não existe): ofereça criar usando create_client ou create_supplier
 - Após o card: mensagem CURTA ("Montei a venda! Confirma no card ou edita no formulário ao lado."). NÃO repita os dados
+- **VALORES COLOQUIAIS** — sempre interprete: "3 mil" = 3000, "5 mil" = 5000, "1.5k" = 1500, "10k" = 10000, "quinze mil" = 15000, "2 mil e quinhentos" = 2500
+- **FRASES COM SÓ UM NOME** — se o usuário menciona só uma entidade + valor, identifique se é cliente ou pasta e pergunte só o que falta:
+  "a Ambev comprou 3 mil" → supplier=Ambev, gross_value=3000, falta client → pergunte SÓ o cliente
+  "vendi 5 mil pro João" → client=João, gross_value=5000, falta supplier → pergunte SÓ a pasta
 
 **search_receivables** — Registrar recebimento:
 - Chame IMEDIATAMENTE quando o usuário mencionar que recebeu ou que um cliente pagou
@@ -81,7 +85,8 @@ Você tem ferramentas de consulta para buscar dados reais sob demanda:
 - Se falta comissão, pergunte: "Qual a comissão padrão dessa pasta? (ex: 10%)"
 
 **navigate_to** — Navegar para uma página:
-- Use quando o usuário pedir para ir a uma tela ou quando for útil direcioná-lo
+- Use IMEDIATAMENTE quando o usuário mencionar uma página do sistema, seja por pedido direto ("me leva pra clientes") ou pergunta ("onde vejo minhas vendas?")
+- NUNCA pergunte "quer que eu te leve?". Se o usuário mencionou a página, navegue direto e confirme com frase curta ("Aqui estão suas vendas!", "Pronto, é aqui!")
 - Páginas: home, vendas, nova_venda, faturamento, clientes, pastas, planos, conta, configuracoes, ajuda
 
 ## Regra de ouro sobre nomes
@@ -268,14 +273,29 @@ export async function POST(req: NextRequest) {
                   (toolCall.args.limit as number) || 5,
                 )
                 break
-              case 'get_historical_data':
+              case 'get_historical_data': {
+                let dateFrom = (toolCall.args.date_from as string) || ''
+                let dateTo = (toolCall.args.date_to as string) || ''
+                const period = (toolCall.args.period as string) || ''
+
+                // Resolve natural language period if provided
+                if (period && (!dateFrom || !dateTo)) {
+                  const todayStr = new Date().toISOString().split('T')[0]
+                  const resolved = resolveDateRange(period, todayStr)
+                  if (resolved) {
+                    dateFrom = resolved.from
+                    dateTo = resolved.to
+                  }
+                }
+
                 toolResult = await fetchHistoricalData(
                   supabase,
                   user.id,
-                  (toolCall.args.date_from as string) || '',
-                  (toolCall.args.date_to as string) || '',
+                  dateFrom,
+                  dateTo,
                 )
                 break
+              }
               default:
                 toolResult = JSON.stringify({ error: `Tool desconhecida: ${toolCall.name}` })
             }
@@ -412,39 +432,44 @@ export async function POST(req: NextRequest) {
             )
 
             if (resolution.errors.length > 0) {
-              // Handle missing entities by offering to create them
-              const missingClient = !resolution.client && resolution.errors.some(e => e.includes('cliente'))
-              const missingSupplier = !resolution.supplier && resolution.errors.some(e => e.includes('pasta'))
+              // Separate ambiguity errors from truly-missing errors
+              const ambiguityErrors = resolution.errors.filter(e => e.includes('Encontrei'))
+              const missingErrors = resolution.errors.filter(e => !e.includes('Encontrei'))
 
               let responseText = ''
 
-              if (missingClient && missingSupplier) {
-                // Both missing
-                const clientMatch = resolution.errors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
-                const supplierMatch = resolution.errors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
-                const clientName = clientMatch ? clientMatch[1] : 'informado'
-                const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
-
-                responseText = `O cliente "${clientName}" e a pasta "${supplierName}" não foram encontrados.\n\n` +
-                  `Vamos criar eles? Primeiro preciso cadastrar a pasta.\n\n` +
-                  `📁 **Pasta ${supplierName}**: Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
-              } else if (missingClient) {
-                // Only client missing
-                const clientMatch = resolution.errors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
-                const clientName = clientMatch ? clientMatch[1] : 'informado'
-
-                responseText = `O cliente "${clientName}" não foi encontrado.\n\n` +
-                  `Deseja criar ele? Preciso só do nome ou tem telefone/email para cadastrar também?`
-              } else if (missingSupplier) {
-                // Only supplier missing
-                const supplierMatch = resolution.errors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
-                const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
-
-                responseText = `A pasta "${supplierName}" não foi encontrada.\n\n` +
-                  `Deseja criar ela? Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
-              } else {
-                // Ambiguous names - show original errors
+              if (ambiguityErrors.length > 0) {
+                // Ambiguous names — forward disambiguation to user
                 responseText = resolution.errors.join('\n\n')
+              } else {
+                // Only truly-missing entities — offer to create them
+                const missingClient = !resolution.client && missingErrors.some(e => e.includes('cliente'))
+                const missingSupplier = !resolution.supplier && missingErrors.some(e => e.includes('pasta'))
+
+                if (missingClient && missingSupplier) {
+                  const clientMatch = missingErrors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
+                  const supplierMatch = missingErrors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
+                  const clientName = clientMatch ? clientMatch[1] : 'informado'
+                  const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
+
+                  responseText = `O cliente "${clientName}" e a pasta "${supplierName}" não foram encontrados.\n\n` +
+                    `Vamos criar eles? Primeiro preciso cadastrar a pasta.\n\n` +
+                    `📁 **Pasta ${supplierName}**: Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
+                } else if (missingClient) {
+                  const clientMatch = missingErrors.find(e => e.includes('cliente'))?.match(/"([^"]+)"/)
+                  const clientName = clientMatch ? clientMatch[1] : 'informado'
+
+                  responseText = `O cliente "${clientName}" não foi encontrado.\n\n` +
+                    `Deseja criar ele? Preciso só do nome ou tem telefone/email para cadastrar também?`
+                } else if (missingSupplier) {
+                  const supplierMatch = missingErrors.find(e => e.includes('pasta'))?.match(/"([^"]+)"/)
+                  const supplierName = supplierMatch ? supplierMatch[1] : 'informada'
+
+                  responseText = `A pasta "${supplierName}" não foi encontrada.\n\n` +
+                    `Deseja criar ela? Qual a comissão padrão dessa pasta? (ex: 10 para 10%)`
+                } else {
+                  responseText = resolution.errors.join('\n\n')
+                }
               }
 
               fullAssistantText += responseText
@@ -452,96 +477,52 @@ export async function POST(req: NextRequest) {
                 encoder.encode(`data: ${JSON.stringify({ text: responseText })}\n\n`)
               )
             } else if (resolution.client && resolution.supplier) {
-              // Fetch commission rule for preview
+              // Fetch supplier defaults (tax_rate lives on supplier, not commission_rules)
+              const { data: supplierDefaults } = await supabase
+                .from('personal_suppliers')
+                .select('default_commission_rate, default_tax_rate')
+                .eq('id', resolution.supplier.id)
+                .single()
+
               const saleDate = args.sale_date || new Date().toISOString().split('T')[0]
               const grossValue = args.gross_value
-              let taxRate = 0
-              let commissionRate = 0
+              let taxRate = supplierDefaults?.default_tax_rate || 0
+              let commissionRate = supplierDefaults?.default_commission_rate || 0
               let commissionValue = 0
               let netValue = grossValue
 
               const userProvidedComm = args.commission_rate !== undefined
               const userProvidedTax = args.tax_rate !== undefined
 
-              if (userProvidedComm || userProvidedTax) {
-                // User explicitly provided rates — use them directly
-                if (userProvidedTax) taxRate = args.tax_rate!
-                if (userProvidedComm) commissionRate = args.commission_rate!
+              // Override with user-provided rates
+              if (userProvidedTax) taxRate = args.tax_rate!
+              if (userProvidedComm) commissionRate = args.commission_rate!
 
-                // If user gave only one rate, try to fill the other from DB
-                if (!userProvidedTax || !userProvidedComm) {
-                  if (resolution.supplier.commission_rule_id) {
-                    const { data: rule } = await supabase
-                      .from('commission_rules')
-                      .select('type, percentage, tiers, tax_percentage')
-                      .eq('id', resolution.supplier.commission_rule_id)
-                      .single()
-                    if (rule) {
-                      if (!userProvidedTax) taxRate = rule.tax_percentage || 0
-                      if (!userProvidedComm) {
-                        const tempTax = grossValue * (taxRate / 100)
-                        const tempNet = grossValue - tempTax
-                        const result = commissionEngine.calculate({
-                          netValue: tempNet,
-                          rule: { type: rule.type as 'fixed' | 'tiered', percentage: rule.percentage, tiers: rule.tiers },
-                        })
-                        commissionRate = result.percentageApplied
-                      }
-                    }
-                  } else {
-                    const { data: supplierData } = await supabase
-                      .from('personal_suppliers')
-                      .select('default_commission_rate, default_tax_rate')
-                      .eq('id', resolution.supplier.id)
-                      .single()
-                    if (supplierData) {
-                      if (!userProvidedTax) taxRate = supplierData.default_tax_rate || 0
-                      if (!userProvidedComm) commissionRate = supplierData.default_commission_rate || 0
-                    }
-                  }
-                }
-
-                const taxAmount = grossValue * (taxRate / 100)
-                netValue = grossValue - taxAmount
-                commissionValue = netValue * (commissionRate / 100)
-              } else if (resolution.supplier.commission_rule_id) {
+              // If commission rule exists and user didn't override commission, use the rule engine
+              if (!userProvidedComm && resolution.supplier.commission_rule_id) {
                 const { data: rule } = await supabase
                   .from('commission_rules')
-                  .select('type, percentage, tiers, tax_percentage')
+                  .select('type, percentage, tiers')
                   .eq('id', resolution.supplier.commission_rule_id)
                   .single()
-
                 if (rule) {
-                  taxRate = rule.tax_percentage || 0
                   const taxAmount = grossValue * (taxRate / 100)
-                  netValue = grossValue - taxAmount
-
+                  const tempNet = grossValue - taxAmount
                   const result = commissionEngine.calculate({
-                    netValue,
-                    rule: {
-                      type: rule.type as 'fixed' | 'tiered',
-                      percentage: rule.percentage,
-                      tiers: rule.tiers,
-                    },
+                    netValue: tempNet,
+                    rule: { type: rule.type as 'fixed' | 'tiered', percentage: rule.percentage, tiers: rule.tiers },
                   })
                   commissionValue = result.amount
                   commissionRate = result.percentageApplied
+                  netValue = tempNet
                 }
-              } else {
-                // Fallback: use supplier default rates
-                const { data: supplierData } = await supabase
-                  .from('personal_suppliers')
-                  .select('default_commission_rate, default_tax_rate')
-                  .eq('id', resolution.supplier.id)
-                  .single()
+              }
 
-                if (supplierData) {
-                  taxRate = supplierData.default_tax_rate || 0
-                  commissionRate = supplierData.default_commission_rate || 0
-                  const taxAmount = grossValue * (taxRate / 100)
-                  netValue = grossValue - taxAmount
-                  commissionValue = netValue * (commissionRate / 100)
-                }
+              // Calculate final values if not already set by commission engine
+              if (commissionValue === 0) {
+                const taxAmount = grossValue * (taxRate / 100)
+                netValue = grossValue - taxAmount
+                commissionValue = netValue * (commissionRate / 100)
               }
 
               // Calculate first_installment_date from payment_condition

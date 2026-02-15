@@ -170,7 +170,7 @@ export async function fetchSupplierList(
   const { data, error } = await supabase
     .from('personal_suppliers')
     .select(
-      'name, cnpj, commission_rules(type, commission_percentage, tax_percentage, is_default)'
+      'name, cnpj, default_commission_rate, default_tax_rate, commission_rules!commission_rules_personal_supplier_id_fkey(type, percentage, is_default)'
     )
     .eq('user_id', userId)
     .order('name')
@@ -184,8 +184,8 @@ export async function fetchSupplierList(
       name: s.name,
       cnpj: s.cnpj,
       ruleType: defaultRule?.type || null,
-      commissionPercent: defaultRule?.commission_percentage || null,
-      taxPercent: defaultRule?.tax_percentage || null,
+      commissionPercent: defaultRule?.percentage ?? s.default_commission_rate ?? null,
+      taxPercent: s.default_tax_rate ?? null,
     }
   })
 

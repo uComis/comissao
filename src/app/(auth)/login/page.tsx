@@ -42,7 +42,7 @@ export default function LoginPage() {
       setLoading(false)
       toast.error(error)
     } else {
-      router.refresh()
+      router.replace('/home')
     }
   }
 

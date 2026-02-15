@@ -12,8 +12,8 @@ export const PLAN_HIERARCHY: Record<PlanGroup, number> = {
 
 export const PLAN_PRICES: Record<PlanGroup, { monthly: number; annual: number }> = {
   free: { monthly: 0, annual: 0 },
-  pro: { monthly: 29.90, annual: 299.00 },
-  ultra: { monthly: 49.90, annual: 499.00 },
+  pro: { monthly: 39.90, annual: 358.80 },
+  ultra: { monthly: 99.90, annual: 958.80 },
 }
 
 // =====================================================

@@ -245,13 +245,13 @@ Venda de R$ 8.000:
 - 30 dias de histórico de dados
 - Ideal para começar e conhecer a plataforma
 
-## Plano Pro — R$ 29,90/mês ou R$ 299,00/ano (~17% de desconto)
+## Plano Pro — R$ 39,90/mês ou R$ 358,80/ano (~25% de desconto)
 - 1 pasta de fornecedor
 - Vendas ilimitadas
 - Histórico ilimitado de dados
 - Relatórios avançados
 
-## Plano Ultra — R$ 49,90/mês ou R$ 499,00/ano (~17% de desconto)
+## Plano Ultra — R$ 99,90/mês ou R$ 958,80/ano (~20% de desconto)
 - **Pastas ilimitadas** — para representante multi-pasta
 - Vendas ilimitadas
 - Histórico ilimitado de dados

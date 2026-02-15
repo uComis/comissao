@@ -73,22 +73,31 @@ Exemplos: "qual foi minha última venda?", "últimas vendas da Coca", "o que ven
   },
   {
     name: 'get_historical_data',
-    description: `Busca vendas e comissões de um período específico. Use quando o usuário perguntar sobre dados de meses anteriores, comparações, totais de um período, etc. Sempre forneça date_from e date_to no formato YYYY-MM-DD.
+    description: `Busca vendas e comissões de um período específico. Use quando o usuário perguntar sobre dados de meses anteriores, comparações, totais de um período, etc.
 
-Exemplos: "quanto vendi em janeiro?", "como foi dezembro?", "quanto ganhei em 2025?"`,
+Você pode usar QUALQUER formato:
+- **period** (linguagem natural): "último trimestre", "entre outubro e dezembro", "mês passado", "últimos 3 meses", "janeiro", "ano passado"
+- **date_from + date_to** (YYYY-MM-DD): "2025-10-01" e "2025-12-31"
+
+PREFIRA usar "period" com o texto exato do usuário — o backend resolve as datas. Só use date_from/date_to se o usuário informou datas específicas.
+NUNCA pergunte "para qual ano?" — o backend infere o ano automaticamente.`,
     parameters: {
       type: 'object',
       properties: {
+        period: {
+          type: 'string',
+          description: 'Período em linguagem natural (ex: "último trimestre", "entre outubro e dezembro", "janeiro", "mês passado", "últimos 3 meses", "ano passado", "semana passada")',
+        },
         date_from: {
           type: 'string',
-          description: 'Data início do período (YYYY-MM-DD)',
+          description: 'Data início do período (YYYY-MM-DD) — use só se o usuário deu data específica',
         },
         date_to: {
           type: 'string',
-          description: 'Data fim do período (YYYY-MM-DD)',
+          description: 'Data fim do período (YYYY-MM-DD) — use só se o usuário deu data específica',
         },
       },
-      required: ['date_from', 'date_to'],
+      required: [],
     },
   },
 ]

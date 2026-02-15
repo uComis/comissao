@@ -16,7 +16,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { KaiIcon } from './kai-icon'
 import { cn } from '@/lib/utils'
 import { useAppData } from '@/contexts'
 import { useAiChat } from './ai-chat-context'
@@ -280,6 +279,11 @@ export function AiChatWindow() {
                 continue
               }
 
+              // Handle standalone navigate event (from navigate_to tool)
+              if (parsed.navigate && !parsed.tool_call) {
+                router.push(parsed.navigate)
+              }
+
               if (parsed.text) {
                 if (!assistantMessageId) {
                   setIsLoading(false)
@@ -296,10 +300,12 @@ export function AiChatWindow() {
                 const newText = parsed.text
                 fullText += newText
 
-                for (let i = 0; i < newText.length; i++) {
-                  await new Promise((resolve) => setTimeout(resolve, 3))
-                  displayedText += newText[i]
+                // Render chunks — 3 chars per tick for smooth fast typing
+                const CHARS_PER_TICK = 3
+                for (let i = 0; i < newText.length; i += CHARS_PER_TICK) {
+                  displayedText += newText.slice(i, i + CHARS_PER_TICK)
                   updateMessage(assistantMessageId, displayedText)
+                  await new Promise((resolve) => setTimeout(resolve, 2))
                 }
               }
             } catch (parseError) {
@@ -372,8 +378,7 @@ export function AiChatWindow() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Kai icon + name */}
-        <KaiIcon size={20} />
+        {/* Kai name */}
         <span className="font-semibold text-sm select-none">Kai</span>
 
         {/* Spacer */}
